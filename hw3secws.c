@@ -100,22 +100,22 @@ static unsigned int comp_packet_to_rules(struct sk_buff *skb, const struct nf_ho
     for (i = 0; i < RULES_COUNT; i++) {
         rule_t *rule = &RULES[i];
         printk(KERN_INFO "Comparing against:  %s\n", rule->rule_name);
-        if (rule->direction != direction)
+        if (rule->direction != DIRECTION_ANY && rule->direction != direction)
             continue;
 
-        if ((src_ip & rule->src_prefix_mask) != (rule->src_ip & rule->src_prefix_mask))
+        if (rule->src_ip != IP_ANY && (src_ip & rule->src_prefix_mask) != (rule->src_ip & rule->src_prefix_mask))
             continue;
 
-        if ((dst_ip & rule->dst_prefix_mask) != (rule->dst_ip & rule->dst_prefix_mask))
+        if (rule->dst_ip != IP_ANY && (dst_ip & rule->dst_prefix_mask) != (rule->dst_ip & rule->dst_prefix_mask))
             continue;
 
-        if (rule->src_port != 0 && rule->src_port != src_port)
+        if (rule->src_port != PORT_ANY && rule->src_port != src_port)
             continue;
 
-        if (rule->dst_port != 0 && rule->dst_port != dst_port)
+        if (rule->dst_port != PORT_ANY && rule->dst_port != dst_port)
             continue;
 
-        if (rule->protocol != 0 && rule->protocol != protocol)
+        if (rule->protocol != PROT_ANY && rule->protocol != protocol)
             continue;
 
         if (protocol == PROT_TCP && rule->ack != ACK_ANY && rule->ack != ack)
