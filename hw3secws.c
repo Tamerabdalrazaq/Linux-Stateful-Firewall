@@ -58,14 +58,14 @@ static void extract_transport_fields(struct sk_buff *skb, __u8 protocol, __be16 
     *ack = ACK_NO;
 
     // Extract transport-layer fields based on protocol
-    if (protocol == IPPROTO_TCP) {
+    if (protocol == PROT_TCP) {
         tcp_header = tcp_hdr(skb);
         if (tcp_header) {
             *src_port = ntohs(tcp_header->source);
             *dst_port = ntohs(tcp_header->dest);
             *ack = (tcp_header->ack ? ACK_YES : ACK_NO);
         }
-    } else if (protocol == IPPROTO_UDP) {
+    } else if (protocol == PROT_UDP) {
         udp_header = udp_hdr(skb);
         if (udp_header) {
             *src_port = ntohs(udp_header->source);
@@ -74,48 +74,71 @@ static void extract_transport_fields(struct sk_buff *skb, __u8 protocol, __be16 
     }
 }
 
-
 static unsigned int comp_packet_to_rules(struct sk_buff *skb, const struct nf_hook_state *state) {
-    // Declare variables corresponding to rule_t fields
     __be32 src_ip = 0, dst_ip = 0;
     __be16 src_port = 0, dst_port = 0;
     __u8 protocol = 0;
-    __u8 ack = 0; // This will require parsing TCP headers
+    __u8 ack = 0;
     struct iphdr *ip_header;
-    direction_t direction; // Declare direction
+    direction_t direction;
 
     direction = strcmp(state->in->name, IN_NET_DEVICE_NAME) == 0 ? DIRECTION_IN : DIRECTION_OUT;
 
-    // Extract the IP header from the packet
     ip_header = ip_hdr(skb);
     if (!ip_header)
-        return NF_ACCEPT; // If no IP header, accept the packet
+        return NF_ACCEPT;
 
-    // Extract IP fields
     src_ip = ip_header->saddr;
     dst_ip = ip_header->daddr;
     protocol = ip_header->protocol;
 
     extract_transport_fields(skb, protocol, &src_port, &dst_port, &ack);
 
-    // Debugging: Print extracted values with direction
+    // Compare packet to rules
+    for (size_t i = 0; i < RULES_COUNT; i++) {
+        rule_t *rule = &RULES[i];
+        if (rule->direction != direction)
+            continue;
+
+        if ((src_ip & rule->src_prefix_mask) != (rule->src_ip & rule->src_prefix_mask))
+            continue;
+
+        if ((dst_ip & rule->dst_prefix_mask) != (rule->dst_ip & rule->dst_prefix_mask))
+            continue;
+
+        if (rule->src_port != 0 && rule->src_port != src_port)
+            continue;
+
+        if (rule->dst_port != 0 && rule->dst_port != dst_port)
+            continue;
+
+        if (rule->protocol != 0 && rule->protocol != protocol)
+            continue;
+
+        if (protocol == PROT_TCP && rule->ack != ACK_ANY && rule->ack != ack)
+            continue;
+        printk(KERN_INFO "Matched rule %s", rule->rule_name)
+        return rule->action; // Return the matching rule's action
+    }
+
     printk(KERN_INFO "Packet: direction=%s, src_ip=%pI4, dst_ip=%pI4, src_port=%u, dst_port=%u, protocol=%u, ack=%u\n",
            direction == DIRECTION_IN ? "IN" : "OUT", &src_ip, &dst_ip, src_port, dst_port, protocol, ack);
 
-    return NF_ACCEPT; // Placeholder: packet will be filtered later
+    return NF_ACCEPT;
 }
 
-// A hook function used for the 3 relevant phases (In, Out, Through)
 static unsigned int module_hook(void *priv, struct sk_buff *skb, const struct nf_hook_state *state) {
-    // Declare variables corresponding to rule_t fields
     unsigned int verdict = NF_DROP;
     struct iphdr *ip_header;
+
     ip_header = ip_hdr(skb);
     if (!ip_header)
-        return NF_ACCEPT; // If no IP header, accept the packet
+        return NF_ACCEPT;
+
     verdict = comp_packet_to_rules(skb, state);
     return verdict;
 }
+
 
 
 
