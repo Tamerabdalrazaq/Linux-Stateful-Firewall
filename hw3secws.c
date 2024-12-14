@@ -17,7 +17,7 @@ MODULE_VERSION("1");
 // Netfilter hooks for relevant packet phases
 static struct nf_hook_ops netfilter_ops_fw;
 
-static int RULES_COUNT = 2;
+static int RULES_COUNT = 3;
 static rule_t RULES[2] = {
     {
         .rule_name = "telnet2_rule",
@@ -32,6 +32,21 @@ static rule_t RULES[2] = {
         .dst_port = __constant_htons(1023), // Any port > 1023
         .protocol = PROT_TCP,
         .ack = ACK_YES,
+        .action = NF_ACCEPT, // Accept packets
+    },
+    {
+        .rule_name = "ICMP Test",
+        .direction = DIRECTION_IN,
+        .src_ip = __constant_htonl(0x0a010101), // 10.0.1.1
+        .src_prefix_mask = __constant_htonl(0xFFFFFF00), // 255.255.255.0
+        .src_prefix_size = 24,
+        .dst_ip = IP_ANY, // 0.0.0.0
+        .dst_prefix_mask = IP_ANY, // 0.0.0.0
+        .dst_prefix_size = 0,
+        .src_port = __constant_htons(8),
+        .dst_port = __constant_htons(0),
+        .protocol = PROT_ICMP,
+        .ack = ACK_ANY,
         .action = NF_ACCEPT, // Accept packets
     },
     {
