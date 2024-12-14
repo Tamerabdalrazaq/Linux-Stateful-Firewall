@@ -14,8 +14,8 @@ MODULE_VERSION("1");
 
 // Netfilter hooks for relevant packet phases
 static struct nf_hook_ops netfilter_ops_fw;
-rule_t telnet2_rule;
-rule_t default_rule;
+static rule_t telnet2_rule;
+static rule_t default_rule;
 
 telnet2_rule.rule_name = "telnet2_rule";
 telnet2_rule.direction = DIRECTION_ANY; // Adjust based on your system's direction_t enum
