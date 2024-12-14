@@ -10,6 +10,8 @@
 #include <linux/ip.h>
 #include <linux/tcp.h>
 #include <linux/udp.h>
+#include <linux/inet.h>
+
 
 // Testing
 #include <linux/netfilter.h>

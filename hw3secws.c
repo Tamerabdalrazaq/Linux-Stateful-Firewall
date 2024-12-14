@@ -3,6 +3,7 @@
 #include <linux/netfilter.h>
 #include <linux/netfilter_ipv4.h>
 #include <linux/netdevice.h>
+#include <linux/inet.h>
 #include "fw.h"
 
 MODULE_LICENSE("GPL");
@@ -16,37 +17,33 @@ static struct nf_hook_ops netfilter_ops_fw;
 rule_t telnet2_rule;
 rule_t default_rule;
 
-telnet2_rule = {
-	.rule_name = "telnet2_rule",
-	.direction = DIRECTION_ANY, // Adjust based on your system's direction_t enum
-	.src_ip = htonl(0x0A000101), // 10.0.1.1
-	.src_prefix_mask = htonl(0xFFFFFF00), // 255.255.255.0
-	.src_prefix_size = 24,
-	.dst_ip = IP_ANY, // 0.0.0.0
-	.dst_prefix_mask = IP_ANY, // 0.0.0.0
-	.dst_prefix_size = 0,
-	.src_port = htons(23),      // Source port 23
-	.dst_port = htons(1023),   // Any port > 1023 (use special logic in filtering)
-	.protocol = PROT_TCP,
-	.ack = ACK_YES,
-	.action = NF_ACCEPT, // NF_ACCEPT
-};
+telnet2_rule.rule_name = "telnet2_rule",
+telnet2_rule.direction = DIRECTION_ANY, // Adjust based on your system's direction_t enum
+telnet2_rule.src_ip = htonl(0x0A000101), // 10.0.1.1
+telnet2_rule.src_prefix_mask = htonl(0xFFFFFF00), // 255.255.255.0
+telnet2_rule.src_prefix_size = 24,
+telnet2_rule.dst_ip = IP_ANY, // 0.0.0.0
+telnet2_rule.dst_prefix_mask = IP_ANY, // 0.0.0.0
+telnet2_rule.dst_prefix_size = 0,
+telnet2_rule.src_port = htons(23),      // Source port 23
+telnet2_rule.dst_port = htons(1023),   // Any port > 1023 (use special logic in filtering)
+telnet2_rule.protocol = PROT_TCP,
+telnet2_rule.ack = ACK_YES,
+telnet2_rule.action = NF_ACCEPT, // NF_ACCEPT
 
-default_rule = {
-.rule_name = "default",
-.direction = DIRECTION_ANY, 
-.src_ip = htons(PORT_ANY),
-.src_prefix_mask = htons(PORT_ANY),
-.src_prefix_size = 0,
-.dst_ip = IP_ANY, 
-.dst_prefix_mask = IP_ANY,
-.dst_prefix_size = 0,
-.src_port = htons(PORT_ANY),
-.dst_port = htons(PORT_ANY),
-.protocol = PROT_ANY,
-.ack = ACK_ANY,
-.action = NF_DROP,
-};
+default_rule.rule_name = "default",
+default_rule.direction = DIRECTION_ANY, 
+default_rule.src_ip = htons(PORT_ANY),
+default_rule.src_prefix_mask = htons(PORT_ANY),
+default_rule.src_prefix_size = 0,
+default_rule.dst_ip = IP_ANY, 
+default_rule.dst_prefix_mask = IP_ANY,
+default_rule.dst_prefix_size = 0,
+default_rule.src_port = htons(PORT_ANY),
+default_rule.dst_port = htons(PORT_ANY),
+default_rule.protocol = PROT_ANY,
+default_rule.ack = ACK_ANY,
+default_rule.action = NF_DROP,
 
 
 // A hook function used for the 3 relevan phases (In, Out, Through)
