@@ -51,13 +51,50 @@ static rule_t RULES[2] = {
 // A hook function used for the 3 relevant phases (In, Out, Through)
 static unsigned int module_hook(void *priv, struct sk_buff *skb, const struct nf_hook_state *state) {
     // Declare variables corresponding to rule_t fields
+    unsigned int verdict = NF_DROP;
+    struct iphdr *ip_header;
+    ip_header = ip_hdr(skb);
+    if (!ip_header)
+        return NF_ACCEPT; // If no IP header, accept the packet
+    verdict = comp_packet_to_rules(skb, state);
+    return verdict
+}
+
+
+static void extract_transport_fields(struct sk_buff *skb, __u8 protocol, __be16 *src_port, __be16 *dst_port, __u8 *ack) {
+    struct tcphdr *tcp_header;
+    struct udphdr *udp_header;
+
+    // Initialize output parameters
+    *src_port = 0;
+    *dst_port = 0;
+    *ack = ACK_NO;
+
+    // Extract transport-layer fields based on protocol
+    if (protocol == IPPROTO_TCP) {
+        tcp_header = tcp_hdr(skb);
+        if (tcp_header) {
+            *src_port = ntohs(tcp_header->source);
+            *dst_port = ntohs(tcp_header->dest);
+            *ack = (tcp_header->ack ? ACK_YES : ACK_NO);
+        }
+    } else if (protocol == IPPROTO_UDP) {
+        udp_header = udp_hdr(skb);
+        if (udp_header) {
+            *src_port = ntohs(udp_header->source);
+            *dst_port = ntohs(udp_header->dest);
+        }
+    }
+}
+
+
+static unsigned int comp_packet_to_rules(struct sk_buff *skb, const struct nf_hook_state *state) {
+    // Declare variables corresponding to rule_t fields
     __be32 src_ip = 0, dst_ip = 0;
     __be16 src_port = 0, dst_port = 0;
     __u8 protocol = 0;
     __u8 ack = 0; // This will require parsing TCP headers
     struct iphdr *ip_header;
-    struct tcphdr *tcp_header;
-    struct udphdr *udp_header;
     direction_t direction; // Declare direction
 
     direction = strcmp(state->in->name, IN_NET_DEVICE_NAME) == 0 ? DIRECTION_IN : DIRECTION_OUT;
@@ -72,29 +109,14 @@ static unsigned int module_hook(void *priv, struct sk_buff *skb, const struct nf
     dst_ip = ip_header->daddr;
     protocol = ip_header->protocol;
 
-    // Extract transport-layer fields (TCP/UDP)
-    if (protocol == IPPROTO_TCP) {
-        tcp_header = tcp_hdr(skb);
-        if (tcp_header) {
-            src_port = ntohs(tcp_header->source);
-            dst_port = ntohs(tcp_header->dest);
-            ack = (tcp_header->ack ? 1 : 0);
-        }
-    } else if (protocol == IPPROTO_UDP) {
-        udp_header = udp_hdr(skb);
-        if (udp_header) {
-            src_port = ntohs(udp_header->source);
-            dst_port = ntohs(udp_header->dest);
-        }
-    }
+    extract_transport_fields(skb, protocol, &src_port, &dst_port, &ack);
 
     // Debugging: Print extracted values with direction
     printk(KERN_INFO "Packet: direction=%s, src_ip=%pI4, dst_ip=%pI4, src_port=%u, dst_port=%u, protocol=%u, ack=%u\n",
            direction == DIRECTION_IN ? "IN" : "OUT", &src_ip, &dst_ip, src_port, dst_port, protocol, ack);
-    printk(KERN_INFO "**********\n");
+
     return NF_ACCEPT; // Placeholder: packet will be filtered later
 }
-
 
 
 // Initialization function; handles error registering the hooks with cleanups and an indicative return value
