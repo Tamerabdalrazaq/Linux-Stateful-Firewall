@@ -46,7 +46,7 @@ static rule_t default_rule = {
     .action = NF_DROP, // Drop packets
 };
 
-static rule_t* RULES [2] = {telnet2_rule, default_rule}
+static rule_t RULES [2] = {telnet2_rule, default_rule}
 
 // A hook function used for the 3 relevan phases (In, Out, Through)
 static unsigned int module_hook(void *priv, struct sk_buff *skb, const struct nf_hook_state *state) {
