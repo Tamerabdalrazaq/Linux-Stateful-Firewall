@@ -48,8 +48,6 @@ static int __init fw_init(void) {
 static void __exit fw_exit(void) {
     printk(KERN_INFO "Removing hw1secws module...\n");
 
-    nf_unregister_net_hook(&init_net, &netfilter_ops_in);
-    nf_unregister_net_hook(&init_net, &netfilter_ops_out);
     nf_unregister_net_hook(&init_net, &netfilter_ops_fw);
 }
 
