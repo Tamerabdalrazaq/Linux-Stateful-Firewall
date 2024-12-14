@@ -142,12 +142,4 @@ rule_t default_rule = {
 .action = NF_DROP,
 };
 
-
-
-
-rule_t RULES[2];
-RULES[0]=default_rule;
-RULES[1]= telnet2_rule;
-
-
 #endif // _FW_H_

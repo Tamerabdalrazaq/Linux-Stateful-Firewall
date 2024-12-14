@@ -14,6 +14,11 @@ MODULE_VERSION("1");
 // Netfilter hooks for relevant packet phases
 static struct nf_hook_ops netfilter_ops_fw;
 
+
+rule_t RULES[2];
+RULES[0] = default_rule;
+RULES[1] = telnet2_rule;
+
 // A hook function used for the 3 relevan phases (In, Out, Through)
 static unsigned int module_hook(void *priv, struct sk_buff *skb, const struct nf_hook_state *state) {
     if (state->hook == NF_INET_LOCAL_IN || state->hook == NF_INET_LOCAL_OUT) {
