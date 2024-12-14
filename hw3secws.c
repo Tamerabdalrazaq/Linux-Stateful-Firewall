@@ -18,7 +18,7 @@ MODULE_VERSION("1");
 static struct nf_hook_ops netfilter_ops_fw;
 
 static int RULES_COUNT = 3;
-static rule_t RULES[2] = {
+static rule_t RULES[3] = {
     {
         .rule_name = "telnet2_rule",
         .direction = DIRECTION_ANY,
