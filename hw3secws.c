@@ -48,7 +48,7 @@ static rule_t RULES[2] = {
     }
 };
 
-// A hook function used for the 3 relevan phases (In, Out, Through)
+// A hook function used for the 3 relevant phases (In, Out, Through)
 static unsigned int module_hook(void *priv, struct sk_buff *skb, const struct nf_hook_state *state) {
     // Declare variables corresponding to rule_t fields
     __be32 src_ip = 0, dst_ip = 0;
@@ -58,6 +58,10 @@ static unsigned int module_hook(void *priv, struct sk_buff *skb, const struct nf
     struct iphdr *ip_header;
     struct tcphdr *tcp_header;
     struct udphdr *udp_header;
+    direction_t direction; // Declare direction
+
+    // Determine direction based on the incoming interface
+    direction = strcmp(state->in->name, "eth1") == 0 ? DIRECTION_IN : DIRECTION_OUT;
 
     // Extract the IP header from the packet
     ip_header = ip_hdr(skb);
@@ -85,13 +89,13 @@ static unsigned int module_hook(void *priv, struct sk_buff *skb, const struct nf
         }
     }
 
-    // Debugging: Print extracted values (optional)
-    printk(KERN_INFO "Packet: src_ip=%pI4, dst_ip=%pI4, src_port=%u, dst_port=%u, protocol=%u, ack=%u\n",
-           &src_ip, &dst_ip, src_port, dst_port, protocol, ack);
-    printk(KERN_INFO "**********");
+    // Debugging: Print extracted values with direction
+    printk(KERN_INFO "Packet: direction=%s, src_ip=%pI4, dst_ip=%pI4, src_port=%u, dst_port=%u, protocol=%u, ack=%u\n",
+           direction == DIRECTION_IN ? "IN" : "OUT", &src_ip, &dst_ip, src_port, dst_port, protocol, ack);
+    printk(KERN_INFO "**********\n");
     return NF_ACCEPT; // Placeholder: packet will be filtered later
-
 }
+
 
 
 // Initialization function; handles error registering the hooks with cleanups and an indicative return value
