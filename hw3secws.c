@@ -64,7 +64,7 @@ static unsigned int module_hook(void *priv, struct sk_buff *skb, const struct nf
 static int __init fw_init(void) {
 
     int ret;
-    printk(KERN_INFO "Loading hw1secws module...\n");
+    printk(KERN_INFO "Loading hw1secws module...!\n");
     printk(KERN_INFO "%s", default_rule.rule_name);
     printk(KERN_INFO "%s", telnet2_rule.rule_name);
     // Set up the Netfilter hook for forwarding packets
