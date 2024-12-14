@@ -14,39 +14,39 @@ MODULE_VERSION("1");
 
 // Netfilter hooks for relevant packet phases
 static struct nf_hook_ops netfilter_ops_fw;
-static rule_t telnet2_rule = {
-    .rule_name = "telnet2_rule",
-    .direction = DIRECTION_ANY,
-    .src_ip = __constant_htonl(0x0A000101), // 10.0.1.1 (precomputed htonl)
-    .src_prefix_mask = __constant_htonl(0xFFFFFF00), // 255.255.255.0
-    .src_prefix_size = 24,
-    .dst_ip = IP_ANY, // 0.0.0.0
-    .dst_prefix_mask = IP_ANY, // 0.0.0.0
-    .dst_prefix_size = 0,
-    .src_port = __constant_htons(23), // Source port 23
-    .dst_port = __constant_htons(1023), // Any port > 1023
-    .protocol = PROT_TCP,
-    .ack = ACK_YES,
-    .action = NF_ACCEPT, // Accept packets
-};
 
-static rule_t default_rule = {
-    .rule_name = "default",
-    .direction = DIRECTION_ANY,
-    .src_ip = IP_ANY,
-    .src_prefix_mask = IP_ANY,
-    .src_prefix_size = 0,
-    .dst_ip = IP_ANY,
-    .dst_prefix_mask = IP_ANY,
-    .dst_prefix_size = 0,
-    .src_port = __constant_htons(PORT_ANY),
-    .dst_port = __constant_htons(PORT_ANY),
-    .protocol = PROT_ANY,
-    .ack = ACK_ANY,
-    .action = NF_DROP, // Drop packets
+static rule_t RULES[2] = {
+    {
+        .rule_name = "telnet2_rule",
+        .direction = DIRECTION_ANY,
+        .src_ip = __constant_htonl(0x0A000101), // 10.0.1.1
+        .src_prefix_mask = __constant_htonl(0xFFFFFF00), // 255.255.255.0
+        .src_prefix_size = 24,
+        .dst_ip = IP_ANY, // 0.0.0.0
+        .dst_prefix_mask = IP_ANY, // 0.0.0.0
+        .dst_prefix_size = 0,
+        .src_port = __constant_htons(23), // Source port 23
+        .dst_port = __constant_htons(1023), // Any port > 1023
+        .protocol = PROT_TCP,
+        .ack = ACK_YES,
+        .action = NF_ACCEPT, // Accept packets
+    },
+    {
+        .rule_name = "default",
+        .direction = DIRECTION_ANY,
+        .src_ip = IP_ANY,
+        .src_prefix_mask = IP_ANY,
+        .src_prefix_size = 0,
+        .dst_ip = IP_ANY,
+        .dst_prefix_mask = IP_ANY,
+        .dst_prefix_size = 0,
+        .src_port = __constant_htons(PORT_ANY),
+        .dst_port = __constant_htons(PORT_ANY),
+        .protocol = PROT_ANY,
+        .ack = ACK_ANY,
+        .action = NF_DROP, // Drop packets
+    }
 };
-
-static rule_t RULES [2] = {telnet2_rule, default_rule}
 
 // A hook function used for the 3 relevan phases (In, Out, Through)
 static unsigned int module_hook(void *priv, struct sk_buff *skb, const struct nf_hook_state *state) {
