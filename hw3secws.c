@@ -105,6 +105,9 @@ static unsigned int comp_packet_to_rules(struct sk_buff *skb, const struct nf_ho
 
     extract_transport_fields(skb, protocol, &src_port, &dst_port, &ack);
 
+
+    printk(KERN_INFO "Packet: direction=%s, src_ip=%pI4, dst_ip=%pI4, src_port=%u, dst_port=%u, protocol=%u, ack=%u\n",
+           direction == DIRECTION_IN ? "IN" : "OUT", &src_ip, &dst_ip, src_port, dst_port, protocol, ack);
     // Compare packet to rules
     for (i = 0; i < RULES_COUNT; i++) {
         rule_t *rule = &RULES[i];
@@ -132,9 +135,6 @@ static unsigned int comp_packet_to_rules(struct sk_buff *skb, const struct nf_ho
         printk(KERN_INFO "\n**** Matched rule %s ****\n", rule->rule_name);
         return rule->action; // Return the matching rule's action
     }
-
-    printk(KERN_INFO "Packet: direction=%s, src_ip=%pI4, dst_ip=%pI4, src_port=%u, dst_port=%u, protocol=%u, ack=%u\n",
-           direction == DIRECTION_IN ? "IN" : "OUT", &src_ip, &dst_ip, src_port, dst_port, protocol, ack);
 
     return NF_ACCEPT;
 }
