@@ -98,6 +98,7 @@ static unsigned int comp_packet_to_rules(struct sk_buff *skb, const struct nf_ho
 
     // Compare packet to rules
     for (i = 0; i < RULES_COUNT; i++) {
+        printk(KERN_INFO "Comparing against:  %s\n", rule->rule_name);
         rule_t *rule = &RULES[i];
         if (rule->direction != direction)
             continue;
@@ -119,7 +120,7 @@ static unsigned int comp_packet_to_rules(struct sk_buff *skb, const struct nf_ho
 
         if (protocol == PROT_TCP && rule->ack != ACK_ANY && rule->ack != ack)
             continue;
-        printk(KERN_INFO "Matched rule %s", rule->rule_name);
+        printk(KERN_INFO "\n**** Matched rule %s ****\n", rule->rule_name);
         return rule->action; // Return the matching rule's action
     }
 
