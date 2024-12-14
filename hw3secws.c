@@ -2,9 +2,11 @@
 #include <linux/module.h>
 #include <linux/netfilter.h>
 #include <linux/netfilter_ipv4.h>
+#include <linux/icmp.h>
 #include <linux/netdevice.h>
 #include <linux/inet.h>
 #include "fw.h"
+
 
 MODULE_LICENSE("GPL");
 MODULE_AUTHOR("Razaq");
