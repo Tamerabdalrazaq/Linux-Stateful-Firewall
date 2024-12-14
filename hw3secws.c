@@ -46,17 +46,51 @@ static rule_t default_rule = {
     .action = NF_DROP, // Drop packets
 };
 
+static rule_t* RULES [2] = {telnet2_rule, default_rule}
 
 // A hook function used for the 3 relevan phases (In, Out, Through)
 static unsigned int module_hook(void *priv, struct sk_buff *skb, const struct nf_hook_state *state) {
-    if (state->hook == NF_INET_LOCAL_IN || state->hook == NF_INET_LOCAL_OUT) {
-        printk(KERN_INFO " *** Packet Dropped ***\n");
-        return NF_DROP;
-    } else if (state->hook == NF_INET_FORWARD) {
-        printk(KERN_INFO "*** Packet Accepted ***");
-        return NF_ACCEPT;
+    // Declare variables corresponding to rule_t fields
+    __be32 src_ip = 0, dst_ip = 0;
+    __be16 src_port = 0, dst_port = 0;
+    __u8 protocol = 0;
+    __u8 ack = 0; // This will require parsing TCP headers
+    struct iphdr *ip_header;
+    struct tcphdr *tcp_header;
+    struct udphdr *udp_header;
+
+    // Extract the IP header from the packet
+    ip_header = ip_hdr(skb);
+    if (!ip_header)
+        return NF_ACCEPT; // If no IP header, accept the packet
+
+    // Extract IP fields
+    src_ip = ip_header->saddr;
+    dst_ip = ip_header->daddr;
+    protocol = ip_header->protocol;
+
+    // Extract transport-layer fields (TCP/UDP)
+    if (protocol == IPPROTO_TCP) {
+        tcp_header = tcp_hdr(skb);
+        if (tcp_header) {
+            src_port = ntohs(tcp_header->source);
+            dst_port = ntohs(tcp_header->dest);
+            ack = (tcp_header->ack ? 1 : 0);
+        }
+    } else if (protocol == IPPROTO_UDP) {
+        udp_header = udp_hdr(skb);
+        if (udp_header) {
+            src_port = ntohs(udp_header->source);
+            dst_port = ntohs(udp_header->dest);
+        }
     }
-    return NF_ACCEPT;
+
+    // Debugging: Print extracted values (optional)
+    printk(KERN_INFO "Packet: src_ip=%pI4, dst_ip=%pI4, src_port=%u, dst_port=%u, protocol=%u, ack=%u\n",
+           &src_ip, &dst_ip, src_port, dst_port, protocol, ack);
+
+    return NF_ACCEPT; // Placeholder: packet will be filtered later
+
 }
 
 
@@ -65,8 +99,8 @@ static int __init fw_init(void) {
 
     int ret;
     printk(KERN_INFO "Loading hw1secws module...!\n");
-    printk(KERN_INFO "%s", default_rule.rule_name);
-    printk(KERN_INFO "%s", telnet2_rule.rule_name);
+    printk(KERN_INFO "%s", RULES[0].rule_name);
+    printk(KERN_INFO "%s", RULES[1].rule_name);
     // Set up the Netfilter hook for forwarding packets
     netfilter_ops_fw.hook = module_hook;
     netfilter_ops_fw.pf = PF_INET;
