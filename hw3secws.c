@@ -60,8 +60,7 @@ static unsigned int module_hook(void *priv, struct sk_buff *skb, const struct nf
     struct udphdr *udp_header;
     direction_t direction; // Declare direction
 
-    // Determine direction based on the incoming interface
-    direction = strcmp(state->in->name, "eth1") == 0 ? DIRECTION_IN : DIRECTION_OUT;
+    direction = strcmp(state->in->name, IN_NET_DEVICE_NAME) == 0 ? DIRECTION_IN : DIRECTION_OUT;
 
     // Extract the IP header from the packet
     ip_header = ip_hdr(skb);
