@@ -81,6 +81,7 @@ static unsigned int comp_packet_to_rules(struct sk_buff *skb, const struct nf_ho
     __u8 ack = 0;
     struct iphdr *ip_header;
     direction_t direction;
+    size_t i;
 
     direction = strcmp(state->in->name, IN_NET_DEVICE_NAME) == 0 ? DIRECTION_IN : DIRECTION_OUT;
 
@@ -95,7 +96,7 @@ static unsigned int comp_packet_to_rules(struct sk_buff *skb, const struct nf_ho
     extract_transport_fields(skb, protocol, &src_port, &dst_port, &ack);
 
     // Compare packet to rules
-    for (size_t i = 0; i < RULES_COUNT; i++) {
+    for (i = 0; i < RULES_COUNT; i++) {
         rule_t *rule = &RULES[i];
         if (rule->direction != direction)
             continue;
@@ -117,7 +118,7 @@ static unsigned int comp_packet_to_rules(struct sk_buff *skb, const struct nf_ho
 
         if (protocol == PROT_TCP && rule->ack != ACK_ANY && rule->ack != ack)
             continue;
-        printk(KERN_INFO "Matched rule %s", rule->rule_name)
+        printk(KERN_INFO "Matched rule %s", rule->rule_name);
         return rule->action; // Return the matching rule's action
     }
 
