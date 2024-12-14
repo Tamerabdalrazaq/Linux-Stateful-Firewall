@@ -15,6 +15,7 @@ MODULE_VERSION("1");
 // Netfilter hooks for relevant packet phases
 static struct nf_hook_ops netfilter_ops_fw;
 
+static int RULES_COUNT = 2;
 static rule_t RULES[2] = {
     {
         .rule_name = "telnet2_rule",
@@ -96,7 +97,7 @@ static unsigned int comp_packet_to_rules(struct sk_buff *skb, const struct nf_ho
     extract_transport_fields(skb, protocol, &src_port, &dst_port, &ack);
 
     // Compare packet to rules
-    for (i = 0; i < RULES.length; i++) {
+    for (i = 0; i < RULES_COUNT; i++) {
         rule_t *rule = &RULES[i];
         if (rule->direction != direction)
             continue;
