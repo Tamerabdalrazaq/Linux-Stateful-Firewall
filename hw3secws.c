@@ -48,19 +48,6 @@ static rule_t RULES[2] = {
     }
 };
 
-// A hook function used for the 3 relevant phases (In, Out, Through)
-static unsigned int module_hook(void *priv, struct sk_buff *skb, const struct nf_hook_state *state) {
-    // Declare variables corresponding to rule_t fields
-    unsigned int verdict = NF_DROP;
-    struct iphdr *ip_header;
-    ip_header = ip_hdr(skb);
-    if (!ip_header)
-        return NF_ACCEPT; // If no IP header, accept the packet
-    verdict = comp_packet_to_rules(skb, state);
-    return verdict
-}
-
-
 static void extract_transport_fields(struct sk_buff *skb, __u8 protocol, __be16 *src_port, __be16 *dst_port, __u8 *ack) {
     struct tcphdr *tcp_header;
     struct udphdr *udp_header;
@@ -117,6 +104,20 @@ static unsigned int comp_packet_to_rules(struct sk_buff *skb, const struct nf_ho
 
     return NF_ACCEPT; // Placeholder: packet will be filtered later
 }
+
+// A hook function used for the 3 relevant phases (In, Out, Through)
+static unsigned int module_hook(void *priv, struct sk_buff *skb, const struct nf_hook_state *state) {
+    // Declare variables corresponding to rule_t fields
+    unsigned int verdict = NF_DROP;
+    struct iphdr *ip_header;
+    ip_header = ip_hdr(skb);
+    if (!ip_header)
+        return NF_ACCEPT; // If no IP header, accept the packet
+    verdict = comp_packet_to_rules(skb, state);
+    return verdict;
+}
+
+
 
 
 // Initialization function; handles error registering the hooks with cleanups and an indicative return value
