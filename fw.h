@@ -11,6 +11,10 @@
 #include <linux/tcp.h>
 #include <linux/udp.h>
 
+// Testing
+#include <linux/netfilter.h>
+
+
 
 // the protocols we will work with
 typedef enum {
@@ -45,6 +49,7 @@ typedef enum {
 #define PORT_ANY		(0)
 #define PORT_ABOVE_1023	(1023)
 #define MAX_RULES		(50)
+#define IP_ANY 		    (htonl(0x00000000))
 
 // device minor numbers, for your convenience
 typedef enum {
@@ -94,5 +99,53 @@ typedef struct {
 	reason_t     	reason;       	// rule#index, or values from: reason_t
 	unsigned int   	count;        	// counts this line's hits
 } log_row_t;
+
+// Testing
+rule_t telnet2_rule;
+rule_t default_rule;
+
+// Set rule name
+
+
+// Set rule name
+
+
+rule_t telnet2_rule = {
+	.rule_name = "telnet2_rule",
+	.direction = DIRECTION_ANY; // Adjust based on your system's direction_t enum
+	.src_ip = htonl(0x0A000101); // 10.0.1.1
+	.src_prefix_mask = htonl(0xFFFFFF00); // 255.255.255.0
+	.src_prefix_size = 24;
+	.dst_ip = IP_ANY; // 0.0.0.0
+	.dst_prefix_mask = IP_ANY; // 0.0.0.0
+	.dst_prefix_size = 0;
+	.src_port = htons(23);      // Source port 23
+	.dst_port = htons(1023);   // Any port > 1023 (use special logic in filtering)
+	.protocol = PROT_TCP;
+	.ack = ACK_YES;
+	.action = NF_ACCEPT; // NF_ACCEPT
+};
+
+rule_t default_rule = {
+.rule_name = "default";
+.direction = DIRECTION_ANY; 
+.src_ip = htons(PORT_ANY);
+.src_prefix_mask = htons(PORT_ANY);
+.src_prefix_size = 0;
+.dst_ip = IP_ANY; 
+.dst_prefix_mask = IP_ANY;
+.dst_prefix_size = 0;
+.src_port = htons(PORT_ANY);
+.dst_port = htons(PORT_ANY);
+.protocol = PROT_ANY;
+.ack = ACK_ANY;
+.action = NF_DROP;
+};
+
+
+
+
+rule_t RULES[2] = {default_rule, telnet2_rule};
+
 
 #endif // _FW_H_

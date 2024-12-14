@@ -3,6 +3,7 @@
 #include <linux/netfilter.h>
 #include <linux/netfilter_ipv4.h>
 #include <linux/netdevice.h>
+#include "fw.h"
 
 MODULE_LICENSE("GPL");
 MODULE_AUTHOR("Razaq");
@@ -28,8 +29,11 @@ static unsigned int module_hook(void *priv, struct sk_buff *skb, const struct nf
 
 // Initialization function; handles error registering the hooks with cleanups and an indicative return value
 static int __init fw_init(void) {
+
     int ret;
     printk(KERN_INFO "Loading hw1secws module...\n");
+    printk(KERN_INFO "%s", RULES[0].rule_name);
+    printk(KERN_INFO "%s", RULES[1].rule_name);
     // Set up the Netfilter hook for forwarding packets
     netfilter_ops_fw.hook = module_hook;
     netfilter_ops_fw.pf = PF_INET;
