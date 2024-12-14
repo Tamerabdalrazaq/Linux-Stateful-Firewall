@@ -46,6 +46,7 @@ static rule_t default_rule = {
     .action = NF_DROP, // Drop packets
 };
 
+
 // A hook function used for the 3 relevan phases (In, Out, Through)
 static unsigned int module_hook(void *priv, struct sk_buff *skb, const struct nf_hook_state *state) {
     if (state->hook == NF_INET_LOCAL_IN || state->hook == NF_INET_LOCAL_OUT) {
@@ -64,8 +65,8 @@ static int __init fw_init(void) {
 
     int ret;
     printk(KERN_INFO "Loading hw1secws module...\n");
-    printk(KERN_INFO "%s", RULES[0].rule_name);
-    printk(KERN_INFO "%s", RULES[1].rule_name);
+    printk(KERN_INFO "%s", default_rule.rule_name);
+    printk(KERN_INFO "%s", telnet2_rule.rule_name);
     // Set up the Netfilter hook for forwarding packets
     netfilter_ops_fw.hook = module_hook;
     netfilter_ops_fw.pf = PF_INET;
