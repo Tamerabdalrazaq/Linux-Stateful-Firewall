@@ -52,6 +52,7 @@ static rule_t RULES[2] = {
 static void extract_transport_fields(struct sk_buff *skb, __u8 protocol, __be16 *src_port, __be16 *dst_port, __u8 *ack) {
     struct tcphdr *tcp_header;
     struct udphdr *udp_header;
+    struct icmphdr *icmp_header;
 
     // Initialize output parameters
     *src_port = 0;
@@ -71,6 +72,12 @@ static void extract_transport_fields(struct sk_buff *skb, __u8 protocol, __be16 
         if (udp_header) {
             *src_port = ntohs(udp_header->source);
             *dst_port = ntohs(udp_header->dest);
+        }
+    } else if (protocol == PROT_ICMP) {
+        icmp_header = icmp_hdr(skb);
+        if (icmp_header) {
+            *src_port = icmp_header->type; // Use type as src_port equivalent
+            *dst_port = icmp_header->code; // Use code as dst_port equivalent
         }
     }
 }
@@ -135,8 +142,19 @@ static unsigned int module_hook(void *priv, struct sk_buff *skb, const struct nf
     struct iphdr *ip_header;
 
     ip_header = ip_hdr(skb);
-    if (!ip_header)
+    if (!ip_header) {
+        return NF_ACCEPT; // Accept non-IPv4 packets (e.g., IPv6)
+    }
+
+    // Check for loopback packets (127.0.0.1/8)
+    if ((ntohl(ip_header->saddr) & 0xFF000000) == 0x7F000000) {
+        return NF_ACCEPT; // Accept loopback packets without logging
+    }
+
+    // Accept any non-TCP, UDP, or ICMP protocol without logging
+    if (ip_header->protocol != PROT_TCP && ip_header->protocol != PROT_UDP && ip_header->protocol != PROT_ICMP) {
         return NF_ACCEPT;
+    }
 
     verdict = comp_packet_to_rules(skb, state);
     return verdict;
