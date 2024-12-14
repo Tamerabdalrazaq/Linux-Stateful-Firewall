@@ -88,7 +88,7 @@ static unsigned int module_hook(void *priv, struct sk_buff *skb, const struct nf
     // Debugging: Print extracted values (optional)
     printk(KERN_INFO "Packet: src_ip=%pI4, dst_ip=%pI4, src_port=%u, dst_port=%u, protocol=%u, ack=%u\n",
            &src_ip, &dst_ip, src_port, dst_port, protocol, ack);
-
+    printk(KERN_INFO "**********");
     return NF_ACCEPT; // Placeholder: packet will be filtered later
 
 }
