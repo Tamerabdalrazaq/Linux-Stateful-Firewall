@@ -127,26 +127,40 @@ static unsigned int comp_packet_to_rules(struct sk_buff *skb, const struct nf_ho
     for (i = 0; i < RULES_COUNT; i++) {
         rule_t *rule = &RULES[i];
         printk(KERN_INFO "Comparing against:  %s\n", rule->rule_name);
-        if (rule->direction != DIRECTION_ANY && rule->direction != direction)
+        if (rule->direction != DIRECTION_ANY && rule->direction != direction){
+            printk(KERN_ALERT "Excluded at direction\n");
             continue;
+        }
 
-        if (rule->src_ip != IP_ANY && (src_ip & rule->src_prefix_mask) != (rule->src_ip & rule->src_prefix_mask))
+        if (rule->src_ip != IP_ANY && (src_ip & rule->src_prefix_mask) != (rule->src_ip & rule->src_prefix_mask)){
+            printk(KERN_ALERT "Excluded at src_ip\n");
             continue;
+        }
 
-        if (rule->dst_ip != IP_ANY && (dst_ip & rule->dst_prefix_mask) != (rule->dst_ip & rule->dst_prefix_mask))
+        if (rule->dst_ip != IP_ANY && (dst_ip & rule->dst_prefix_mask) != (rule->dst_ip & rule->dst_prefix_mask)){
+            printk(KERN_ALERT "Excluded at dst_ip\n");
             continue;
+        }
 
-        if (rule->src_port != PORT_ANY && rule->src_port != src_port)
+        if (rule->src_port != PORT_ANY && rule->src_port != src_port){
+            printk(KERN_ALERT "Excluded at src_port\n");
             continue;
+        }
 
-        if (rule->dst_port != PORT_ANY && rule->dst_port != dst_port)
+        if (rule->dst_port != PORT_ANY && rule->dst_port != dst_port){
+            printk(KERN_ALERT "Excluded at dst_port\n");
             continue;
+        }
 
-        if (rule->protocol != PROT_ANY && rule->protocol != protocol)
+        if (rule->protocol != PROT_ANY && rule->protocol != protocol){
+            printk(KERN_ALERT "Excluded at protocol\n");
             continue;
+        }
 
-        if (protocol == PROT_TCP && rule->ack != ACK_ANY && rule->ack != ack)
+        if (protocol == PROT_TCP && rule->ack != ACK_ANY && rule->ack != ack){
+            printk(KERN_ALERT "Excluded at ack\n");
             continue;
+        }
         printk(KERN_INFO "\n**** Matched rule %s ****\n", rule->rule_name);
         return rule->action; // Return the matching rule's action
     }
