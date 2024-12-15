@@ -11,7 +11,6 @@
 #include <linux/jiffies.h> // For timestamp in jiffies
 #include <linux/slab.h> // For kmalloc and kfree
 
-
 MODULE_LICENSE("GPL");
 MODULE_AUTHOR("Razaq");
 MODULE_DESCRIPTION("Basic Packet Filtering");
@@ -25,8 +24,6 @@ struct packet_log {
 
 // Define the static klist for packet logs
 static struct klist packet_logs = KLIST_INIT(packet_logs, NULL, NULL);
-
-
 
 // Netfilter hooks for relevant packet phases
 static struct nf_hook_ops netfilter_ops_fw;
@@ -165,7 +162,7 @@ void add_or_update_log_entry(log_row_t *new_entry) {
 }
 
 
-static void extract_transport_fields(struct sk_buff *skb, __u8 protocol, __be16 *src_port, __be16 *dst_port, __u8 *ack) {
+static void extract_transport_fields(struct sk_buff *skb, __u8 protocol, __be16 *src_port, __be16 *dst_port, __u8 *ack, int* is_christmas_packet) { 
     struct tcphdr *tcp_header;
     struct udphdr *udp_header;
     struct icmphdr *icmp_header;
@@ -174,6 +171,7 @@ static void extract_transport_fields(struct sk_buff *skb, __u8 protocol, __be16 
     *src_port = 0;
     *dst_port = 0;
     *ack = ACK_NO;
+    *is_christmas_packet = 0; // Default to false
 
     // Extract transport-layer fields based on protocol
     if (protocol == PROT_TCP) {
@@ -182,6 +180,11 @@ static void extract_transport_fields(struct sk_buff *skb, __u8 protocol, __be16 
             *src_port = ntohs(tcp_header->source);
             *dst_port = ntohs(tcp_header->dest);
             *ack = (tcp_header->ack ? ACK_YES : ACK_NO);
+
+            // Check if the packet is a Christmas tree packet
+            if (tcp_header->fin && tcp_header->urg && tcp_header->psh) {
+                *is_christmas_packet = 1; // Mark as true
+            }
         }
     } else if (protocol == PROT_UDP) {
         udp_header = udp_hdr(skb);
@@ -195,6 +198,8 @@ static void extract_transport_fields(struct sk_buff *skb, __u8 protocol, __be16 
             *src_port = icmp_header->type; // Use type as src_port equivalent
             *dst_port = icmp_header->code; // Use code as dst_port equivalent
         }
+    } else{
+
     }
 }
 
@@ -206,6 +211,7 @@ static unsigned int comp_packet_to_rules(struct sk_buff *skb, const struct nf_ho
     struct iphdr *ip_header;
     direction_t direction;
     size_t i;
+    int is_christmas_packet = 0;
     log_row_t log_entry;
 
     memset(&log_entry, 0, sizeof(log_row_t)); // Initialize to zero
@@ -219,70 +225,58 @@ static unsigned int comp_packet_to_rules(struct sk_buff *skb, const struct nf_ho
     dst_ip = ip_header->daddr;
     protocol = ip_header->protocol;
 
-    extract_transport_fields(skb, protocol, &src_port, &dst_port, &ack);
+    if (protocol != PROT_ICMP &&  protocol != PROT_TCP && protocol != PROT_ICMP)
+        return NF_ACCEPT;
 
+    extract_transport_fields(skb, protocol, &src_port, &dst_port, &ack, &is_christmas_packet);
 
-    printk(KERN_INFO "Packet: direction=%s, src_ip=%pI4, dst_ip=%pI4, src_port=%u, dst_port=%u, protocol=%u, ack=%u\n",
-           direction == DIRECTION_IN ? "IN" : "OUT", &src_ip, &dst_ip, ntohs(src_port), ntohs(dst_port), protocol, ack);
+    log_entry.timestamp = jiffies;           // Use jiffies as the timestamp
+    log_entry.protocol = protocol;          // Protocol extracted from the IP header
+    log_entry.src_ip = src_ip;              // Source IP from the packet
+    log_entry.dst_ip = dst_ip;              // Destination IP from the packet
+    log_entry.src_port = src_port;          // Source port from transport fields
+    log_entry.dst_port = dst_port;          // Destination port from transport fields
+    log_entry.count = 1;                    // Initial hit count       
+           
     // Compare packet to rules
-    for (i = 0; i < RULES_COUNT; i++) {
-        rule_t *rule = &RULES[i];
-        printk(KERN_INFO "Comparing against:  %s\n", rule->rule_name);
-        if (rule->direction != DIRECTION_ANY && rule->direction != direction){
-            printk(KERN_ALERT "Excluded at direction\n");
-            continue;
-        }
+    if (is_christmas_packet == 0){
+        for (i = 0; i < RULES_COUNT; i++) {
+            rule_t *rule = &RULES[i];
+            printk(KERN_INFO "Comparing against:  %s\n", rule->rule_name);
+            if (rule->direction != DIRECTION_ANY && rule->direction != direction)
+                continue;
+            if (rule->src_ip != IP_ANY && (src_ip & rule->src_prefix_mask) != (rule->src_ip & rule->src_prefix_mask))
+                continue;
+            if (rule->dst_ip != IP_ANY && (dst_ip & rule->dst_prefix_mask) != (rule->dst_ip & rule->dst_prefix_mask))
+                continue;
+            if (rule->src_port != PORT_ANY && rule->src_port != src_port)
+                continue;
+            if (rule->dst_port != PORT_ANY && rule->dst_port != dst_port)
+                continue;
+            if (rule->protocol != PROT_ANY && rule->protocol != protocol)
+                continue;
+            if (protocol == PROT_TCP && rule->ack != ACK_ANY && rule->ack != ack)
+                continue;
 
-        if (rule->src_ip != IP_ANY && (src_ip & rule->src_prefix_mask) != (rule->src_ip & rule->src_prefix_mask)){
-            printk(KERN_ALERT "Excluded at src_ip\n");
-            continue;
+            printk(KERN_INFO "\n**** Matched rule %s ****\n", rule->rule_name);
+            // Create and initialize a new log_row_t object
+            // Populate the log entry fields
+            log_entry.action = rule->action;          // Placeholder: set appropriate action later
+            if(i == RULES_COUNT - 1)
+                log_entry.reason = REASON_NO_MATCHING_RULE;   
+            else              
+                log_entry.reason = i;   
+            return rule->action; // Return the matching rule's action
         }
+    } else{
+        log_entry.reason = REASON_XMAS_PACKET;
+        log_entry.action = NF_DROP;
 
-        if (rule->dst_ip != IP_ANY && (dst_ip & rule->dst_prefix_mask) != (rule->dst_ip & rule->dst_prefix_mask)){
-            printk(KERN_ALERT "Excluded at dst_ip\n");
-            continue;
-        }
-
-        if (rule->src_port != PORT_ANY && rule->src_port != src_port){
-            printk(KERN_ALERT "Excluded at src_port\n");
-            continue;
-        }
-
-        if (rule->dst_port != PORT_ANY && rule->dst_port != dst_port){
-            printk(KERN_ALERT "Excluded at dst_port\n");
-            continue;
-        }
-
-        if (rule->protocol != PROT_ANY && rule->protocol != protocol){
-            printk(KERN_ALERT "Excluded at protocol\n");
-            continue;
-        }
-
-        if (protocol == PROT_TCP && rule->ack != ACK_ANY && rule->ack != ack){
-            printk(KERN_ALERT "Excluded at ack\n");
-            continue;
-        }
-        printk(KERN_INFO "\n**** Matched rule %s ****\n", rule->rule_name);
-        // Create and initialize a new log_row_t object
-        // Populate the log entry fields
-        log_entry.timestamp = jiffies;           // Use jiffies as the timestamp
-        log_entry.protocol = protocol;          // Protocol extracted from the IP header
-        log_entry.src_ip = src_ip;              // Source IP from the packet
-        log_entry.dst_ip = dst_ip;              // Destination IP from the packet
-        log_entry.src_port = src_port;          // Source port from transport fields
-        log_entry.dst_port = dst_port;          // Destination port from transport fields
-        log_entry.action = rule->action;          // Placeholder: set appropriate action later
-        log_entry.count = 1;                    // Initial hit count
-        if(i == RULES_COUNT - 1)
-            log_entry.reason = REASON_NO_MATCHING_RULE;   
-        else              
-            log_entry.reason = i;   
-        add_or_update_log_entry(&log_entry);
-        print_packet_logs();
-        return rule->action; // Return the matching rule's action
     }
+    add_or_update_log_entry(&log_entry);
+    print_packet_logs();
 
-    return NF_ACCEPT;
+    return NF_DROP;
 }
 
 static unsigned int module_hook(void *priv, struct sk_buff *skb, const struct nf_hook_state *state) {
