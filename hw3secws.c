@@ -106,6 +106,13 @@ ssize_t modify(struct device *dev, struct device_attribute *attr, const char *bu
 	return count;	
 }
 
+ssize_t reset_store(struct device *dev, struct device_attribute *attr, const char *buf, size_t count)
+{
+    // Add logic for handling "reset" write
+    printk(KERN_INFO "fw: Reset triggered via sysfs\n");
+    return count; // Simply acknowledge the write
+}
+
 
 
 void print_packet_logs(void) {
@@ -336,6 +343,8 @@ static unsigned int module_hook(void *priv, struct sk_buff *skb, const struct nf
 
 
 static DEVICE_ATTR(rules, S_IWUSR | S_IRUGO , display, modify);
+static DEVICE_ATTR(reset, S_IWUSR, NULL, reset_store);
+
 
 
 // Initialization function; handles error registering the hooks with cleanups and an indicative return value
@@ -377,6 +386,25 @@ static int __init fw_init(void) {
 		return -1;
 	}
 
+    struct device *log_device = device_create(sysfs_class, NULL, MKDEV(major_number, 1), NULL, "log");
+    if (IS_ERR(log_device))
+    {
+        device_destroy(sysfs_class, MKDEV(major_number, 0));
+        class_destroy(sysfs_class);
+        unregister_chrdev(major_number, "Sysfs_Device");
+        return -1;
+    }
+
+    // Create the "reset" sysfs attribute for the "log" device
+    if (device_create_file(log_device, (const struct device_attribute *)&dev_attr_reset.attr))
+    {
+        device_destroy(sysfs_class, MKDEV(major_number, 1));
+        device_destroy(sysfs_class, MKDEV(major_number, 0));
+        class_destroy(sysfs_class);
+        unregister_chrdev(major_number, "Sysfs_Device");
+        return -1;
+    }
+
     // ******
     // Netfilter Hooks
     // ******
@@ -405,6 +433,9 @@ static void __exit fw_exit(void) {
 	device_destroy(sysfs_class, MKDEV(major_number, 0));
 	class_destroy(sysfs_class);
 	unregister_chrdev(major_number, "Sysfs_Device");
+
+    device_remove_file(log_device, (const struct device_attribute *)&dev_attr_reset.attr);
+    device_destroy(sysfs_class, MKDEV(major_number, 1));
 
     // ******
     // Netfilter unhook
