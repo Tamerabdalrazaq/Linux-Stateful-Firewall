@@ -23,6 +23,7 @@ MODULE_VERSION("1");
 static int major_number;
 static struct class* sysfs_class = NULL;
 static struct device* sysfs_device = NULL;
+struct device *log_device;
 
 static unsigned int sysfs_int = 0;
 
@@ -386,7 +387,7 @@ static int __init fw_init(void) {
 		return -1;
 	}
 
-    struct device *log_device = device_create(sysfs_class, NULL, MKDEV(major_number, 1), NULL, "log");
+    log_device = device_create(sysfs_class, NULL, MKDEV(major_number, 1), NULL, "log");
     if (IS_ERR(log_device))
     {
         device_destroy(sysfs_class, MKDEV(major_number, 0));
