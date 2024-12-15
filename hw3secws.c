@@ -352,7 +352,7 @@ static int __init fw_init(void) {
 		return -1;
 		
 	//create sysfs class
-	sysfs_class = class_create(THIS_MODULE, "Sysfs_class");
+	sysfs_class = class_create(THIS_MODULE, "fw");
 	if (IS_ERR(sysfs_class))
 	{
 		unregister_chrdev(major_number, "Sysfs_Device");
@@ -360,7 +360,7 @@ static int __init fw_init(void) {
 	}
 	
 	//create sysfs device
-	sysfs_device = device_create(sysfs_class, NULL, MKDEV(major_number, 0), NULL, "sysfs_class" "_" "sysfs_Device");	
+	sysfs_device = device_create(sysfs_class, NULL, MKDEV(major_number, 0), NULL, "rules");	
 	if (IS_ERR(sysfs_device))
 	{
 		class_destroy(sysfs_class);
