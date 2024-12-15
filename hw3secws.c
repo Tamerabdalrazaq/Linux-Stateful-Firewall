@@ -9,6 +9,8 @@
 #include <linux/klist.h>
 #include <linux/klist.h>
 #include <linux/jiffies.h> // For timestamp in jiffies
+#include <linux/slab.h> // For kmalloc and kfree
+
 
 MODULE_LICENSE("GPL");
 MODULE_AUTHOR("Razaq");
@@ -78,6 +80,52 @@ static rule_t RULES[3] = {
     }
 };
 
+void add_or_update_log_entry(log_row_t *new_entry) {
+    struct klist_iter iter;
+    struct klist_node *knode;
+    struct packet_log *existing_entry;
+    int found = 0;
+
+    // Initialize an iterator for the klist
+    klist_iter_init(&packet_logs, &iter);
+
+    // Iterate over the klist to find a matching entry
+    while ((knode = klist_next(&iter))) {
+        existing_entry = container_of(knode, struct packet_log, node);
+
+        // Check if the existing entry matches the new_entry's fields
+        if (existing_entry->log_object.src_ip == new_entry->src_ip &&
+            existing_entry->log_object.dst_ip == new_entry->dst_ip &&
+            existing_entry->log_object.src_port == new_entry->src_port &&
+            existing_entry->log_object.dst_port == new_entry->dst_port &&
+            existing_entry->log_object.protocol == new_entry->protocol) {
+            
+            // Match found: update timestamp and increment count
+            existing_entry->log_object.timestamp = new_entry->timestamp;
+            existing_entry->log_object.count++;
+            found = 1;
+            break;
+        }
+    }
+
+    // Exit the iterator
+    klist_iter_exit(&iter);
+
+    if (!found) {
+        // No match found: create a new entry and add it to the klist
+        struct packet_log *new_log = kmalloc(sizeof(struct packet_log), GFP_KERNEL);
+        if (!new_log)
+            return; // Handle memory allocation failure
+
+        // Copy the new_entry into the new log_object
+        memcpy(&new_log->log_object, new_entry, sizeof(log_row_t));
+
+        // Add the new log entry to the klist
+        klist_add_tail(&new_log->node, &packet_logs);
+    }
+}
+
+
 static void extract_transport_fields(struct sk_buff *skb, __u8 protocol, __be16 *src_port, __be16 *dst_port, __u8 *ack) {
     struct tcphdr *tcp_header;
     struct udphdr *udp_header;
@@ -119,7 +167,9 @@ static unsigned int comp_packet_to_rules(struct sk_buff *skb, const struct nf_ho
     struct iphdr *ip_header;
     direction_t direction;
     size_t i;
+    log_row_t log_entry;
 
+    memset(&log_entry, 0, sizeof(log_row_t)); // Initialize to zero
     direction = strcmp(state->in->name, IN_NET_DEVICE_NAME) == 0 ? DIRECTION_IN : DIRECTION_OUT;
 
     ip_header = ip_hdr(skb);
@@ -174,6 +224,21 @@ static unsigned int comp_packet_to_rules(struct sk_buff *skb, const struct nf_ho
             continue;
         }
         printk(KERN_INFO "\n**** Matched rule %s ****\n", rule->rule_name);
+        // Create and initialize a new log_row_t object
+        // Populate the log entry fields
+        log_entry.timestamp = jiffies;           // Use jiffies as the timestamp
+        log_entry.protocol = protocol;          // Protocol extracted from the IP header
+        log_entry.src_ip = src_ip;              // Source IP from the packet
+        log_entry.dst_ip = dst_ip;              // Destination IP from the packet
+        log_entry.src_port = src_port;          // Source port from transport fields
+        log_entry.dst_port = dst_port;          // Destination port from transport fields
+        log_entry.action = rule->action;          // Placeholder: set appropriate action later
+        log_entry.count = 1;                    // Initial hit count
+        if(i == RULES_COUNT - 1)
+            log_entry.reason = REASON_NO_MATCHING_RULE;   
+        else              
+            log_entry.reason = i;   
+
         return rule->action; // Return the matching rule's action
     }
 
