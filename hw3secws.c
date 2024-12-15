@@ -80,6 +80,45 @@ static rule_t RULES[3] = {
     }
 };
 
+
+void print_packet_logs(void) {
+    struct klist_iter iter;
+    struct klist_node *knode;
+    struct packet_log *entry;
+
+    printk(KERN_INFO "=== Printing Packet Logs ===\n");
+
+    // Initialize the iterator for the klist
+    klist_iter_init(&packet_logs, &iter);
+
+    // Iterate over the klist
+    while ((knode = klist_next(&iter))) {
+        // Retrieve the parent structure from the node
+        entry = container_of(knode, struct packet_log, node);
+
+        // Print the log object details
+        printk(KERN_INFO
+               "Log Entry: Timestamp=%lu, Protocol=%u, Action=%u, "
+               "Src_IP=%pI4, Dst_IP=%pI4, Src_Port=%u, Dst_Port=%u, "
+               "Reason=%u, Count=%u\n",
+               entry->log_object.timestamp,
+               entry->log_object.protocol,
+               entry->log_object.action,
+               &entry->log_object.src_ip,
+               &entry->log_object.dst_ip,
+               ntohs(entry->log_object.src_port),
+               ntohs(entry->log_object.dst_port),
+               entry->log_object.reason,
+               entry->log_object.count);
+    }
+
+    // Exit the iterator
+    klist_iter_exit(&iter);
+
+    printk(KERN_INFO "=== End of Packet Logs ===\n");
+}
+
+
 void add_or_update_log_entry(log_row_t *new_entry) {
     struct klist_iter iter;
     struct klist_node *knode;
@@ -239,6 +278,7 @@ static unsigned int comp_packet_to_rules(struct sk_buff *skb, const struct nf_ho
         else              
             log_entry.reason = i;   
         add_or_update_log_entry(log_entry)
+        print_packet_logs();
         return rule->action; // Return the matching rule's action
     }
 
