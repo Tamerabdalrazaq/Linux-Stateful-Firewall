@@ -6,12 +6,24 @@
 #include <linux/netdevice.h>
 #include <linux/inet.h>
 #include "fw.h"
-
+#include <linux/klist.h>
+#include <linux/klist.h>
+#include <linux/jiffies.h> // For timestamp in jiffies
 
 MODULE_LICENSE("GPL");
 MODULE_AUTHOR("Razaq");
 MODULE_DESCRIPTION("Basic Packet Filtering");
 MODULE_VERSION("1");
+
+// Define packet_log struct
+struct packet_log {
+    log_row_t log_object;       // The log entry object
+    struct klist_node node;     // Node for inclusion in the klist
+};
+
+// Define the static klist for packet logs
+static struct klist packet_logs = KLIST_INIT(packet_logs, NULL, NULL);
+
 
 
 // Netfilter hooks for relevant packet phases
