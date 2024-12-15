@@ -335,7 +335,7 @@ static unsigned int module_hook(void *priv, struct sk_buff *skb, const struct nf
 
 
 
-static DEVICE_ATTR(sysfs_att, S_IWUSR | S_IRUGO , display, modify);
+static DEVICE_ATTR(rules, S_IWUSR | S_IRUGO , display, modify);
 
 
 // Initialization function; handles error registering the hooks with cleanups and an indicative return value
@@ -369,7 +369,7 @@ static int __init fw_init(void) {
 	}
 	
 	//create sysfs file attributes	
-	if (device_create_file(sysfs_device, (const struct device_attribute *)&dev_attr_sysfs_att.attr))
+	if (device_create_file(sysfs_device, (const struct device_attribute *)&dev_attr_rules.attr))
 	{
 		device_destroy(sysfs_class, MKDEV(major_number, 0));
 		class_destroy(sysfs_class);
@@ -401,7 +401,7 @@ static void __exit fw_exit(void) {
     // ******
     // Devices Remove
     // ******
-    device_remove_file(sysfs_device, (const struct device_attribute *)&dev_attr_sysfs_att.attr);
+    device_remove_file(sysfs_device, (const struct device_attribute *)&dev_attr_rules.attr);
 	device_destroy(sysfs_class, MKDEV(major_number, 0));
 	class_destroy(sysfs_class);
 	unregister_chrdev(major_number, "Sysfs_Device");
