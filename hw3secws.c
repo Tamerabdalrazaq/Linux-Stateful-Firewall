@@ -12,11 +12,23 @@
 #include <linux/klist.h>
 #include <linux/jiffies.h> // For timestamp in jiffies
 #include <linux/slab.h> // For kmalloc and kfree
+#include <linux/fs.h>
+#include <linux/device.h>
 
 MODULE_LICENSE("GPL");
 MODULE_AUTHOR("Razaq");
 MODULE_DESCRIPTION("Basic Packet Filtering");
 MODULE_VERSION("1");
+
+static int major_number;
+static struct class* sysfs_class = NULL;
+static struct device* sysfs_device = NULL;
+
+static unsigned int sysfs_int = 0;
+
+static struct file_operations fops = {
+	.owner = THIS_MODULE
+};
 
 // Define packet_log struct
 struct packet_log {
@@ -78,6 +90,22 @@ static rule_t RULES[3] = {
         .action = NF_DROP, // Drop packets
     }
 };
+
+
+
+ssize_t display(struct device *dev, struct device_attribute *attr, char *buf)	//sysfs show implementation
+{
+	return scnprintf(buf, PAGE_SIZE, "%d\n", RULES_COUNT);
+}
+
+ssize_t modify(struct device *dev, struct device_attribute *attr, const char *buf, size_t count)	//sysfs store implementation
+{
+	int temp;
+	if (sscanf(buf, "%d", &temp) == 1)
+		RULES_COUNT = temp;
+	return count;	
+}
+
 
 
 void print_packet_logs(void) {
@@ -307,15 +335,52 @@ static unsigned int module_hook(void *priv, struct sk_buff *skb, const struct nf
 
 
 
+static DEVICE_ATTR(sysfs_att, S_IWUSR | S_IRUGO , display, modify);
 
 
 // Initialization function; handles error registering the hooks with cleanups and an indicative return value
-static int __init fw_init(void) {
-
+static int __init fw_init(void) {    
     int ret;
     printk(KERN_INFO "Loading hw1secws module...!\n");
-    printk(KERN_INFO "%s", RULES[0].rule_name);
-    printk(KERN_INFO "%s", RULES[1].rule_name);
+    // ******
+    // Devices setup
+    // ******
+
+    //create char device
+	major_number = register_chrdev(0, "Sysfs_Device", &fops);\
+	if (major_number < 0)
+		return -1;
+		
+	//create sysfs class
+	sysfs_class = class_create(THIS_MODULE, "Sysfs_class");
+	if (IS_ERR(sysfs_class))
+	{
+		unregister_chrdev(major_number, "Sysfs_Device");
+		return -1;
+	}
+	
+	//create sysfs device
+	sysfs_device = device_create(sysfs_class, NULL, MKDEV(major_number, 0), NULL, "sysfs_class" "_" "sysfs_Device");	
+	if (IS_ERR(sysfs_device))
+	{
+		class_destroy(sysfs_class);
+		unregister_chrdev(major_number, "Sysfs_Device");
+		return -1;
+	}
+	
+	//create sysfs file attributes	
+	if (device_create_file(sysfs_device, (const struct device_attribute *)&dev_attr_sysfs_att.attr))
+	{
+		device_destroy(sysfs_class, MKDEV(major_number, 0));
+		class_destroy(sysfs_class);
+		unregister_chrdev(major_number, "Sysfs_Device");
+		return -1;
+	}
+
+    // ******
+    // Netfilter Hooks
+    // ******
+
     // Set up the Netfilter hook for forwarding packets
     netfilter_ops_fw.hook = module_hook;
     netfilter_ops_fw.pf = PF_INET;
@@ -333,7 +398,17 @@ static int __init fw_init(void) {
 
 static void __exit fw_exit(void) {
     printk(KERN_INFO "Removing hw1secws module...\n");
+    // ******
+    // Devices Remove
+    // ******
+    device_remove_file(sysfs_device, (const struct device_attribute *)&dev_attr_sysfs_att.attr);
+	device_destroy(sysfs_class, MKDEV(major_number, 0));
+	class_destroy(sysfs_class);
+	unregister_chrdev(major_number, "Sysfs_Device");
 
+    // ******
+    // Netfilter unhook
+    // ******
     nf_unregister_net_hook(&init_net, &netfilter_ops_fw);
 }
 
