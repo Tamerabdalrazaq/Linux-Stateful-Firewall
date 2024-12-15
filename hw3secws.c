@@ -426,23 +426,34 @@ static int __init fw_init(void) {
     return 0;
 }
 
-static void __exit fw_exit(void) {
+static void __exit fw_exit(void)
+{
     printk(KERN_INFO "Removing hw1secws module...\n");
-    // ******
-    // Devices Remove
-    // ******
-    device_remove_file(sysfs_device, (const struct device_attribute *)&dev_attr_rules.attr);
-	device_destroy(sysfs_class, MKDEV(major_number, 0));
-	class_destroy(sysfs_class);
-	unregister_chrdev(major_number, "Sysfs_Device");
+    // ****** Device Cleanup ******
+    if (sysfs_device)
+    {
+        device_remove_file(sysfs_device, (const struct device_attribute *)&dev_attr_rules.attr);
+        device_destroy(sysfs_class, MKDEV(major_number, 0));
+    }
 
-    device_remove_file(log_device, (const struct device_attribute *)&dev_attr_reset.attr);
-    device_destroy(sysfs_class, MKDEV(major_number, 1));
+    // Remove the "reset" sysfs attribute and device if they exist
+    if (log_device)
+    {
+        device_remove_file(log_device, (const struct device_attribute *)&dev_attr_reset.attr);
+        device_destroy(sysfs_class, MKDEV(major_number, 1));
+    }
 
-    // ******
-    // Netfilter unhook
-    // ******
+    // Destroy the sysfs class (only after all devices are cleaned up)
+    if (sysfs_class)
+        class_destroy(sysfs_class);
+
+    // Unregister the character device
+    unregister_chrdev(major_number, "Sysfs_Device");
+
+    // ****** Netfilter Cleanup ******
     nf_unregister_net_hook(&init_net, &netfilter_ops_fw);
+
+    printk(KERN_INFO "hw1secws module removed successfully.\n");
 }
 
 module_init(fw_init);
