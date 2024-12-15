@@ -266,17 +266,17 @@ static unsigned int comp_packet_to_rules(struct sk_buff *skb, const struct nf_ho
                 log_entry.reason = REASON_NO_MATCHING_RULE;   
             else              
                 log_entry.reason = i;   
+            add_or_update_log_entry(&log_entry);
             print_packet_logs();
             return rule->action; // Return the matching rule's action
         }
     } else{
         log_entry.reason = REASON_XMAS_PACKET;
         log_entry.action = NF_DROP;
-
+        add_or_update_log_entry(&log_entry);
+        print_packet_logs();
+        return NF_DROP;
     }
-    add_or_update_log_entry(&log_entry);
-    print_packet_logs();
-
     return NF_DROP;
 }
 
