@@ -1,4 +1,5 @@
 // Integrating sysfs
+// Integrated two sysfs devices
 
 #include <linux/kernel.h>
 #include <linux/module.h>
