@@ -266,6 +266,7 @@ static unsigned int comp_packet_to_rules(struct sk_buff *skb, const struct nf_ho
                 log_entry.reason = REASON_NO_MATCHING_RULE;   
             else              
                 log_entry.reason = i;   
+            print_packet_logs();
             return rule->action; // Return the matching rule's action
         }
     } else{
