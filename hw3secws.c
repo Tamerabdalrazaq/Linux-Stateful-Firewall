@@ -172,6 +172,8 @@ static int parse_rule(const char *rule_str, rule_t *rule) {
         return -EINVAL;
     }
 
+    printk(KERN_INFO "Processed IP Successfuly ~  %s", rule->rule_name);
+
     // Parse ports
     if (strcmp(protocol_str, "any") == 0) {
         rule->protocol = PROT_ANY;
