@@ -2,7 +2,8 @@
 //					REASON_ILLEGAL_VALUE         = -6,
 // IN_NET_DEVICE_NAME is device dependent
 // IPV6 Packets??
-
+// Buffer size limited char dev.
+// Log: latest timestamp
 
 #ifndef _FW_H_
 #define _FW_H_

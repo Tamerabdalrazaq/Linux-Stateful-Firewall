@@ -99,12 +99,20 @@ ssize_t display(struct device *dev, struct device_attribute *attr, char *buf)	//
 	return scnprintf(buf, PAGE_SIZE, "%d\n", RULES_COUNT);
 }
 
-ssize_t modify(struct device *dev, struct device_attribute *attr, const char *buf, size_t count)	//sysfs store implementation
-{
-	int temp;
-	if (sscanf(buf, "%d", &temp) == 1)
-		RULES_COUNT = temp;
-	return count;	
+ssize_t modify(struct device *dev, struct device_attribute *attr, const char *buf, size_t count) {
+    size_t rows = 0;
+    size_t i;
+
+    // Count the number of rows based on newline characters
+    for (i = 0; i < count; i++) {
+        if (buf[i] == '\n') {
+            rows++;
+        }
+    }
+
+    pr_info("Number of rows in the input: %zu\n", rows);
+
+    return count; // Return the size of the input as required by sysfs convention
 }
 
 ssize_t reset_store(struct device *dev, struct device_attribute *attr, const char *buf, size_t count)
@@ -120,7 +128,6 @@ ssize_t reset_store(struct device *dev, struct device_attribute *attr, const cha
     while ((knode = klist_next(&iter)))
     {
         plog = container_of(knode, struct packet_log, node);
-        printk(KERN_INFO "count: %d", plog->log_object.count);
         klist_del(&plog->node);
         // Free the memory of the container structure
         kfree(plog);
