@@ -141,6 +141,7 @@ static int parse_rule(const char *rule_str, rule_t *rule) {
     if (sscanf(rule_str, "%19s %9s %31s %31s %9s %9s %9s %9s",
                rule->rule_name, direction_str, src_ip_prefix, dst_ip_prefix,
                protocol_str, src_port_str, dst_port_str, ack_str, action_str) != 9) {
+                    printk(KERN_CRIT "Invalid rule string - couldnt parse 9 fields");
         return -EINVAL;
     }
 
@@ -152,12 +153,14 @@ static int parse_rule(const char *rule_str, rule_t *rule) {
     } else if(strcmp(direction_str, "any") == 0){
         rule->direction = DIRECTION_ANY;
     } else {
+        printk(KERN_CRIT "ERROR IN Direction");
         return -EINVAL;
     }
 
     // Parse IP prefixes
     if (parse_ip_prefix(src_ip_prefix, &rule->src_ip, &rule->src_prefix_mask, &rule->src_prefix_size) < 0 ||
         parse_ip_prefix(dst_ip_prefix, &rule->dst_ip, &rule->dst_prefix_mask, &rule->dst_prefix_size) < 0) {
+        printk(KERN_CRIT "ERROR IN Rule Parsing IP Prefix.");
         return -EINVAL;
     }
 
@@ -172,6 +175,7 @@ static int parse_rule(const char *rule_str, rule_t *rule) {
         rule->protocol = PROT_ICMP;
     } else {
         // Undefined behaviour in the assignemnet
+        printk(KERN_CRIT "ERROR IN Rule Protocol.");
         rule->protocol = -EINVAL;;
     }
 
@@ -197,6 +201,7 @@ static int parse_rule(const char *rule_str, rule_t *rule) {
     } else if (strcmp(ack_str, "no") == 0) {
         rule->ack = ACK_NO;
     } else {
+        printk(KERN_CRIT "ERROR IN Rule ACK Bit.");
         return -EINVAL;;
     }
 
@@ -206,6 +211,7 @@ static int parse_rule(const char *rule_str, rule_t *rule) {
     } else if (strcmp(action_str, "drop") == 0) {
         rule->action = NF_DROP;
     } else {
+        printk(KERN_CRIT "ERROR IN Rule Decision.");
         return -EINVAL;
     }
 
@@ -233,6 +239,7 @@ ssize_t modify(struct device *dev, struct device_attribute *attr, const char *bu
     for (line = strsep(&rules_str, "\n"); line != NULL && i < num_of_rules; line = strsep(&rules_str, "\n")) {
         if (parse_rule(line, &FW_RULES[i]) < 0) {
             kfree(rules_str);
+            printk(KERN_CRIT "ERROR IN Rule Parsing.");
             return -EINVAL;
         }
         i++;
