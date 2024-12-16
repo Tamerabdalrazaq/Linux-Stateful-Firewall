@@ -142,7 +142,7 @@ static int parse_rule(const char *rule_str, rule_t *rule) {
                rule->rule_name, direction_str, src_ip_prefix, dst_ip_prefix,
                protocol_str, src_port_str, dst_port_str, ack_str, action_str) != 9) {
                     printk(KERN_ALERT "Invalid rule string - couldnt parse 9 fields");
-                    printk(KERN_INFO "String: %s\n", rule_str);
+                    printk(KERN_INFO "String: %s.\n", rule_str);
         return -EINVAL;
     }
 
@@ -239,17 +239,18 @@ ssize_t modify(struct device *dev, struct device_attribute *attr, const char *bu
     // Split input into lines
     for (line = strsep(&rules_str, "\n"); line != NULL && i < num_of_rules; line = strsep(&rules_str, "\n")) {
         printk(KERN_INFO "Parsing a new rule...");
-        if (parse_rule(line, &FW_RULES[i]) < 0) {
-            printk(KERN_ALERT "ERROR IN Rule Parsing.");
-            if (rules_str) {
-                printk(KERN_INFO "Freeing rules_str: %p\n", rules_str); // Log pointer before freeing
-                kfree(rules_str);                                      // Free memory
-                rules_str = NULL;                                      // Prevent use-after-free
-            } else {
-                printk(KERN_WARNING "Attempt to free NULL rules_str pointer.\n");
-            }
-            return -EINVAL;
-        }
+        printk(KERN_INFO "String: %s", line);
+        // if (parse_rule(line, &FW_RULES[i]) < 0) {
+        //     printk(KERN_ALERT "ERROR IN Rule Parsing.");
+        //     if (rules_str) {
+        //         printk(KERN_INFO "Freeing rules_str: %p\n", rules_str); // Log pointer before freeing
+        //         kfree(rules_str);                                      // Free memory
+        //         rules_str = NULL;                                      // Prevent use-after-free
+        //     } else {
+        //         printk(KERN_WARNING "Attempt to free NULL rules_str pointer.\n");
+        //     }
+        //     return -EINVAL;
+        // }
         i++;
     }
 
