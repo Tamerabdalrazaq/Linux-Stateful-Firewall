@@ -134,17 +134,20 @@ size_t get_rules_number(const char *buf, size_t count) {
 
 
 static int parse_rule(const char *rule_str, rule_t *rule) {
-    char src_ip_prefix[32], dst_ip_prefix[32], src_port_str[10], dst_port_str[10];
+    char src_ip_prefix[32], dst_ip_prefix[32], src_port_str[10], dst_port_str[10], r_name[20];
     char direction_str[10], protocol_str[10], ack_str[10], action_str[10];
     int src_port, dst_port;
 
     if (sscanf(rule_str, "%19s %9s %31s %31s %9s %9s %9s %9s",
-               rule->rule_name, direction_str, src_ip_prefix, dst_ip_prefix,
+               r_name, direction_str, src_ip_prefix, dst_ip_prefix,
                protocol_str, src_port_str, dst_port_str, ack_str, action_str) != 9) {
                     printk(KERN_ALERT "Invalid rule string - couldnt parse 9 fields");
                     printk(KERN_INFO "String: %s.\n", rule_str);
         return -EINVAL;
     }
+
+    printk(KERN_INFO "R_NAME: %s", r_name);
+    return 0;
 
     // Parse direction
     if (strcmp(direction_str, "in") == 0) {
@@ -240,17 +243,17 @@ ssize_t modify(struct device *dev, struct device_attribute *attr, const char *bu
     for (line = strsep(&rules_str, "\n"); line != NULL && i < num_of_rules; line = strsep(&rules_str, "\n")) {
         printk(KERN_INFO "Parsing a new rule...");
         printk(KERN_INFO "String: %s", line);
-        // if (parse_rule(line, &FW_RULES[i]) < 0) {
-        //     printk(KERN_ALERT "ERROR IN Rule Parsing.");
-        //     if (rules_str) {
-        //         printk(KERN_INFO "Freeing rules_str: %p\n", rules_str); // Log pointer before freeing
-        //         kfree(rules_str);                                      // Free memory
-        //         rules_str = NULL;                                      // Prevent use-after-free
-        //     } else {
-        //         printk(KERN_WARNING "Attempt to free NULL rules_str pointer.\n");
-        //     }
-        //     return -EINVAL;
-        // }
+        if (parse_rule(line, &FW_RULES[i]) < 0) {
+            printk(KERN_ALERT "ERROR IN Rule Parsing.");
+            if (rules_str) {
+                printk(KERN_INFO "Freeing rules_str: %p\n", rules_str); // Log pointer before freeing
+                kfree(rules_str);                                      // Free memory
+                rules_str = NULL;                                      // Prevent use-after-free
+            } else {
+                printk(KERN_WARNING "Attempt to free NULL rules_str pointer.\n");
+            }
+            return -EINVAL;
+        }
         i++;
     }
 
