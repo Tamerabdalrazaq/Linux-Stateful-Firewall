@@ -391,7 +391,8 @@ static int __init fw_init(void) {
     // ******
 
     //create char device
-	major_number = register_chrdev(0, "fw_log", &fops);\
+	major_number = register_chrdev(0, "fw_log", &fops);
+    printk(KERN_INFO "Major Number: %u", major_number);
 	if (major_number < 0)
 		return -1;
 		
