@@ -30,12 +30,6 @@ static int buffer_size = 0; // Current size of the data in the buffer
 
 static unsigned int sysfs_int = 0;
 
-static struct file_operations fops = {
-    .owner = THIS_MODULE,
-    .read = my_read,
-    .write = my_write,
-};
-
 // Define packet_log struct
 struct packet_log {
     log_row_t log_object;       // The log entry object
@@ -381,6 +375,11 @@ static unsigned int module_hook(void *priv, struct sk_buff *skb, const struct nf
 static DEVICE_ATTR(rules, S_IWUSR | S_IRUGO , display, modify);
 static DEVICE_ATTR(reset, S_IWUSR, NULL, reset_store);
 
+static struct file_operations fops = {
+    .owner = THIS_MODULE,
+    .read = my_read,
+    .write = my_write,
+};
 
 
 // Initialization function; handles error registering the hooks with cleanups and an indicative return value
