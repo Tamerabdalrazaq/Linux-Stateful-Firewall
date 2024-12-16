@@ -141,8 +141,8 @@ static int parse_rule(const char *rule_str, rule_t *rule) {
     if (sscanf(rule_str, "%19s %9s %31s %31s %9s %9s %9s %9s",
                rule->rule_name, direction_str, src_ip_prefix, dst_ip_prefix,
                protocol_str, src_port_str, dst_port_str, ack_str, action_str) != 9) {
-                    printk(KERN_CRIT "Invalid rule string - couldnt parse 9 fields");
-                    printk(KERN_INFO "string is: %s", rule_str);
+                    printk(KERN_ALERT "Invalid rule string - couldnt parse 9 fields");
+                    // printk(KERN_INFO "string is: %s", rule_str);
         return -EINVAL;
     }
 
