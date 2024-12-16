@@ -129,6 +129,7 @@ ssize_t reset_store(struct device *dev, struct device_attribute *attr, const cha
     klist_iter_exit(&iter);
     logs_num = 0;
     printk(KERN_INFO "Packet logs have been reset.\n");
+    return 0;
 }
 
 ssize_t my_read(struct file *filp, char __user *user_buf, size_t count, loff_t *f_pos)
