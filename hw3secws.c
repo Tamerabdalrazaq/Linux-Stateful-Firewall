@@ -121,6 +121,7 @@ ssize_t reset_store(struct device *dev, struct device_attribute *attr, const cha
     while ((knode = klist_next(&iter)))
     {
         plog = container_of(knode, struct packet_log, node);
+        printk(KERN_INFO "count: %d", plog->log_object->count);
         klist_del(&plog->node);
         // Free the memory of the container structure
         kfree(plog);
