@@ -176,7 +176,7 @@ static int parse_rule(const char *rule_str, rule_t *rule) {
     }
 
     if (strcmp(src_port_str, "any") == 0) {
-        rule->src_port = PORT_ANY
+        rule->src_port = PORT_ANY;
     } else if (strcmp(src_port_str, ">1023") == 0){
         rule->src_port = PORT_ABOVE_1023;
     } else {
