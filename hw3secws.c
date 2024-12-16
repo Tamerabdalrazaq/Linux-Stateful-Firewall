@@ -146,7 +146,7 @@ static int parse_rule(const char *rule_str, rule_t *rule) {
         return -EINVAL;
     }
 
-    printk(KERN_INFO "Processing rule ~  %s", r_name);
+    printk(KERN_INFO "Processing rule ~  %s", rule->rule_name);
 
     // Parse direction
     if (strcmp(direction_str, "in") == 0) {
