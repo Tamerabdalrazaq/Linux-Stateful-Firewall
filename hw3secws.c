@@ -134,13 +134,13 @@ size_t get_rules_number(const char *buf, size_t count) {
 
 
 static int parse_rule(const char *rule_str, rule_t *rule) {
-    char src_ip_prefix[32], dst_ip_prefix[32];
+    char src_ip_prefix[32], dst_ip_prefix[32], src_port_str[10], dst_port_str[10];
     char direction_str[10], protocol_str[10], ack_str[10], action_str[10];
     int src_port, dst_port;
 
     if (sscanf(rule_str, "%19s %9s %31s %31s %9s %9s %9s %9s",
                rule->rule_name, direction_str, src_ip_prefix, dst_ip_prefix,
-               protocol_str, ack_str, action_str) != 8) {
+               protocol_str, src_port_str, dst_port_str, ack_str, action_str) != 9) {
         return -EINVAL;
     }
 
@@ -184,7 +184,7 @@ static int parse_rule(const char *rule_str, rule_t *rule) {
     }
 
     if (strcmp(dst_port_str, "any") == 0) {
-        rule->dst_port = PORT_ANY
+        rule->dst_port = PORT_ANY;
     } else if (strcmp(dst_port_str, ">1023") == 0){
         rule->dst_port = PORT_ABOVE_1023;
     } else {
@@ -217,8 +217,8 @@ static int parse_rule(const char *rule_str, rule_t *rule) {
 ssize_t modify(struct device *dev, struct device_attribute *attr, const char *buf, size_t count) {
     char *rules_str, *line, *save_ptr;
     int i = 0;
-
-    FW_RULES = kmalloc_array(NUM_OF_RULES, sizeof(rule_t), GFP_KERNEL);
+    int num_of_rules = get_rules_number(buf, count);
+    FW_RULES = kmalloc_array(num_of_rules, sizeof(rule_t), GFP_KERNEL);
 
     // Allocate memory for parsing
     rules_str = kmalloc(count + 1, GFP_KERNEL);
@@ -230,7 +230,7 @@ ssize_t modify(struct device *dev, struct device_attribute *attr, const char *bu
     rules_str[count] = '\0';
 
     // Split input into lines
-    for (line = strsep(&rules_str, "\n"); line != NULL && i < NUM_OF_RULES; line = strsep(&rules_str, "\n")) {
+    for (line = strsep(&rules_str, "\n"); line != NULL && i < num_of_rules; line = strsep(&rules_str, "\n")) {
         if (parse_rule(line, &FW_RULES[i]) < 0) {
             kfree(rules_str);
             return -EINVAL;
@@ -238,8 +238,7 @@ ssize_t modify(struct device *dev, struct device_attribute *attr, const char *bu
         i++;
     }
 
-    rule_count = i;
-    pr_info("Parsed %d rules\n", rule_count);
+    pr_info("Parsed %d rules\n", i);
 
     kfree(rules_str);
     return count;
