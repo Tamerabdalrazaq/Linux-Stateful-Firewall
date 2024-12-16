@@ -203,6 +203,8 @@ static int parse_rule(const char *rule_str, rule_t *rule) {
         rule->ack = ACK_YES;
     } else if (strcmp(ack_str, "no") == 0) {
         rule->ack = ACK_NO;
+    } else if (strcmp(ack_str, "any") == 0) {
+        rule->ack = ACK_ANY;
     } else {
         printk(KERN_CRIT "ERROR IN Rule ACK Bit.");
         return -EINVAL;;
