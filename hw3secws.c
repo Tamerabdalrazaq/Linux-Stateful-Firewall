@@ -115,34 +115,62 @@ ssize_t reset_store(struct device *dev, struct device_attribute *attr, const cha
 
 ssize_t my_read(struct file *filp, char __user *user_buf, size_t count, loff_t *f_pos)
 {
-    int remaining_size = buffer_size - *f_pos; // Remaining data to read
-    int read_size;
+    char *kernel_buf;
+    size_t buf_size = 4096; // Allocate a buffer large enough to hold logs
+    size_t offset = 0;
+    struct packet_log *plog;
+    char log_entry[256]; // Temporary buffer for each log entry
+    int written;
 
-    if (remaining_size <= 0) // No more data to read
-        return 0;
+    // Allocate kernel buffer
+    kernel_buf = kmalloc(buf_size, GFP_KERNEL);
+    if (!kernel_buf)
+        return -ENOMEM;
 
-    read_size = min(count, (size_t)remaining_size); // Read only as much as requested
-    if (copy_to_user(user_buf, buffer + *f_pos, read_size)) // Copy data to user space
+    // Iterate over the klist and format log entries
+    klist_for_each_entry(plog, &packet_logs, node)
+    {
+        log_row_t *log = &plog->log_object;
+
+        // Format the log entry
+        written = snprintf(log_entry, sizeof(log_entry), "%lu, %u, %u, %pI4, %pI4, %u, %u, %d, %u\n",
+                           log->timestamp, log->protocol, log->action, 
+                           &log->src_ip, &log->dst_ip,
+                           ntohs(log->src_port), ntohs(log->dst_port),
+                           log->reason, log->count);
+
+        // Check if we have enough space in the buffer
+        if (offset + written >= buf_size)
+            break;
+
+        // Copy the formatted log entry into the kernel buffer
+        strncpy(kernel_buf + offset, log_entry, written);
+        offset += written;
+    }
+
+    // Check if there's anything to read based on *f_pos
+    if (*f_pos >= offset)
+    {
+        kfree(kernel_buf);
+        return 0; // EOF
+    }
+
+    // Copy data to user space, starting from *f_pos
+    written = min(count, offset - *f_pos);
+    if (copy_to_user(user_buf, kernel_buf + *f_pos, written))
+    {
+        kfree(kernel_buf);
         return -EFAULT;
+    }
 
-    *f_pos += read_size; // Update the file offset
-    return read_size; // Return the number of bytes read
+    // Update the file position
+    *f_pos += written;
+
+    // Free kernel buffer
+    kfree(kernel_buf);
+
+    return written;
 }
-
-ssize_t my_write(struct file *filp, const char __user *user_buf, size_t count, loff_t *f_pos)
-{
-    if (count > sizeof(buffer) - 1) // Prevent buffer overflow
-        return -EINVAL;
-
-    if (copy_from_user(buffer, user_buf, count)) // Copy data from user space
-        return -EFAULT;
-
-    buffer[count] = '\0'; // Null-terminate the buffer
-    buffer_size = count; // Update the buffer size
-    printk(KERN_INFO "my_char_device: Received data: %s\n", buffer);
-    return count; // Return the number of bytes written
-}
-
 
 
 void print_packet_logs(void) {
