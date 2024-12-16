@@ -103,14 +103,19 @@ ssize_t display(struct device *dev, struct device_attribute *attr, char *buf)	//
 static int parse_ip_prefix(const char *ip_prefix, __be32 *ip, __be32 *mask, __u8 *prefix_size) {
     char ip_str[16];
     int prefix;
+    if(strcmp(ip_prefix, "any") == 0){
+        *prefix_size = (__u8)0;
+        *mask = in_aton(IP_ANY);
+        *ip = in_aton(IP_ANY);
+    } else {
+        if (sscanf(ip_prefix, "%15[^/]/%d", ip_str, &prefix) != 2) {
+            return -EINVAL; // Invalid input
+        }
 
-    if (sscanf(ip_prefix, "%15[^/]/%d", ip_str, &prefix) != 2) {
-        return -EINVAL; // Invalid input
+        *prefix_size = (__u8)prefix;
+        *mask = htonl(~0 << (32 - prefix));
+        *ip = in_aton(ip_str);
     }
-
-    *prefix_size = (__u8)prefix;
-    *mask = htonl(~0 << (32 - prefix));
-    *ip = in_aton(ip_str);
 
     return 0;
 }
