@@ -120,8 +120,10 @@ ssize_t my_read(struct file *filp, char __user *user_buf, size_t count, loff_t *
     size_t offset = 0;
     struct klist_iter iter;
     struct packet_log *plog;
+    struct klist_node *knode;
     char log_entry[256]; // Temporary buffer for each log entry
     int written;
+    log_row_t *log;
 
     // Allocate kernel buffer
     kernel_buf = kmalloc(buf_size, GFP_KERNEL);
@@ -132,9 +134,10 @@ ssize_t my_read(struct file *filp, char __user *user_buf, size_t count, loff_t *
     klist_iter_init(&packet_logs, &iter);
 
     // Iterate over the klist
-    while ((plog = klist_next(&iter)) != NULL)
+    while ((knode = klist_next(&iter)))
     {
-        log_row_t *log = &plog->log_object;
+        plog = container_of(knode, struct packet_log, node);
+        log = &plog->log_object;
 
         // Format the log entry
         written = snprintf(log_entry, sizeof(log_entry), "%lu, %u, %u, %pI4, %pI4, %u, %u, %d, %u\n",
@@ -222,6 +225,7 @@ void add_or_update_log_entry(log_row_t *new_entry) {
     struct klist_iter iter;
     struct klist_node *knode;
     struct packet_log *existing_entry;
+
     int found = 0;
 
     // Initialize an iterator for the klist
