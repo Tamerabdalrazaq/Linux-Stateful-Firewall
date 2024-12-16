@@ -280,7 +280,7 @@ ssize_t modify(struct device *dev, struct device_attribute *attr, const char *bu
     rules_str[count] = '\0';
 
     // Split input into lines
-    for (line = strsep(&rules_str, "\n"); line != NULL && i < num_of_rules; line = strsep(&rules_str, "\n")) {
+    for (line = strsep(&rules_str, "\n"); line != NULL && i < num_of_rules + 1; line = strsep(&rules_str, "\n")) {
         printk(KERN_INFO "Parsing a new rule...");
         printk(KERN_INFO "String: %s", line);
         if (parse_rule(line, &FW_RULES[i]) < 0) {
