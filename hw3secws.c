@@ -27,8 +27,6 @@ struct device *log_device;
 static char buffer[256]; // Internal buffer for the device
 static int buffer_size = 0; // Current size of the data in the buffer
 
-static unsigned int sysfs_int = 0;
-
 // Define packet_log struct
 struct packet_log {
     log_row_t log_object;       // The log entry object
@@ -43,7 +41,6 @@ static int logs_num = 0;
 // Netfilter hooks for relevant packet phases
 static struct nf_hook_ops netfilter_ops_fw;
 
-static int RULES_COUNT = 3;
 static rule_t RULES[3] = {
     {
         .rule_name = "telnet2_rule",
@@ -92,6 +89,8 @@ static rule_t RULES[3] = {
     }
 };
 
+static int RULES_COUNT = 3;
+static rule_t* FW_RULES;
 
 
 ssize_t display(struct device *dev, struct device_attribute *attr, char *buf)	//sysfs show implementation
@@ -99,7 +98,26 @@ ssize_t display(struct device *dev, struct device_attribute *attr, char *buf)	//
 	return scnprintf(buf, PAGE_SIZE, "%d\n", RULES_COUNT);
 }
 
-ssize_t modify(struct device *dev, struct device_attribute *attr, const char *buf, size_t count) {
+
+// Helper function to parse IP/prefix into IP, mask, and size
+static int parse_ip_prefix(const char *ip_prefix, __be32 *ip, __be32 *mask, __u8 *prefix_size) {
+    char ip_str[16];
+    int prefix;
+
+    if (sscanf(ip_prefix, "%15[^/]/%d", ip_str, &prefix) != 2) {
+        return -EINVAL; // Invalid input
+    }
+
+    *prefix_size = (__u8)prefix;
+    *mask = htonl(~0 << (32 - prefix));
+    *ip = in_aton(ip_str);
+
+    return 0;
+}
+
+
+
+size_t get_rules_number(const char *buf, size_t count) {
     size_t rows = 0;
     size_t i;
 
@@ -111,8 +129,120 @@ ssize_t modify(struct device *dev, struct device_attribute *attr, const char *bu
     }
 
     pr_info("Number of rows in the input: %zu\n", rows);
+    return rows;
+}
 
-    return count; // Return the size of the input as required by sysfs convention
+
+static int parse_rule(const char *rule_str, rule_t *rule) {
+    char src_ip_prefix[32], dst_ip_prefix[32];
+    char direction_str[10], protocol_str[10], ack_str[10], action_str[10];
+    int src_port, dst_port;
+
+    if (sscanf(rule_str, "%19s %9s %31s %31s %9s %9s %9s %9s",
+               rule->rule_name, direction_str, src_ip_prefix, dst_ip_prefix,
+               protocol_str, ack_str, action_str) != 8) {
+        return -EINVAL;
+    }
+
+    // Parse direction
+    if (strcmp(direction_str, "in") == 0) {
+        rule->direction = DIRECTION_IN;
+    } else if (strcmp(direction_str, "out") == 0) {
+        rule->direction = DIRECTION_OUT;
+    } else if(strcmp(direction_str, "any") == 0){
+        rule->direction = DIRECTION_ANY;
+    } else {
+        return -EINVAL;
+    }
+
+    // Parse IP prefixes
+    if (parse_ip_prefix(src_ip_prefix, &rule->src_ip, &rule->src_prefix_mask, &rule->src_prefix_size) < 0 ||
+        parse_ip_prefix(dst_ip_prefix, &rule->dst_ip, &rule->dst_prefix_mask, &rule->dst_prefix_size) < 0) {
+        return -EINVAL;
+    }
+
+    // Parse ports
+    if (strcmp(protocol_str, "any") == 0) {
+        rule->protocol = PROT_ANY;
+    } else if (strcmp(protocol_str, "TCP") == 0) {
+        rule->protocol = PROT_TCP;
+    } else if (strcmp(protocol_str, "UDP") == 0) {
+        rule->protocol = PROT_UDP;
+    } else if (strcmp(protocol_str, "ICMP") == 0) {
+        rule->protocol = PROT_ICMP;
+    } else {
+        // Undefined behaviour in the assignemnet
+        rule->protocol = -EINVAL;;
+    }
+
+    if (strcmp(src_port_str, "any") == 0) {
+        rule->src_port = PORT_ANY
+    } else if (strcmp(src_port_str, ">1023") == 0){
+        rule->src_port = PORT_ABOVE_1023;
+    } else {
+        rule->src_port = htons((__be16)src_port);
+    }
+
+    if (strcmp(dst_port_str, "any") == 0) {
+        rule->dst_port = PORT_ANY
+    } else if (strcmp(dst_port_str, ">1023") == 0){
+        rule->dst_port = PORT_ABOVE_1023;
+    } else {
+        rule->dst_port = htons((__be16)dst_port);
+    }
+
+    // Parse ACK
+    if (strcmp(ack_str, "yes") == 0) {
+        rule->ack = ACK_YES;
+    } else if (strcmp(ack_str, "no") == 0) {
+        rule->ack = ACK_NO;
+    } else {
+        return -EINVAL;;
+    }
+
+    // Parse action
+    if (strcmp(action_str, "accept") == 0) {
+        rule->action = NF_ACCEPT;
+    } else if (strcmp(action_str, "drop") == 0) {
+        rule->action = NF_DROP;
+    } else {
+        return -EINVAL;
+    }
+
+    return 0;
+}
+
+
+
+ssize_t modify(struct device *dev, struct device_attribute *attr, const char *buf, size_t count) {
+    char *rules_str, *line, *save_ptr;
+    int i = 0;
+
+    FW_RULES = kmalloc_array(NUM_OF_RULES, sizeof(rule_t), GFP_KERNEL);
+
+    // Allocate memory for parsing
+    rules_str = kmalloc(count + 1, GFP_KERNEL);
+    if (!rules_str) {
+        return -ENOMEM;
+    }
+
+    strncpy(rules_str, buf, count);
+    rules_str[count] = '\0';
+
+    // Split input into lines
+    for (line = strsep(&rules_str, "\n"); line != NULL && i < NUM_OF_RULES; line = strsep(&rules_str, "\n")) {
+        if (parse_rule(line, &FW_RULES[i]) < 0) {
+            kfree(rules_str);
+            return -EINVAL;
+        }
+        i++;
+    }
+
+    rule_count = i;
+    pr_info("Parsed %d rules\n", rule_count);
+
+    kfree(rules_str);
+    return count;
 }
 
 ssize_t reset_store(struct device *dev, struct device_attribute *attr, const char *buf, size_t count)

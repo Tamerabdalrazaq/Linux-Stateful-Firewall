@@ -58,6 +58,7 @@ typedef enum {
 #define PORT_ANY		(0)
 #define PORT_ABOVE_1023	(1023)
 #define MAX_RULES		(50)
+#define RULE_NUM_FIELDS	(9)
 #define IP_ANY 		    (htonl(0x00000000))
 
 // device minor numbers, for your convenience
