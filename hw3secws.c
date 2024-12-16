@@ -134,11 +134,11 @@ size_t get_rules_number(const char *buf, size_t count) {
 
 
 static int parse_rule(const char *rule_str, rule_t *rule) {
-    char src_ip_prefix[32], dst_ip_prefix[32], src_port_str[10], dst_port_str[10], r_name[20];
+    char src_ip_prefix[32], dst_ip_prefix[32], src_port_str[10], dst_port_str[10];
     char direction_str[10], protocol_str[10], ack_str[10], action_str[10];
     int src_port, dst_port;
     int successful_scans = sscanf(rule_str, "%19s %9s %31s %31s %9s %9s %9s %9s %9s",
-               r_name, direction_str, src_ip_prefix, dst_ip_prefix,
+               rule->rule_name, direction_str, src_ip_prefix, dst_ip_prefix,
                protocol_str, src_port_str, dst_port_str, ack_str, action_str);
     if (successful_scans != 9) {
                     printk(KERN_ALERT "Invalid rule string - Parsed  %d/9 fields", successful_scans);
@@ -146,8 +146,7 @@ static int parse_rule(const char *rule_str, rule_t *rule) {
         return -EINVAL;
     }
 
-    printk(KERN_INFO "R_NAME: %s", r_name);
-    return 0;
+    printk(KERN_INFO "Processing rule ~  %s", r_name);
 
     // Parse direction
     if (strcmp(direction_str, "in") == 0) {
