@@ -25,11 +25,15 @@ static int major_number;
 static struct class* sysfs_class = NULL;
 static struct device* sysfs_device = NULL;
 struct device *log_device;
+static char buffer[256]; // Internal buffer for the device
+static int buffer_size = 0; // Current size of the data in the buffer
 
 static unsigned int sysfs_int = 0;
 
 static struct file_operations fops = {
-	.owner = THIS_MODULE
+    .owner = THIS_MODULE,
+    .read = my_read,
+    .write = my_write,
 };
 
 // Define packet_log struct
@@ -113,6 +117,36 @@ ssize_t reset_store(struct device *dev, struct device_attribute *attr, const cha
     // Add logic for handling "reset" write
     printk(KERN_INFO "fw: Reset triggered via sysfs\n");
     return count; // Simply acknowledge the write
+}
+
+ssize_t my_read(struct file *filp, char __user *user_buf, size_t count, loff_t *f_pos)
+{
+    int remaining_size = buffer_size - *f_pos; // Remaining data to read
+    int read_size;
+
+    if (remaining_size <= 0) // No more data to read
+        return 0;
+
+    read_size = min(count, (size_t)remaining_size); // Read only as much as requested
+    if (copy_to_user(user_buf, buffer + *f_pos, read_size)) // Copy data to user space
+        return -EFAULT;
+
+    *f_pos += read_size; // Update the file offset
+    return read_size; // Return the number of bytes read
+}
+
+ssize_t my_write(struct file *filp, const char __user *user_buf, size_t count, loff_t *f_pos)
+{
+    if (count > sizeof(buffer) - 1) // Prevent buffer overflow
+        return -EINVAL;
+
+    if (copy_from_user(buffer, user_buf, count)) // Copy data from user space
+        return -EFAULT;
+
+    buffer[count] = '\0'; // Null-terminate the buffer
+    buffer_size = count; // Update the buffer size
+    printk(KERN_INFO "my_char_device: Received data: %s\n", buffer);
+    return count; // Return the number of bytes written
 }
 
 
@@ -358,7 +392,7 @@ static int __init fw_init(void) {
     // ******
 
     //create char device
-	major_number = register_chrdev(0, "Sysfs_Device", &fops);\
+	major_number = register_chrdev(0, "fw_log", &fops);\
 	if (major_number < 0)
 		return -1;
 		
@@ -366,7 +400,7 @@ static int __init fw_init(void) {
 	sysfs_class = class_create(THIS_MODULE, "fw");
 	if (IS_ERR(sysfs_class))
 	{
-		unregister_chrdev(major_number, "Sysfs_Device");
+		unregister_chrdev(major_number, "fw_log");
 		return -1;
 	}
 	
@@ -375,7 +409,7 @@ static int __init fw_init(void) {
 	if (IS_ERR(sysfs_device))
 	{
 		class_destroy(sysfs_class);
-		unregister_chrdev(major_number, "Sysfs_Device");
+		unregister_chrdev(major_number, "fw_log");
 		return -1;
 	}
 	
@@ -384,7 +418,7 @@ static int __init fw_init(void) {
 	{
 		device_destroy(sysfs_class, MKDEV(major_number, 0));
 		class_destroy(sysfs_class);
-		unregister_chrdev(major_number, "Sysfs_Device");
+		unregister_chrdev(major_number, "fw_log");
 		return -1;
 	}
 
@@ -393,7 +427,7 @@ static int __init fw_init(void) {
     {
         device_destroy(sysfs_class, MKDEV(major_number, 0));
         class_destroy(sysfs_class);
-        unregister_chrdev(major_number, "Sysfs_Device");
+        unregister_chrdev(major_number, "fw_log");
         return -1;
     }
 
@@ -403,7 +437,7 @@ static int __init fw_init(void) {
         device_destroy(sysfs_class, MKDEV(major_number, 1));
         device_destroy(sysfs_class, MKDEV(major_number, 0));
         class_destroy(sysfs_class);
-        unregister_chrdev(major_number, "Sysfs_Device");
+        unregister_chrdev(major_number, "fw_log");
         return -1;
     }
 
@@ -448,7 +482,7 @@ static void __exit fw_exit(void)
         class_destroy(sysfs_class);
 
     // Unregister the character device
-    unregister_chrdev(major_number, "Sysfs_Device");
+    unregister_chrdev(major_number, "fw_log");
 
     // ****** Netfilter Cleanup ******
     nf_unregister_net_hook(&init_net, &netfilter_ops_fw);
