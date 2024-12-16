@@ -105,8 +105,8 @@ static int parse_ip_prefix(const char *ip_prefix, __be32 *ip, __be32 *mask, __u8
     int prefix;
     if(strcmp(ip_prefix, "any") == 0){
         *prefix_size = (__u8)0;
-        *mask = in_aton(IP_ANY);
-        *ip = in_aton(IP_ANY);
+        *mask = (IP_ANY);
+        *ip = (IP_ANY);
     } else {
         if (sscanf(ip_prefix, "%15[^/]/%d", ip_str, &prefix) != 2) {
             return -EINVAL; // Invalid input
