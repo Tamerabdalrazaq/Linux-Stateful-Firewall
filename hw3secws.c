@@ -38,6 +38,8 @@ struct packet_log {
 
 // Define the static klist for packet logs
 static struct klist packet_logs = KLIST_INIT(packet_logs, NULL, NULL);
+    // Finalize the iterator
+static int logs_num = 0;
 
 // Netfilter hooks for relevant packet phases
 static struct nf_hook_ops netfilter_ops_fw;
@@ -108,9 +110,25 @@ ssize_t modify(struct device *dev, struct device_attribute *attr, const char *bu
 
 ssize_t reset_store(struct device *dev, struct device_attribute *attr, const char *buf, size_t count)
 {
-    // Add logic for handling "reset" write
-    printk(KERN_INFO "fw: Reset triggered via sysfs\n");
-    return count; // Simply acknowledge the write
+    struct klist_iter iter;
+    struct packet_log *plog;
+    struct klist_node *knode;
+
+    // Initialize the iterator
+    klist_iter_init(&packet_logs, &iter);
+
+    // Iterate over the klist and remove each node
+    while ((knode = klist_next(&iter)))
+    {
+        plog = container_of(knode, struct packet_log, node);
+        klist_del(&plog->node);
+        // Free the memory of the container structure
+        kfree(plog);
+    }
+
+    klist_iter_exit(&iter);
+    logs_num = 0;
+    printk(KERN_INFO "Packet logs have been reset.\n");
 }
 
 ssize_t my_read(struct file *filp, char __user *user_buf, size_t count, loff_t *f_pos)
@@ -264,6 +282,7 @@ void add_or_update_log_entry(log_row_t *new_entry) {
 
         // Add the new log entry to the klist
         klist_add_tail(&new_log->node, &packet_logs);
+        logs_num += 1;
     }
 }
 
