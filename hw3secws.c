@@ -118,6 +118,7 @@ ssize_t my_read(struct file *filp, char __user *user_buf, size_t count, loff_t *
     char *kernel_buf;
     size_t buf_size = 4096; // Allocate a buffer large enough to hold logs
     size_t offset = 0;
+    struct klist_iter iter;
     struct packet_log *plog;
     char log_entry[256]; // Temporary buffer for each log entry
     int written;
@@ -127,14 +128,17 @@ ssize_t my_read(struct file *filp, char __user *user_buf, size_t count, loff_t *
     if (!kernel_buf)
         return -ENOMEM;
 
-    // Iterate over the klist and format log entries
-    klist_for_each_entry(plog, &packet_logs, node)
+    // Initialize the klist iterator
+    klist_iter_init(&packet_logs, &iter);
+
+    // Iterate over the klist
+    while ((plog = klist_next(&iter)) != NULL)
     {
         log_row_t *log = &plog->log_object;
 
         // Format the log entry
         written = snprintf(log_entry, sizeof(log_entry), "%lu, %u, %u, %pI4, %pI4, %u, %u, %d, %u\n",
-                           log->timestamp, log->protocol, log->action, 
+                           log->timestamp, log->protocol, log->action,
                            &log->src_ip, &log->dst_ip,
                            ntohs(log->src_port), ntohs(log->dst_port),
                            log->reason, log->count);
@@ -147,6 +151,9 @@ ssize_t my_read(struct file *filp, char __user *user_buf, size_t count, loff_t *
         strncpy(kernel_buf + offset, log_entry, written);
         offset += written;
     }
+
+    // Finalize the klist iterator
+    klist_iter_exit(&iter);
 
     // Check if there's anything to read based on *f_pos
     if (*f_pos >= offset)
@@ -406,7 +413,6 @@ static DEVICE_ATTR(reset, S_IWUSR, NULL, reset_store);
 static struct file_operations fops = {
     .owner = THIS_MODULE,
     .read = my_read,
-    .write = my_write,
 };
 
 
