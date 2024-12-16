@@ -238,7 +238,7 @@ ssize_t modify(struct device *dev, struct device_attribute *attr, const char *bu
 
     // Split input into lines
     for (line = strsep(&rules_str, "\n"); line != NULL && i < num_of_rules; line = strsep(&rules_str, "\n")) {
-        printk(KERN_INFO "Parsing a new rule...")
+        printk(KERN_INFO "Parsing a new rule...");
         if (parse_rule(line, &FW_RULES[i]) < 0) {
             printk(KERN_ALERT "ERROR IN Rule Parsing.");
             if (rules_str) {
