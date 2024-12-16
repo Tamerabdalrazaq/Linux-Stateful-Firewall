@@ -93,6 +93,38 @@ static int RULES_COUNT = 3;
 static rule_t* FW_RULES;
 
 
+static void ip_to_string(__be32 ip, char *buffer) {
+    unsigned char *bytes = (unsigned char *)&ip;
+    snprintf(buffer, 16, "%u.%u.%u.%u", bytes[0], bytes[1], bytes[2], bytes[3]);
+}
+
+void print_fw_rules(void) {
+    char src_ip_str[16];
+    char dst_ip_str[16];
+    int i;
+
+    printk(KERN_INFO "Firewall Rules:\n");
+
+    for (i = 0; i < RULES_COUNT; i++) {
+        rule_t *rule = &FW_RULES[i];
+
+        ip_to_string(rule->src_ip, src_ip_str);
+        ip_to_string(rule->dst_ip, dst_ip_str);
+
+        printk(KERN_INFO "Rule %d:\n", i + 1);
+        printk(KERN_INFO "  Name: %s\n", rule->rule_name);
+        printk(KERN_INFO "  Direction: %d\n", rule->direction);
+        printk(KERN_INFO "  Source IP: %s/%d\n", src_ip_str, rule->src_prefix_size);
+        printk(KERN_INFO "  Destination IP: %s/%d\n", dst_ip_str, rule->dst_prefix_size);
+        printk(KERN_INFO "  Source Port: %u\n", ntohs(rule->src_port));
+        printk(KERN_INFO "  Destination Port: %u\n", ntohs(rule->dst_port));
+        printk(KERN_INFO "  Protocol: %u\n", rule->protocol);
+        printk(KERN_INFO "  ACK: %u\n", rule->ack);
+        printk(KERN_INFO "  Action: %u\n", rule->action);
+    }
+}
+
+
 ssize_t display(struct device *dev, struct device_attribute *attr, char *buf)	//sysfs show implementation
 {
 	return scnprintf(buf, PAGE_SIZE, "%d\n", RULES_COUNT);
@@ -267,7 +299,8 @@ ssize_t modify(struct device *dev, struct device_attribute *attr, const char *bu
 
     pr_info("Parsed %d rules\n", i);
 
-    
+    RULES_COUNT = i;
+    print_fw_rules();
     kfree(rules_str);
     return count;
 }
