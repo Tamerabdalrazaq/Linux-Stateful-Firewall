@@ -73,7 +73,7 @@ def format_rules(rules_string):
         action_str = ACTION_MAP.get(action, "UNKNOWN")
 
         # Format the rule
-        formatted_rule = "Name: {:<10} Direction: {:<4} Src IP: {:<15} Dst IP: {:<15} Protocol: {:<5} Src Port: {:<6} Dst Port: {:<6} Ack: {:<3} Action: {}".format(
+        formatted_rule = "{:<10} {:<4} {:<15} {:<15} {:<5} {:<6} {:<6} {:<3} {}".format(
             name, direction_str, src_ip, dst_ip, protocol_str, src_port, dst_port, ack_bit_str, action_str
         )
 
