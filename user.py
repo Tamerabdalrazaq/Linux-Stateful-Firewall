@@ -101,8 +101,8 @@ def show_log(chardev_path='/dev/fw_log'):
 
                     # Map enums to strings
                 protocol_str = PROTOCOL_MAP.get(protocol, "UNKNOWN({})".format(protocol))
-                action_str = ACTION_MAP.get(action, "UNKNOWN({})".format(action))
-                reason_str = REASON_MAP.get(reason, "UNKNOWN({})".format(reason))
+                action_str = ACTION_MAP.get(action, "{}".format(action))
+                reason_str = REASON_MAP.get(reason, "{}".format(reason))
 
                 print("{:<20} {:<15} {:<15} {:<10} {:<10} {:<8} {:<8} {:<15} {:<5}".format(
                     timestamp, src_ip, dst_ip, src_port, dst_port, protocol_str, action_str, reason_str, count
