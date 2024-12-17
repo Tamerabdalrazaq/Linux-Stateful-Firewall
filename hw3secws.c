@@ -370,7 +370,7 @@ ssize_t my_read(struct file *filp, char __user *user_buf, size_t count, loff_t *
 
         // Format the log entry
         written = snprintf(log_entry, sizeof(log_entry), "%lu %pI4 %pI4 %u %u %u %u %d %u\n",
-                           log->timestamp, ,
+                           log->timestamp,
                            &log->src_ip, &log->dst_ip,
                            ntohs(log->src_port), ntohs(log->dst_port),
                            log->protocol, log->action, log->reason, log->count);
