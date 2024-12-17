@@ -202,7 +202,6 @@ def show_rules():
 
 def main():
         args = sys.argv
-        print(args)
         # Check correct number of arguments
         if len(args) == 3 and args[1] == "load_rules":
             load_rules(args[2])
