@@ -51,7 +51,7 @@ def format_rules(rules_string):
     
     for line in rules_string.strip().splitlines():
         parts = line.split()
-        if len(parts) != 8:
+        if len(parts) != 9:
             formatted_rules.append("Invalid rule format: {}".format(line))
             continue
         
