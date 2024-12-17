@@ -141,9 +141,9 @@ ssize_t display(struct device *dev, struct device_attribute *attr, char *buf)
                          rule->direction,
                          &rule->src_ip, rule->src_prefix_size,
                          &rule->dst_ip, rule->dst_prefix_size,
+                         rule->protocol,
                          rule->src_port,
                          rule->dst_port,
-                         rule->protocol,
                          rule->ack,
                          rule->action);
         // Check if the buffer is full
