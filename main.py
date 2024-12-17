@@ -3,18 +3,84 @@ import time
 from datetime import datetime, timedelta
 import sys
 
+# Mapping enums to strings
+PROTOCOL_MAP = {
+    1: "ICMP",
+    6: "TCP",
+    17: "UDP",
+    255: "OTHER",
+    143: "ANY"
+}
+
+REASON_MAP = {
+    -1: "FW_INACTIVE",
+    -2: "NO_MATCHING_RULE",
+    -4: "XMAS_PACKET",
+    -6: "ILLEGAL_VALUE"
+}
+
+ACTION_MAP = {
+    0: "drop",
+    1: "accept"
+}
+
+DIRECTION_MAP = {
+    1: "IN",
+    2: "OUT",
+    3: "ANY"
+}
+
+ACK_BIT_MAP = {
+    1: "NO",
+    2: "YES",
+    3: "ANY"
+}
+
+
 # Path to the sysfs file for the sysfs attribute
 sysfs_clr_log_file_path = '/sys/class/fw/log/reset'
 
-def read_sysfs():
-    try:
-        with open(sysfs_file_path, 'r') as f:
-            value = f.read().strip()
-            print(value)  
-    except FileNotFoundError:
-        print("Error: {} not found. Make sure the module is loaded.".format(sysfs_file_path))
-    except Exception as e:
-        print("Error reading from sysfs: {}".format(e))
+def format_rules(rules_string):
+    """
+    Formats a string of firewall rules into a readable format.
+    
+    :param rules_string: String containing firewall rules, one per line.
+    :return: Formatted rules as a string.
+    """
+    formatted_rules = []
+    
+    for line in rules_string.strip().splitlines():
+        parts = line.split()
+        if len(parts) != 8:
+            formatted_rules.append("Invalid rule format: {}".format(line))
+            continue
+        
+        # Extract fields
+        name = parts[0]
+        direction = int(parts[1])
+        src_ip = parts[2]
+        dst_ip = parts[3]
+        protocol = int(parts[4])
+        src_port = parts[5]
+        dst_port = parts[6]
+        ack_bit = int(parts[7])
+        action = int(parts[8])
+
+        # Map fields to human-readable strings
+        direction_str = DIRECTION_MAP.get(direction, "UNKNOWN")
+        protocol_str = PROTOCOL_MAP.get(protocol, "UNKNOWN")
+        ack_bit_str = ACK_BIT_MAP.get(ack_bit, "UNKNOWN")
+        action_str = ACTION_MAP.get(action, "UNKNOWN")
+
+        # Format the rule
+        formatted_rule = "Name: {:<10} Direction: {:<4} Src IP: {:<15} Dst IP: {:<15} Protocol: {:<5} Src Port: {:<6} Dst Port: {:<6} Ack: {:<3} Action: {}".format(
+            name, direction_str, src_ip, dst_ip, protocol_str, src_port, dst_port, ack_bit_str, action_str
+        )
+
+        formatted_rules.append(formatted_rule)
+    
+    return "\n".join(formatted_rules)
+
 
 def clear_log():
     try:
@@ -43,26 +109,6 @@ def jiffies_to_date(jiffies):
     seconds_since_boot = jiffies / HZ
     return boot_time + timedelta(seconds=seconds_since_boot)
 
-# Mapping enums to strings
-PROTOCOL_MAP = {
-    1: "ICMP",
-    6: "TCP",
-    17: "UDP",
-    255: "OTHER",
-    143: "ANY"
-}
-
-REASON_MAP = {
-    -1: "FW_INACTIVE",
-    -2: "NO_MATCHING_RULE",
-    -4: "XMAS_PACKET",
-    -6: "ILLEGAL_VALUE"
-}
-
-ACTION_MAP = {
-    0: "drop",
-    1: "accept"
-}
 
 def show_log(chardev_path='/dev/fw_log'):
     """
