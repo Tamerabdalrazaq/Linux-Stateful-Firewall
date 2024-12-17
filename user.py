@@ -4,7 +4,7 @@ from datetime import datetime, timedelta
 import sys
 
 # Path to the sysfs file for the sysfs attribute
-sysfs_file_path = '/sys/class/Sysfs_class/sysfs_class_sysfs_Device/sysfs_att'
+sysfs_clr_log_file_path = '/sys/class/fw/log/reset'
 
 def read_sysfs():
     try:
@@ -16,9 +16,9 @@ def read_sysfs():
     except Exception as e:
         print("Error reading from sysfs: {}".format(e))
 
-def write_sysfs():
+def clear_log():
     try:
-        with open(sysfs_file_path, 'w') as f:
+        with open(sysfs_clr_log_file_path, 'w') as f:
             f.write("{}\n".format(0))
     except FileNotFoundError:
         print("Error: {} not found. Make sure the module is loaded.".format(sysfs_file_path))
@@ -76,9 +76,8 @@ def show_log(chardev_path='/dev/fw_log'):
         with open(chardev_path, 'r') as f:
             print("Reading firewall logs...")
             print("{:<20} {:<15} {:<15} {:<10} {:<10} {:<8} {:<8} {:<15} {:<5}".format(
-                "Timestamp", "Src IP", "Dst IP", "Src Port", "Dst Port", "Protocol", "Action", "Reason", "Count"
+                "timestamp", "src_ip", "dst_ip", "src_port", "dst_port", "protocol", "action", "reason", "count"
             ))
-            print("=" * 100)
 
             for line in f:
                 parts = line.split()
@@ -121,6 +120,8 @@ def main():
             param = args[1]
             if param == "show_log":
                 show_log()
+            elif param == "clear_log":
+                clear_log()
         # Read Stats
         else:
             read_sysfs()
