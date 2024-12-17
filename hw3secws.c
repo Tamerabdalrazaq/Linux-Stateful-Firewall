@@ -588,7 +588,7 @@ static unsigned int comp_packet_to_rules(struct sk_buff *skb, const struct nf_ho
     // Compare packet to rules
     if (is_christmas_packet == 0){
         for (i = 0; i < RULES_COUNT; i++) {
-            rule_t *rule = &RULES[i];
+            rule_t *rule = &FW_RULES[i];
             printk(KERN_INFO "Comparing against:  %s\n", rule->rule_name);
             if (rule->direction != DIRECTION_ANY && rule->direction != direction)
                 continue;
