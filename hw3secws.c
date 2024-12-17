@@ -188,8 +188,6 @@ size_t get_rules_number(const char *buf, size_t count) {
             rows++;
         }
     }
-
-    pr_info("Number of rows in the input: %zu\n", rows);
     return rows;
 }
 
@@ -206,8 +204,6 @@ static int parse_rule(const char *rule_str, rule_t *rule) {
                     printk(KERN_INFO "String: %s.\n", rule_str);
         return -EINVAL;
     }
-
-    printk(KERN_INFO "Processing rule ~  %s", rule->rule_name);
 
     // Parse direction
     if (strcmp(direction_str, "in") == 0) {
@@ -227,8 +223,6 @@ static int parse_rule(const char *rule_str, rule_t *rule) {
         printk(KERN_CRIT "ERROR IN Rule Parsing IP Prefix.");
         return -EINVAL;
     }
-
-    printk(KERN_INFO "Processed IP Successfuly ~  %s", rule->rule_name);
 
     // Parse ports
     if (strcmp(protocol_str, "any") == 0) {
@@ -305,8 +299,6 @@ ssize_t modify(struct device *dev, struct device_attribute *attr, const char *bu
 
     // Split input into lines
     for (line = strsep(&rules_str, "\n"); line != NULL && i < num_of_rules + 1; line = strsep(&rules_str, "\n")) {
-        printk(KERN_INFO "Parsing a new rule...");
-        printk(KERN_INFO "String: %s", line);
         if (parse_rule(line, &FW_RULES[i]) < 0) {
             printk(KERN_ALERT "ERROR IN Rule Parsing.");
             if (rules_str) {
@@ -321,10 +313,7 @@ ssize_t modify(struct device *dev, struct device_attribute *attr, const char *bu
         i++;
     }
 
-    pr_info("Parsed %d rules\n", i);
-
     RULES_COUNT = i;
-    print_fw_rules();
     kfree(rules_str);
     return count;
 }
@@ -609,10 +598,10 @@ static unsigned int comp_packet_to_rules(struct sk_buff *skb, const struct nf_ho
             // Create and initialize a new log_row_t object
             // Populate the log entry fields
             log_entry.action = rule->action;          // Placeholder: set appropriate action later
-            if(i == RULES_COUNT - 1)
-                log_entry.reason = REASON_NO_MATCHING_RULE;   
-            else              
-                log_entry.reason = i;   
+            // if(i == RULES_COUNT - 1)
+            //     log_entry.reason = REASON_NO_MATCHING_RULE;   
+            // else              
+            log_entry.reason = i;   
             add_or_update_log_entry(&log_entry);
             print_packet_logs();
             return rule->action; // Return the matching rule's action
@@ -624,6 +613,9 @@ static unsigned int comp_packet_to_rules(struct sk_buff *skb, const struct nf_ho
         print_packet_logs();
         return NF_DROP;
     }
+    
+    log_entry.action = NF_DROP;
+    log_entry.reason = REASON_NO_MATCHING_RULE;   
     return NF_DROP;
 }
 
