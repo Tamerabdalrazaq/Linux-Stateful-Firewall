@@ -43,10 +43,11 @@ def jiffies_to_date(jiffies):
     seconds_since_boot = jiffies / HZ
     return boot_time + timedelta(seconds=seconds_since_boot)
 
-def show_log(chardev_path='/dev/fw_log'):
+def show_log():
     """
     Reads logs from the firewall character device, parses, and prints them.
     """
+    chardev_path='/dev/fw_log'
     if not os.path.exists(chardev_path):
         print(f"Error: Character device '{chardev_path}' does not exist.")
         return
