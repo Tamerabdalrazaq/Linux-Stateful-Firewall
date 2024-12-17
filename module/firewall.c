@@ -284,6 +284,7 @@ ssize_t modify(struct device *dev, struct device_attribute *attr, const char *bu
     char *rules_str, *tmp_rules_str, *line;
     int i = 0;
     int num_of_rules = get_rules_number(buf, count);
+    printk("%d", num_of_rules);
     static DEFINE_MUTEX(rules_mutex);
 
     // Allocate FW_RULES
@@ -307,7 +308,7 @@ ssize_t modify(struct device *dev, struct device_attribute *attr, const char *bu
     mutex_lock(&rules_mutex);  // Protect critical section
 
     for (line = strsep(&tmp_rules_str, "\n"); line != NULL; line = strsep(&tmp_rules_str, "\n")) {
-        if (i >= num_of_rules) {
+        if (i > num_of_rules) {
             printk(KERN_ALERT "Rule count exceeded allocated space.\n");
             break;
         }
