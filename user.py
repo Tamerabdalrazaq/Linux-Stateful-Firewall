@@ -109,12 +109,36 @@ def show_log(chardev_path='/dev/fw_log'):
     except Exception as e:
         print("Error reading character device: {}".format(e))
 
+def load_rules(file_path):
+    """
+    Writes the content of the given file to the sysfs device for loading rules.
+    :param file_path: Path to the file containing the rules.
+    :param sysfs_path: Path to the sysfs device to write the rules.
+    """
+    sysfs_path='/sys/class/fw/rules/rules'
+    try:
+        # Open the file containing rules and read its content
+        with open(file_path, 'r') as rules_file:
+            rules_content = rules_file.read()
+        
+        # Open the sysfs device and write the rules
+        with open(sysfs_path, 'w') as sysfs_device:
+            sysfs_device.write(rules_content)
+        
+        print("Rules loaded successfully from {} to {}.".format(file_path, sysfs_path))
+    except FileNotFoundError:
+        print("Error: File '{}' or sysfs device '{}' not found.".format(file_path, sysfs_path))
+    except PermissionError:
+        print("Error: Permission denied when accessing '{}'. Try running as root.".format(file_path, sysfs_path))
+    except Exception as e:
+        print(f"Error: {e}")
+
 def main():
         args = sys.argv
         print(args)
         # Check correct number of arguments
-        if len(args) > 2:
-            return sys.exit("Error: Invalid Input")
+        if len(args) == 3 and args[1] == "load_rules":
+            load_rules(args[2])
         # Reset stats
         elif len(args) == 2:
             param = args[1]
