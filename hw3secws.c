@@ -136,7 +136,7 @@ ssize_t display(struct device *dev, struct device_attribute *attr, char *buf)
 
         // Add each field of the rule in a readable format
         len += scnprintf(buf + len, PAGE_SIZE - len,
-                         "%s %d %pI4/%d %pI4/%d %d %d %d %d %s\n",
+                         "%s %d %pI4/%d %pI4/%d %d %d %d %d %d\n",
                          rule->rule_name,
                          rule->direction,
                          &rule->src_ip, rule->src_prefix_size,
