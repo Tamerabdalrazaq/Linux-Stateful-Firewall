@@ -86,6 +86,7 @@ def show_log(chardev_path='/dev/fw_log'):
 
 def main():
         args = sys.argv
+        print(args)
         # Check correct number of arguments
         if len(args) > 2:
             return sys.exit("Error: Invalid Input")
