@@ -25,15 +25,15 @@ ACTION_MAP = {
 }
 
 DIRECTION_MAP = {
-    1: "IN",
-    2: "OUT",
-    3: "ANY"
+    1: "in",
+    2: "out",
+    3: "any"
 }
 
 ACK_BIT_MAP = {
-    1: "NO",
-    2: "YES",
-    3: "ANY"
+    1: "no",
+    2: "yes",
+    3: "any"
 }
 
 

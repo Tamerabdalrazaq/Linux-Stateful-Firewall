@@ -3,4 +3,4 @@ sudo insmod firewall.ko
 sudo chmod 666 /sys/class/fw/rules/rules
 sudo chmod 666 /sys/class/fw/log/reset
 sudo mknod /dev/fw_log c 243 0;
-python3 /user/main.py <command>
+python3 ./user/main.py <command>
