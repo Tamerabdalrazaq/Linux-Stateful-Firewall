@@ -1,0 +1,4 @@
+cd Desktop/Linux-Static-FW;
+git pull; make; sudo rmmod hw3secws; sudo insmod hw3secws.ko;
+sudo chmod 666 /sys/class/fw/rules/rules; cat rules > /sys/class/fw/rules/rules;
+sudo mknod /dev/fw_log c 243 0;
