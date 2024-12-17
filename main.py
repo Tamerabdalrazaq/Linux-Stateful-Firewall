@@ -190,7 +190,7 @@ def show_rules():
         with open(sysfs_path, 'r') as sysfs_device:
             rules_content = sysfs_device.read()
         
-        print("Current Rules:\n{}".format(rules_content))
+        print("Current Rules:\n{}".format(format_rules(rules_content)))
     except FileNotFoundError:
         print("Error: Sysfs device '{}' not found.".format(sysfs_path))
     except PermissionError:
