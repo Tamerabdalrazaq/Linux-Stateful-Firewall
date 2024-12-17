@@ -133,7 +133,7 @@ def load_rules(file_path):
     except Exception as e:
         print("Error: {}".format(e))
 
-def read_rules():
+def show_rules():
     """
     Reads the content of the sysfs device for rules and prints it to the console.
     :param sysfs_path: Path to the sysfs device to read the rules.
@@ -166,9 +166,11 @@ def main():
                 show_log()
             elif param == "clear_log":
                 clear_log()
+            elif param == "show_rules":
+                show_rules()
         # Read Stats
         else:
-            read_sysfs()
+            print("Invalid Argument.")
 
 if __name__ == '__main__':
     main()
