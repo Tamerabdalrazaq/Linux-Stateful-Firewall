@@ -43,6 +43,27 @@ def jiffies_to_date(jiffies):
     seconds_since_boot = jiffies / HZ
     return boot_time + timedelta(seconds=seconds_since_boot)
 
+# Mapping enums to strings
+PROTOCOL_MAP = {
+    1: "ICMP",
+    6: "TCP",
+    17: "UDP",
+    255: "OTHER",
+    143: "ANY"
+}
+
+REASON_MAP = {
+    -1: "FW_INACTIVE",
+    -2: "NO_MATCHING_RULE",
+    -4: "XMAS_PACKET",
+    -6: "ILLEGAL_VALUE"
+}
+
+ACTION_MAP = {
+    0: "drop",
+    1: "accept"
+}
+
 def show_log(chardev_path='/dev/fw_log'):
     """
     Reads logs from the firewall character device, parses, and prints them.
@@ -70,16 +91,21 @@ def show_log(chardev_path='/dev/fw_log'):
                 dst_ip = parts[2]
                 src_port = parts[3]
                 dst_port = parts[4]
-                protocol = parts[5]
-                action = parts[6]
-                reason = parts[7]
+                protocol = int(parts[5])
+                action = int(parts[6])
+                reason = int(parts[7])
                 count = parts[8]
 
                 # Convert jiffies to human-readable timestamp
                 timestamp = jiffies_to_date(jiffies).strftime('%d/%m/%Y %H:%M:%S')
 
+                # Map enums to strings
+                protocol_str = PROTOCOL_MAP.get(protocol, f"UNKNOWN({protocol})")
+                action_str = ACTION_MAP.get(action, f"UNKNOWN({action})")
+                reason_str = REASON_MAP.get(reason, f"UNKNOWN({reason})")
+
                 print("{:<20} {:<15} {:<15} {:<10} {:<10} {:<8} {:<8} {:<15} {:<5}".format(
-                    timestamp, src_ip, dst_ip, src_port, dst_port, protocol, action, reason, count
+                    timestamp, src_ip, dst_ip, src_port, dst_port, protocol_str, action_str, reason_str, count
                 ))
     except Exception as e:
         print("Error reading character device: {}".format(e))
