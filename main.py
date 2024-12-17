@@ -87,8 +87,8 @@ def clear_log():
     try:
         with open(sysfs_clr_log_file_path, 'w') as f:
             f.write("{}\n".format(0))
-    except FileNotFoundError:
-        print("Error: {} not found. Make sure the module is loaded.".format(sysfs_file_path))
+    except IOError:
+        print("Error: {} not found. Make sure the module is loaded.".format(sysfs_clr_log_file_path))
     except Exception as e:
         print("Error writing to sysfs: {}".format(e))
 
