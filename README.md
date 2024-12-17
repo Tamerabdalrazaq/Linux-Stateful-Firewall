@@ -8,3 +8,8 @@ Improvements from previous assignment:
     - display, modify for rules
     - reset_store for resetting logs
     - my_read for char dev, reading log
+
+
+### Resources:
+No external recourses.
+Used Chat-GPT for documentations and helper functions. 

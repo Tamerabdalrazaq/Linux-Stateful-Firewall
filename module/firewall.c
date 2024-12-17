@@ -719,6 +719,10 @@ static int __init fw_init(void) {
     ret = nf_register_net_hook(&init_net, &netfilter_ops_fw);
     if (ret) {
         printk(KERN_ERR "firewall: Failed to register forwarding hook. Error: %d\n", ret);
+        device_destroy(sysfs_class, MKDEV(major_number, 1));
+        device_destroy(sysfs_class, MKDEV(major_number, 0));
+        class_destroy(sysfs_class);
+        unregister_chrdev(major_number, "fw_log");
         return ret;
     }
     
