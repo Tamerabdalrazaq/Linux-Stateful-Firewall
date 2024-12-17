@@ -308,7 +308,9 @@ ssize_t modify(struct device *dev, struct device_attribute *attr, const char *bu
     }
 
     RULES_COUNT = i;
-    kfree(rules_str);
+    if (rules_str){
+        kfree(rules_str);
+    }
     return count;
 }
 
