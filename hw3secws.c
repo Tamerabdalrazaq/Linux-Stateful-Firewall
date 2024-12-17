@@ -369,11 +369,11 @@ ssize_t my_read(struct file *filp, char __user *user_buf, size_t count, loff_t *
         log = &plog->log_object;
 
         // Format the log entry
-        written = snprintf(log_entry, sizeof(log_entry), "%lu, %u, %u, %pI4, %pI4, %u, %u, %d, %u\n",
-                           log->timestamp, log->protocol, log->action,
+        written = snprintf(log_entry, sizeof(log_entry), "%lu %pI4 %pI4 %u %u %u %u %d %u\n",
+                           log->timestamp, ,
                            &log->src_ip, &log->dst_ip,
                            ntohs(log->src_port), ntohs(log->dst_port),
-                           log->reason, log->count);
+                           log->protocol, log->action, log->reason, log->count);
 
         // Check if we have enough space in the buffer
         if (offset + written >= buf_size)
@@ -613,7 +613,7 @@ static unsigned int comp_packet_to_rules(struct sk_buff *skb, const struct nf_ho
         print_packet_logs();
         return NF_DROP;
     }
-    
+
     log_entry.action = NF_DROP;
     log_entry.reason = REASON_NO_MATCHING_RULE;   
     return NF_DROP;
