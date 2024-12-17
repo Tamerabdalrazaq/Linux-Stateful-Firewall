@@ -41,55 +41,55 @@ static int logs_num = 0;
 // Netfilter hooks for relevant packet phases
 static struct nf_hook_ops netfilter_ops_fw;
 
-static rule_t RULES[3] = {
-    {
-        .rule_name = "telnet2_rule",
-        .direction = DIRECTION_ANY,
-        .src_ip = __constant_htonl(0x0A000101), // 10.0.1.1
-        .src_prefix_mask = __constant_htonl(0xFFFFFF00), // 255.255.255.0
-        .src_prefix_size = 24,
-        .dst_ip = IP_ANY, // 0.0.0.0
-        .dst_prefix_mask = IP_ANY, // 0.0.0.0
-        .dst_prefix_size = 0,
-        .src_port = __constant_htons(23), // Source port 23
-        .dst_port = __constant_htons(1023), // Any port > 1023
-        .protocol = PROT_TCP,
-        .ack = ACK_YES,
-        .action = NF_ACCEPT, // Accept packets
-    },
-    {
-        .rule_name = "ICMP Test",
-        .direction = DIRECTION_IN,
-        .src_ip = __constant_htonl(0x0a010101), // 10.0.1.1
-        .src_prefix_mask = __constant_htonl(0xFFFFFF00), // 255.255.255.0
-        .src_prefix_size = 24,
-        .dst_ip = IP_ANY, // 0.0.0.0
-        .dst_prefix_mask = IP_ANY, // 0.0.0.0
-        .dst_prefix_size = 0,
-        .src_port = __constant_htons(2048),
-        .dst_port = __constant_htons(0),
-        .protocol = PROT_ICMP,
-        .ack = ACK_ANY,
-        .action = NF_ACCEPT, // Accept packets
-    },
-    {
-        .rule_name = "default",
-        .direction = DIRECTION_ANY,
-        .src_ip = IP_ANY,
-        .src_prefix_mask = IP_ANY,
-        .src_prefix_size = 0,
-        .dst_ip = IP_ANY,
-        .dst_prefix_mask = IP_ANY,
-        .dst_prefix_size = 0,
-        .src_port = __constant_htons(PORT_ANY),
-        .dst_port = __constant_htons(PORT_ANY),
-        .protocol = PROT_ANY,
-        .ack = ACK_ANY,
-        .action = NF_DROP, // Drop packets
-    }
-};
+// static rule_t RULES[3] = {
+//     {
+//         .rule_name = "telnet2_rule",
+//         .direction = DIRECTION_ANY,
+//         .src_ip = __constant_htonl(0x0A000101), // 10.0.1.1
+//         .src_prefix_mask = __constant_htonl(0xFFFFFF00), // 255.255.255.0
+//         .src_prefix_size = 24,
+//         .dst_ip = IP_ANY, // 0.0.0.0
+//         .dst_prefix_mask = IP_ANY, // 0.0.0.0
+//         .dst_prefix_size = 0,
+//         .src_port = __constant_htons(23), // Source port 23
+//         .dst_port = __constant_htons(1023), // Any port > 1023
+//         .protocol = PROT_TCP,
+//         .ack = ACK_YES,
+//         .action = NF_ACCEPT, // Accept packets
+//     },
+//     {
+//         .rule_name = "ICMP Test",
+//         .direction = DIRECTION_IN,
+//         .src_ip = __constant_htonl(0x0a010101), // 10.0.1.1
+//         .src_prefix_mask = __constant_htonl(0xFFFFFF00), // 255.255.255.0
+//         .src_prefix_size = 24,
+//         .dst_ip = IP_ANY, // 0.0.0.0
+//         .dst_prefix_mask = IP_ANY, // 0.0.0.0
+//         .dst_prefix_size = 0,
+//         .src_port = __constant_htons(2048),
+//         .dst_port = __constant_htons(0),
+//         .protocol = PROT_ICMP,
+//         .ack = ACK_ANY,
+//         .action = NF_ACCEPT, // Accept packets
+//     },
+//     {
+//         .rule_name = "default",
+//         .direction = DIRECTION_ANY,
+//         .src_ip = IP_ANY,
+//         .src_prefix_mask = IP_ANY,
+//         .src_prefix_size = 0,
+//         .dst_ip = IP_ANY,
+//         .dst_prefix_mask = IP_ANY,
+//         .dst_prefix_size = 0,
+//         .src_port = __constant_htons(PORT_ANY),
+//         .dst_port = __constant_htons(PORT_ANY),
+//         .protocol = PROT_ANY,
+//         .ack = ACK_ANY,
+//         .action = NF_DROP, // Drop packets
+//     }
+// };
 
-static int RULES_COUNT = 3;
+static int RULES_COUNT = 0;
 static rule_t* FW_RULES;
 
 
@@ -125,9 +125,33 @@ void print_fw_rules(void) {
 }
 
 
-ssize_t display(struct device *dev, struct device_attribute *attr, char *buf)	//sysfs show implementation
+ssize_t display(struct device *dev, struct device_attribute *attr, char *buf) 
 {
-	return scnprintf(buf, PAGE_SIZE, "%d\n", RULES_COUNT);
+    int i;
+    int len = 0; // Tracks the total length written into the buffer
+
+    // Iterate over each rule and append its details to the buffer
+    for (i = 0; i < RULES_COUNT; i++) {
+        rule_t *rule = &FW_RULES[i];
+
+        // Add each field of the rule in a readable format
+        len += scnprintf(buf + len, PAGE_SIZE - len,
+                         "%s %d %pI4/%d %pI4/%d %d %d %d %d %s\n",
+                         rule->rule_name,
+                         rule->direction,
+                         &rule->src_ip, rule->src_prefix_size,
+                         &rule->dst_ip, rule->dst_prefix_size,
+                         rule->src_port,
+                         rule->dst_port,
+                         rule->protocol,
+                         rule->ack,
+                         rule->action);
+        // Check if the buffer is full
+        if (len >= PAGE_SIZE)
+            break;
+    }
+
+    return len;
 }
 
 
