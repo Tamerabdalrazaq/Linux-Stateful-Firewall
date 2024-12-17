@@ -283,7 +283,7 @@ static int parse_rule(const char *rule_str, rule_t *rule) {
 
 
 ssize_t modify(struct device *dev, struct device_attribute *attr, const char *buf, size_t count) {
-    char *rules_str, *line, *save_ptr;
+    char *rules_str, *tmp_rules_str, *line;
     int i = 0;
     int num_of_rules = get_rules_number(buf, count);
     FW_RULES = kmalloc_array(num_of_rules, sizeof(rule_t), GFP_KERNEL);
@@ -296,29 +296,19 @@ ssize_t modify(struct device *dev, struct device_attribute *attr, const char *bu
 
     strncpy(rules_str, buf, count);
     rules_str[count] = '\0';
-
+    tmp_rules_str = rules_str;
     // Split input into lines
-    for (line = strsep(&rules_str, "\n"); line != NULL && i < num_of_rules + 1; line = strsep(&rules_str, "\n")) {
+    for (line = strsep(&tmp_rules_str, "\n"); line != NULL; line = strsep(&tmp_rules_str, "\n")) {
         if (parse_rule(line, &FW_RULES[i]) < 0) {
             printk(KERN_ALERT "ERROR IN Rule Parsing.");
-            if (rules_str) {
-                printk(KERN_INFO "Freeing rules_str: %p\n", rules_str); // Log pointer before freeing
-                kfree(rules_str);                                      // Free memory
-                rules_str = NULL;                                      // Prevent use-after-free
-            } else {
-                printk(KERN_WARNING "Attempt to free NULL rules_str pointer.\n");
-            }
+            kfree(rules_str);  // Free the original memory
             return -EINVAL;
         }
         i++;
     }
 
     RULES_COUNT = i;
-    if (rules_str) {
-        kfree(rules_str);                                      // Free memory
-    } else {
-        printk(KERN_WARNING "Attempt to free NULL rules_str pointer.\n");
-    }
+    kfree(rules_str);
     return count;
 }
 
