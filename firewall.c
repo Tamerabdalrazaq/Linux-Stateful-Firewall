@@ -652,7 +652,7 @@ static struct file_operations fops = {
 // Initialization function; handles error registering the hooks with cleanups and an indicative return value
 static int __init fw_init(void) {    
     int ret;
-    printk(KERN_INFO "Loading hw1secws module...!\n");
+    printk(KERN_INFO "Loading firewall module...!\n");
     // ******
     // Devices setup
     // ******
@@ -720,7 +720,7 @@ static int __init fw_init(void) {
 
     ret = nf_register_net_hook(&init_net, &netfilter_ops_fw);
     if (ret) {
-        printk(KERN_ERR "hw1secws: Failed to register forwarding hook. Error: %d\n", ret);
+        printk(KERN_ERR "firewall: Failed to register forwarding hook. Error: %d\n", ret);
         return ret;
     }
     
@@ -729,7 +729,7 @@ static int __init fw_init(void) {
 
 static void __exit fw_exit(void)
 {
-    printk(KERN_INFO "Removing hw1secws module...\n");
+    printk(KERN_INFO "Removing firewall module...\n");
     // ****** Device Cleanup ******
     if (sysfs_device)
     {
@@ -754,7 +754,7 @@ static void __exit fw_exit(void)
     // ****** Netfilter Cleanup ******
     nf_unregister_net_hook(&init_net, &netfilter_ops_fw);
 
-    printk(KERN_INFO "hw1secws module removed successfully.\n");
+    printk(KERN_INFO "firewall module removed successfully.\n");
 }
 
 module_init(fw_init);
