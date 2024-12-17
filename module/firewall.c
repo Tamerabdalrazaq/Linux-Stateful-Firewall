@@ -186,7 +186,7 @@ size_t get_rules_number(const char *buf, size_t count) {
             rows++;
         }
     }
-    return rows;
+    return rows + 1;
 }
 
 
