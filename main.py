@@ -41,31 +41,6 @@ ACK_BIT_MAP = {
 sysfs_clr_log_file_path = '/sys/class/fw/log/reset'
 
 
-def create_char_device(device_path, major, minor):
-    """
-    Creates a character device at the specified path.
-
-    :param device_path: Path to the character device (e.g., /dev/my_char_dev).
-    :param major: Major number for the device.
-    :param minor: Minor number for the device.
-    """
-    try:
-        # Define the mode: S_IFCHR for character device
-        mode = stat.S_IFCHR | 0o666  # Character device with 666 permissions
-
-        # Create the character device
-        os.mknod(device_path, mode, os.makedev(major, minor))
-        print("Character device created successfully at '{}' with major={} and minor={}".format(
-            device_path, major, minor))
-    except PermissionError:
-        print("Error: Permission denied. Run the script as root.")
-    except FileExistsError:
-        print("Error: Device '{}' already exists.".format(device_path))
-    except Exception as e:
-        print("Error: {}".format(e))
-
-
-
 def format_rules(rules_string):
     """
     Formats a string of firewall rules into a readable format.
@@ -245,8 +220,4 @@ def main():
             print("Invalid Argument.")
 
 if __name__ == '__main__':
-    device_path = "/dev/fw_log"  # Target device file
-    major = 240                  # Example major number
-    minor = 0                    # Example minor number
-    create_char_device(device_path, major, minor)
     main()
