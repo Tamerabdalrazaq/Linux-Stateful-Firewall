@@ -284,33 +284,51 @@ ssize_t modify(struct device *dev, struct device_attribute *attr, const char *bu
     char *rules_str, *tmp_rules_str, *line;
     int i = 0;
     int num_of_rules = get_rules_number(buf, count);
-    FW_RULES = kmalloc_array(num_of_rules, sizeof(rule_t), GFP_KERNEL);
+    static DEFINE_MUTEX(rules_mutex);
 
-    // Allocate memory for parsing
+    // Allocate FW_RULES
+    FW_RULES = kmalloc_array(num_of_rules, sizeof(rule_t), GFP_KERNEL);
+    if (!FW_RULES) {
+        printk(KERN_ALERT "Memory allocation failed for FW_RULES.\n");
+        return -ENOMEM;
+    }
+
+    // Allocate memory for rules_str
     rules_str = kmalloc(count + 1, GFP_KERNEL);
     if (!rules_str) {
+        kfree(FW_RULES);  // Free FW_RULES if rules_str allocation fails
         return -ENOMEM;
     }
 
     strncpy(rules_str, buf, count);
     rules_str[count] = '\0';
     tmp_rules_str = rules_str;
-    // Split input into lines
+
+    mutex_lock(&rules_mutex);  // Protect critical section
+
     for (line = strsep(&tmp_rules_str, "\n"); line != NULL; line = strsep(&tmp_rules_str, "\n")) {
+        if (i >= num_of_rules) {
+            printk(KERN_ALERT "Rule count exceeded allocated space.\n");
+            break;
+        }
         if (parse_rule(line, &FW_RULES[i]) < 0) {
             printk(KERN_ALERT "ERROR IN Rule Parsing.");
-            kfree(rules_str);  // Free the original memory
+            kfree(FW_RULES);
+            kfree(rules_str);
+            mutex_unlock(&rules_mutex);
             return -EINVAL;
         }
         i++;
     }
 
     RULES_COUNT = i;
-    if (rules_str){
-        kfree(rules_str);
-    }
+
+    kfree(rules_str);
+    mutex_unlock(&rules_mutex);
+
     return count;
 }
+
 
 ssize_t reset_store(struct device *dev, struct device_attribute *attr, const char *buf, size_t count)
 {
