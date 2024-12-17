@@ -131,7 +131,7 @@ def load_rules(file_path):
     except PermissionError:
         print("Error: Permission denied when accessing '{}'. Try running as root.".format(file_path, sysfs_path))
     except Exception as e:
-        print(f"Error: {e}")
+        print("Error: {}".format(e))
 
 def main():
         args = sys.argv
