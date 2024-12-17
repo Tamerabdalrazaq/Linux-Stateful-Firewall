@@ -284,7 +284,6 @@ ssize_t modify(struct device *dev, struct device_attribute *attr, const char *bu
     char *rules_str, *tmp_rules_str, *line;
     int i = 0;
     int num_of_rules = get_rules_number(buf, count);
-        printk(KERN_ALERT "%d\n", num_of_rules);
     static DEFINE_MUTEX(rules_mutex);
 
     // Allocate FW_RULES
