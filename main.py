@@ -133,6 +133,26 @@ def load_rules(file_path):
     except Exception as e:
         print("Error: {}".format(e))
 
+def read_rules():
+    """
+    Reads the content of the sysfs device for rules and prints it to the console.
+    :param sysfs_path: Path to the sysfs device to read the rules.
+    """
+    sysfs_path='/sys/class/fw/rules/rules'
+    try:
+        # Open the sysfs device and read the content
+        with open(sysfs_path, 'r') as sysfs_device:
+            rules_content = sysfs_device.read()
+        
+        print("Current Rules:\n{}".format(rules_content))
+    except FileNotFoundError:
+        print("Error: Sysfs device '{}' not found.".format(sysfs_path))
+    except PermissionError:
+        print("Error: Permission denied when accessing '{}'. Try running as root.".format(sysfs_path))
+    except Exception as e:
+        print("Error: {}".format(e))
+
+
 def main():
         args = sys.argv
         print(args)
