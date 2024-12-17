@@ -24,8 +24,6 @@ static int major_number;
 static struct class* sysfs_class = NULL;
 static struct device* sysfs_device = NULL;
 struct device *log_device;
-static char buffer[256]; // Internal buffer for the device
-static int buffer_size = 0; // Current size of the data in the buffer
 
 // Define packet_log struct
 struct packet_log {
