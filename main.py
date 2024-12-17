@@ -206,7 +206,7 @@ def main():
         if len(args) == 3 and args[1] == "load_rules":
             load_rules(args[2])
         # Reset stats
-        elif len(args) == 2:
+        elif len(args) == 2 and args[1] in ["show_log", "clear_log", "show_rules"]:
             param = args[1]
             if param == "show_log":
                 show_log()
