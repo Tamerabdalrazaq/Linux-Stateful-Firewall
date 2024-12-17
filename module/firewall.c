@@ -597,10 +597,18 @@ static unsigned int comp_packet_to_rules(struct sk_buff *skb, const struct nf_ho
                 continue;
             if (rule->dst_ip != IP_ANY && (dst_ip & rule->dst_prefix_mask) != (rule->dst_ip & rule->dst_prefix_mask))
                 continue;
-            if (rule->src_port != PORT_ANY && rule->src_port != src_port)
-                continue;
-            if (rule->dst_port != PORT_ANY && rule->dst_port != dst_port)
-                continue;
+            if (rule->src_port != PORT_ANY && rule->src_port != src_port){
+                if (rule->src_port != PORT_ABOVE_1023)
+                    continue;
+                if (src_port < 1023)
+                    continue;
+            }
+            if (rule->dst_port != PORT_ANY && rule->dst_port != dst_port){
+                if (rule->dst_port != PORT_ABOVE_1023)
+                    continue;
+                if (dst_port < 1023)
+                    continue;
+            }
             if (rule->protocol != PROT_ANY && rule->protocol != protocol)
                 continue;
             if (protocol == PROT_TCP && rule->ack != ACK_ANY && rule->ack != ack)
