@@ -29,7 +29,7 @@ struct packet_log {
 };
 
 // Define connection_row struct for connections_table
-struct packet_log {
+struct state_rule_row {
     state_rule_t connection_rule;       
     struct klist_node node;
 };
