@@ -79,6 +79,20 @@ typedef enum {
 	DIRECTION_ANY 	= DIRECTION_IN | DIRECTION_OUT,
 } direction_t;
 
+typedef enum {
+	STATE_LISTEN        = 0x01, // Server waiting for a connection request
+	STATE_SYN_SENT      = 0x02, // Client sent SYN, waiting for SYN-ACK
+	STATE_SYN_RECEIVED  = 0x03, // Server received SYN, sent SYN-ACK, waiting for ACK
+	STATE_ESTABLISHED   = 0x04, // Connection is established, data transfer allowed
+	STATE_FIN_WAIT_1    = 0x05, // Active close initiated, FIN sent, waiting for ACK or FIN
+	STATE_FIN_WAIT_2    = 0x06, // FIN acknowledged, waiting for peer's FIN
+	STATE_CLOSE_WAIT    = 0x07, // FIN received, waiting for application to close
+	STATE_CLOSING       = 0x08, // Both sides sent FIN, waiting for ACK
+	STATE_LAST_ACK      = 0x09, // Passive close, waiting for final ACK
+	STATE_TIME_WAIT     = 0x0A, // Waiting to ensure all packets are accounted for
+	STATE_CLOSED        = 0x0B  // Connection is fully closed
+} tcp_state_t;
+
 // rule base
 typedef struct {
 	char rule_name[20];			// names will be no longer than 20 chars
@@ -96,6 +110,14 @@ typedef struct {
 	ack_t	ack; 				// values from: ack_t
 	__u8	action;   			// valid values: NF_ACCEPT, NF_DROP
 } rule_t;
+
+typedef struct {
+	__be32	src_ip;
+	__be32	dst_ip;
+	__be16	src_port;  
+	__be16	dst_port; 
+	tcp_state_t	state;   			
+} state_rule_t;
 
 // logging
 typedef struct {

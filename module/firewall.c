@@ -1,6 +1,3 @@
-// Integrating sysfs
-// Integrated two sysfs devices
-
 #include <linux/kernel.h>
 #include <linux/module.h>
 #include <linux/netfilter.h>
@@ -31,99 +28,30 @@ struct packet_log {
     struct klist_node node;     // Node for inclusion in the klist
 };
 
+// Define connection_row struct for connections_table
+struct packet_log {
+    state_rule_t connection_rule;       
+    struct klist_node node;
+};
+
 // Define the static klist for packet logs
 static struct klist packet_logs = KLIST_INIT(packet_logs, NULL, NULL);
-    // Finalize the iterator
 static int logs_num = 0;
+
+
+// Define the static klist for packet logs
+static struct klist connections_table = KLIST_INIT(connections_table, NULL, NULL);
 
 // Netfilter hooks for relevant packet phases
 static struct nf_hook_ops netfilter_ops_fw;
-
-// static rule_t RULES[3] = {
-//     {
-//         .rule_name = "telnet2_rule",
-//         .direction = DIRECTION_ANY,
-//         .src_ip = __constant_htonl(0x0A000101), // 10.0.1.1
-//         .src_prefix_mask = __constant_htonl(0xFFFFFF00), // 255.255.255.0
-//         .src_prefix_size = 24,
-//         .dst_ip = IP_ANY, // 0.0.0.0
-//         .dst_prefix_mask = IP_ANY, // 0.0.0.0
-//         .dst_prefix_size = 0,
-//         .src_port = __constant_htons(23), // Source port 23
-//         .dst_port = __constant_htons(1023), // Any port > 1023
-//         .protocol = PROT_TCP,
-//         .ack = ACK_YES,
-//         .action = NF_ACCEPT, // Accept packets
-//     },
-//     {
-//         .rule_name = "ICMP Test",
-//         .direction = DIRECTION_IN,
-//         .src_ip = __constant_htonl(0x0a010101), // 10.0.1.1
-//         .src_prefix_mask = __constant_htonl(0xFFFFFF00), // 255.255.255.0
-//         .src_prefix_size = 24,
-//         .dst_ip = IP_ANY, // 0.0.0.0
-//         .dst_prefix_mask = IP_ANY, // 0.0.0.0
-//         .dst_prefix_size = 0,
-//         .src_port = __constant_htons(2048),
-//         .dst_port = __constant_htons(0),
-//         .protocol = PROT_ICMP,
-//         .ack = ACK_ANY,
-//         .action = NF_ACCEPT, // Accept packets
-//     },
-//     {
-//         .rule_name = "default",
-//         .direction = DIRECTION_ANY,
-//         .src_ip = IP_ANY,
-//         .src_prefix_mask = IP_ANY,
-//         .src_prefix_size = 0,
-//         .dst_ip = IP_ANY,
-//         .dst_prefix_mask = IP_ANY,
-//         .dst_prefix_size = 0,
-//         .src_port = __constant_htons(PORT_ANY),
-//         .dst_port = __constant_htons(PORT_ANY),
-//         .protocol = PROT_ANY,
-//         .ack = ACK_ANY,
-//         .action = NF_DROP, // Drop packets
-//     }
-// };
 
 static int RULES_COUNT = 0;
 static rule_t* FW_RULES;
 
 
-static void ip_to_string(__be32 ip, char *buffer) {
-    unsigned char *bytes = (unsigned char *)&ip;
-    snprintf(buffer, 16, "%u.%u.%u.%u", bytes[0], bytes[1], bytes[2], bytes[3]);
-}
 
-void print_fw_rules(void) {
-    char src_ip_str[16];
-    char dst_ip_str[16];
-    int i;
-
-    printk(KERN_INFO "Firewall Rules:\n");
-
-    for (i = 0; i < RULES_COUNT; i++) {
-        rule_t *rule = &FW_RULES[i];
-
-        ip_to_string(rule->src_ip, src_ip_str);
-        ip_to_string(rule->dst_ip, dst_ip_str);
-
-        printk(KERN_INFO "Rule %d:\n", i + 1);
-        printk(KERN_INFO "  Name: %s\n", rule->rule_name);
-        printk(KERN_INFO "  Direction: %d\n", rule->direction);
-        printk(KERN_INFO "  Source IP: %s/%d\n", src_ip_str, rule->src_prefix_size);
-        printk(KERN_INFO "  Destination IP: %s/%d\n", dst_ip_str, rule->dst_prefix_size);
-        printk(KERN_INFO "  Source Port: %u\n", ntohs(rule->src_port));
-        printk(KERN_INFO "  Destination Port: %u\n", ntohs(rule->dst_port));
-        printk(KERN_INFO "  Protocol: %u\n", rule->protocol);
-        printk(KERN_INFO "  ACK: %u\n", rule->ack);
-        printk(KERN_INFO "  Action: %u\n", rule->action);
-    }
-}
-
-
-ssize_t display(struct device *dev, struct device_attribute *attr, char *buf) 
+// Display_rules the rules
+ssize_t display_rules(struct device *dev, struct device_attribute *attr, char *buf) 
 {
     int i;
     int len = 0; // Tracks the total length written into the buffer
@@ -173,8 +101,6 @@ static int parse_ip_prefix(const char *ip_prefix, __be32 *ip, __be32 *mask, __u8
 
     return 0;
 }
-
-
 
 size_t get_rules_number(const char *buf, size_t count) {
     size_t rows = 0;
@@ -280,7 +206,8 @@ static int parse_rule(const char *rule_str, rule_t *rule) {
 
 
 
-ssize_t modify(struct device *dev, struct device_attribute *attr, const char *buf, size_t count) {
+// Modify_rules the rules 
+ssize_t modify_rules(struct device *dev, struct device_attribute *attr, const char *buf, size_t count) {
     char *rules_str, *tmp_rules_str, *line;
     int i = 0;
     int num_of_rules = get_rules_number(buf, count);
@@ -329,8 +256,8 @@ ssize_t modify(struct device *dev, struct device_attribute *attr, const char *bu
     return count;
 }
 
-
-ssize_t reset_store(struct device *dev, struct device_attribute *attr, const char *buf, size_t count)
+// Reset the logs
+ssize_t reset_logs(struct device *dev, struct device_attribute *attr, const char *buf, size_t count)
 {
     struct klist_iter iter;
     struct packet_log *plog;
@@ -354,7 +281,9 @@ ssize_t reset_store(struct device *dev, struct device_attribute *attr, const cha
     return count;
 }
 
-ssize_t my_read(struct file *filp, char __user *user_buf, size_t count, loff_t *f_pos)
+
+// Read the logs
+ssize_t read_logs(struct file *filp, char __user *user_buf, size_t count, loff_t *f_pos)
 {
     char *kernel_buf;
     size_t buf_size = 4096; // Allocate a buffer large enough to hold logs
@@ -590,7 +519,6 @@ static unsigned int comp_packet_to_rules(struct sk_buff *skb, const struct nf_ho
     if (is_christmas_packet == 0){
         for (i = 0; i < RULES_COUNT; i++) {
             rule_t *rule = &FW_RULES[i];
-            printk(KERN_INFO "Comparing against:  %s\n", rule->rule_name);
             if (rule->direction != DIRECTION_ANY && rule->direction != direction)
                 continue;
             if (rule->src_ip != IP_ANY && (src_ip & rule->src_prefix_mask) != (rule->src_ip & rule->src_prefix_mask))
@@ -614,23 +542,15 @@ static unsigned int comp_packet_to_rules(struct sk_buff *skb, const struct nf_ho
             if (protocol == PROT_TCP && rule->ack != ACK_ANY && rule->ack != ack)
                 continue;
 
-            printk(KERN_INFO "\n**** Matched rule %s ****\n", rule->rule_name);
-            // Create and initialize a new log_row_t object
-            // Populate the log entry fields
-            log_entry.action = rule->action;          // Placeholder: set appropriate action later
-            // if(i == RULES_COUNT - 1)
-            //     log_entry.reason = REASON_NO_MATCHING_RULE;   
-            // else              
+            log_entry.action = rule->action;      
             log_entry.reason = i;   
             add_or_update_log_entry(&log_entry);
-            print_packet_logs();
-            return rule->action; // Return the matching rule's action
+            return rule->action;
         }
     } else{
         log_entry.reason = REASON_XMAS_PACKET;
         log_entry.action = NF_DROP;
         add_or_update_log_entry(&log_entry);
-        print_packet_logs();
         return NF_DROP;
     }
 
@@ -664,12 +584,12 @@ static unsigned int module_hook(void *priv, struct sk_buff *skb, const struct nf
 
 
 
-static DEVICE_ATTR(rules, S_IWUSR | S_IRUGO , display, modify);
-static DEVICE_ATTR(reset, S_IWUSR, NULL, reset_store);
+static DEVICE_ATTR(rules, S_IWUSR | S_IRUGO , display_rules, modify_rules);
+static DEVICE_ATTR(reset, S_IWUSR, NULL, reset_logs);
 
 static struct file_operations fops = {
     .owner = THIS_MODULE,
-    .read = my_read,
+    .read = read_logs,
 };
 
 
@@ -739,7 +659,7 @@ static int __init fw_init(void) {
     // Set up the Netfilter hook for forwarding packets
     netfilter_ops_fw.hook = module_hook;
     netfilter_ops_fw.pf = PF_INET;
-    netfilter_ops_fw.hooknum = NF_INET_FORWARD;
+    netfilter_ops_fw.hooknum = NF_INET_PRE_ROUTING;
     netfilter_ops_fw.priority = NF_IP_PRI_FIRST;
 
     ret = nf_register_net_hook(&init_net, &netfilter_ops_fw);
