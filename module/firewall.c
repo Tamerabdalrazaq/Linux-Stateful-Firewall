@@ -672,7 +672,7 @@ static int __init fw_init(void) {
     // Set up the Netfilter hook for forwarding packets
     netfilter_ops_fw.hook = module_hook;
     netfilter_ops_fw.pf = PF_INET;
-    netfilter_ops_fw.hooknum = NF_INET_FORWARD;
+    netfilter_ops_fw.hooknum = NF_INET_PRE_ROUTING;
     netfilter_ops_fw.priority = NF_IP_PRI_FIRST;
 
     ret = nf_register_net_hook(&init_net, &netfilter_ops_fw);
