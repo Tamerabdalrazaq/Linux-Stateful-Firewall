@@ -561,6 +561,7 @@ static int get_packet_verdict(struct sk_buff *skb, const struct nf_hook_state *s
     // Compare packet to rules
     found_rule_index = comp_packet_to_rules(src_ip, dst_ip, src_port, dst_port, protocol, ack, direction);
     if (found_rule_index >= 0) {
+        printk(KERN_INFO "Matching rule %d", i);
         log_entry.action = FW_RULES[i].action;      
         log_entry.reason = i;   
         add_or_update_log_entry(&log_entry);
