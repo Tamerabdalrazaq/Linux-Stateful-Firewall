@@ -480,7 +480,43 @@ static void extract_transport_fields(struct sk_buff *skb, __u8 protocol, __be16 
     }
 }
 
-static unsigned int comp_packet_to_rules(struct sk_buff *skb, const struct nf_hook_state *state) {
+
+
+static int comp_packet_to_rules(__be32 src_ip, __be32 dst_ip, __be16 src_port, __be16 dst_port, __u8 protocol, __u8 ack, direction_t direction) {
+    int i;
+    for (i = 0; i < RULES_COUNT; i++) {
+        rule_t *rule = &FW_RULES[i];
+        if (rule->direction != DIRECTION_ANY && rule->direction != direction)
+            continue;
+        if (rule->src_ip != IP_ANY && (src_ip & rule->src_prefix_mask) != (rule->src_ip & rule->src_prefix_mask))
+            continue;
+        if (rule->dst_ip != IP_ANY && (dst_ip & rule->dst_prefix_mask) != (rule->dst_ip & rule->dst_prefix_mask))
+            continue;
+        if (rule->src_port != PORT_ANY && rule->src_port != src_port){
+            if (rule->src_port != PORT_ABOVE_1023)
+                continue;
+            if (src_port < 1023)
+                continue;
+        }
+        if (rule->dst_port != PORT_ANY && rule->dst_port != dst_port){
+            if (rule->dst_port != PORT_ABOVE_1023)
+                continue;
+            if (dst_port < 1023)
+                continue;
+        }
+        if (rule->protocol != PROT_ANY && rule->protocol != protocol)
+            continue;
+        if (protocol == PROT_TCP && rule->ack != ACK_ANY && rule->ack != ack)
+            continue;
+        
+        return i;
+    }
+    return -1;
+} 
+
+
+// Given a TCP/UDP/ICMP packet
+static int get_packet_verdict(struct sk_buff *skb, const struct nf_hook_state *state) {
     __be32 src_ip = 0, dst_ip = 0;
     __be16 src_port = 0, dst_port = 0;
     __u8 protocol = 0;
@@ -488,7 +524,7 @@ static unsigned int comp_packet_to_rules(struct sk_buff *skb, const struct nf_ho
     struct iphdr *ip_header;
     direction_t direction;
     size_t i;
-    int is_christmas_packet = 0;
+    int is_christmas_packet = 0, found_rule_index;
     log_row_t log_entry;
 
     memset(&log_entry, 0, sizeof(log_row_t)); // Initialize to zero
@@ -515,43 +551,20 @@ static unsigned int comp_packet_to_rules(struct sk_buff *skb, const struct nf_ho
     log_entry.dst_port = dst_port;          // Destination port from transport fields
     log_entry.count = 1;                    // Initial hit count       
            
-    // Compare packet to rules
-    if (is_christmas_packet == 0){
-        for (i = 0; i < RULES_COUNT; i++) {
-            rule_t *rule = &FW_RULES[i];
-            if (rule->direction != DIRECTION_ANY && rule->direction != direction)
-                continue;
-            if (rule->src_ip != IP_ANY && (src_ip & rule->src_prefix_mask) != (rule->src_ip & rule->src_prefix_mask))
-                continue;
-            if (rule->dst_ip != IP_ANY && (dst_ip & rule->dst_prefix_mask) != (rule->dst_ip & rule->dst_prefix_mask))
-                continue;
-            if (rule->src_port != PORT_ANY && rule->src_port != src_port){
-                if (rule->src_port != PORT_ABOVE_1023)
-                    continue;
-                if (src_port < 1023)
-                    continue;
-            }
-            if (rule->dst_port != PORT_ANY && rule->dst_port != dst_port){
-                if (rule->dst_port != PORT_ABOVE_1023)
-                    continue;
-                if (dst_port < 1023)
-                    continue;
-            }
-            if (rule->protocol != PROT_ANY && rule->protocol != protocol)
-                continue;
-            if (protocol == PROT_TCP && rule->ack != ACK_ANY && rule->ack != ack)
-                continue;
-
-            log_entry.action = rule->action;      
-            log_entry.reason = i;   
-            add_or_update_log_entry(&log_entry);
-            return rule->action;
-        }
-    } else{
+    if (is_christmas_packet) {
         log_entry.reason = REASON_XMAS_PACKET;
         log_entry.action = NF_DROP;
         add_or_update_log_entry(&log_entry);
         return NF_DROP;
+    }
+    
+    // Compare packet to rules
+    found_rule_index = comp_packet_to_rules(src_ip, dst_ip, src_port, dst_port, protocol, ack, direction);
+    if (found_rule_index >= 0) {
+        log_entry.action = FW_RULES[i].action;      
+        log_entry.reason = i;   
+        add_or_update_log_entry(&log_entry);
+        return rule->action;
     }
 
     log_entry.action = NF_DROP;
@@ -578,7 +591,7 @@ static unsigned int module_hook(void *priv, struct sk_buff *skb, const struct nf
         return NF_ACCEPT;
     }
 
-    verdict = comp_packet_to_rules(skb, state);
+    verdict = get_packet_verdict(skb, state);
     return verdict;
 }
 
