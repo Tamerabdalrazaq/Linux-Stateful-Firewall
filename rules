@@ -7,4 +7,5 @@ telnet2 in any 10.0.1.1/24 TCP 23 >1023 yes accept
 cli_srv in 10.1.1.1/24 10.1.2.2/24 ICMP any any any accept
 srv_cli out 10.1.2.2/24 10.1.1.1/24 ICMP any any any accept
 cli_srv_tnet in 10.1.1.1/24 10.1.2.2/24 TCP any 22222 no accept
+srv_all any 10.1.2.2/24 any any any any any accept
 default any any any any any any any drop
