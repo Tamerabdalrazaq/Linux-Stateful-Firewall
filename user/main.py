@@ -36,6 +36,11 @@ ACK_BIT_MAP = {
     3: "any"
 }
 
+PORT_MAP = {
+    0: "any",
+    1023: ">1023",
+}
+
 
 # Path to the sysfs file for the sysfs attribute
 sysfs_clr_log_file_path = '/sys/class/fw/log/reset'
@@ -46,6 +51,8 @@ def process_src_port(src_port):
         # The string represents an integer, convert it to int and then apply ntohs
         port_num = int(src_port)
         converted_port = socket.ntohs(port_num)
+        if converted_port in PORT_MAP:
+            return PORT_MAP.get(converted_port)
         return converted_port
     else:
         # The string does not represent an integer, keep it as is
