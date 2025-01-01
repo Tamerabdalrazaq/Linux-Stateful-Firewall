@@ -91,13 +91,13 @@ int convert_src_port(const char *src_port_str, __be16 *network_port) {
     // Convert string to integer
     ret = kstrtoint(src_port_str, 10, &src_port);
     if (ret) {
-        printk(KERN_ERROR "Invalid src_port string: %s\n", src_port_str);
+        printk(KERN_ERR "Invalid src_port string: %s\n", src_port_str);
         return -EINVAL;  // Invalid argument
     }
 
     // Check for valid port range (1-65535)
     if (src_port < 1 || src_port > 65535) {
-        printk(KERN_ERROR "Port out of range: %d\n", src_port);
+        printk(KERN_ERR "Port out of range: %d\n", src_port);
         return -ERANGE;
     }
 
