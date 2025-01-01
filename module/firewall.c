@@ -49,6 +49,99 @@ static int RULES_COUNT = 0;
 static rule_t* FW_RULES;
 
 
+static void print_fw_rules(void) {
+    int i;
+
+    printk(KERN_INFO "Firewall Rules:\n");
+
+    for (i = 0; i < RULES_COUNT; i++) {
+        rule_t *rule = &FW_RULES[i];
+
+        printk(KERN_INFO "Rule %d:\n", i + 1);
+        printk(KERN_INFO "  Name: %s\n", rule->rule_name);
+        printk(KERN_INFO "  Direction: %d\n", rule->direction);
+        printk(KERN_INFO "  Source IP: %pI4/%d\n", rule->src_ip, rule->src_prefix_size);
+        printk(KERN_INFO "  Destination IP: %pI4/%d\n", rule->dst_ip, rule->dst_prefix_size);
+        printk(KERN_INFO "  Source Port: %u\n", ntohs(rule->src_port));
+        printk(KERN_INFO "  Destination Port: %u\n", ntohs(rule->dst_port));
+        printk(KERN_INFO "  Protocol: %u\n", rule->protocol);
+        printk(KERN_INFO "  ACK: %u\n", rule->ack);
+        printk(KERN_INFO "  Action: %u\n", rule->action);
+    }
+}
+
+
+void print_packet_logs(void) {
+    struct klist_iter iter;
+    struct klist_node *knode;
+    struct packet_log *entry;
+
+    printk(KERN_INFO "=== Printing Packet Logs ===\n");
+
+    // Initialize the iterator for the klist
+    klist_iter_init(&packet_logs, &iter);
+
+    // Iterate over the klist
+    while ((knode = klist_next(&iter))) {
+        // Retrieve the parent structure from the node
+        entry = container_of(knode, struct packet_log, node);
+
+        // Print the log object details
+        printk(KERN_INFO
+               "Log Entry: Timestamp=%lu, Protocol=%u, Action=%u, "
+               "Src_IP=%pI4, Dst_IP=%pI4, Src_Port=%u, Dst_Port=%u, "
+               "Reason=%u, Count=%u\n",
+               entry->log_object.timestamp,
+               entry->log_object.protocol,
+               entry->log_object.action,
+               &entry->log_object.src_ip,
+               &entry->log_object.dst_ip,
+               ntohs(entry->log_object.src_port),
+               ntohs(entry->log_object.dst_port),
+               entry->log_object.reason,
+               entry->log_object.count);
+    }
+
+    // Exit the iterator
+    klist_iter_exit(&iter);
+
+    printk(KERN_INFO "=== End of Packet Logs ===\n");
+}
+void print_connections_table(void) {
+    struct klist_iter iter;
+    struct klist_node *knode;
+    struct state_rule_row *entry;
+
+    printk(KERN_INFO "=== Printing Connecitnos Table Logs ===\n");
+
+    // Initialize the iterator for the klist
+    klist_iter_init(&connections_table, &iter);
+
+    // Iterate over the klist
+    while ((knode = klist_next(&iter))) {
+        // Retrieve the parent structure from the node
+        entry = container_of(knode, struct state_rule_row, node);
+
+        // Print the log object details
+        printk(KERN_INFO
+               "Src_IP=%pI4, Dst_IP=%pI4, Src_Port=%u, Dst_Port=%u, "
+               "Reason=%u",
+               &entry->connection_rule.packet.src_ip,
+               &entry->connection_rule.packet.dst_ip,
+               ntohs(entry->connection_rule.packet.src_port),
+               ntohs(entry->connection_rule.packet.dst_port),
+               entry->connection_rule.state);
+    }
+
+    // Exit the iterator
+    klist_iter_exit(&iter);
+
+    printk(KERN_INFO "=== End of Connectinos Table ===\n");
+}
+
+
+
+
 int compare_packets(packet_identifier_t p1, packet_identifier_t p2){
     return (p1.src_ip == p2.src_ip && p1.dst_ip == p2.dst_ip && p1.src_port == p2.src_port && p1.src_port == p2.src_port && p1.dst_port == p2.dst_port && p1.src_port == p2.src_port);
 }
@@ -384,97 +477,6 @@ ssize_t read_logs(struct file *filp, char __user *user_buf, size_t count, loff_t
 
     return written;
 }
-
-void print_fw_rules(void) {
-    int i;
-
-    printk(KERN_INFO "Firewall Rules:\n");
-
-    for (i = 0; i < RULES_COUNT; i++) {
-        rule_t *rule = &FW_RULES[i];
-
-        printk(KERN_INFO "Rule %d:\n", i + 1);
-        printk(KERN_INFO "  Name: %s\n", rule->rule_name);
-        printk(KERN_INFO "  Direction: %d\n", rule->direction);
-        printk(KERN_INFO "  Source IP: %pI4/%d\n", rule->src_ip, rule->src_prefix_size);
-        printk(KERN_INFO "  Destination IP: %pI4/%d\n", rule->dst_ip, rule->dst_prefix_size);
-        printk(KERN_INFO "  Source Port: %u\n", ntohs(rule->src_port));
-        printk(KERN_INFO "  Destination Port: %u\n", ntohs(rule->dst_port));
-        printk(KERN_INFO "  Protocol: %u\n", rule->protocol);
-        printk(KERN_INFO "  ACK: %u\n", rule->ack);
-        printk(KERN_INFO "  Action: %u\n", rule->action);
-    }
-}
-
-
-void print_packet_logs(void) {
-    struct klist_iter iter;
-    struct klist_node *knode;
-    struct packet_log *entry;
-
-    printk(KERN_INFO "=== Printing Packet Logs ===\n");
-
-    // Initialize the iterator for the klist
-    klist_iter_init(&packet_logs, &iter);
-
-    // Iterate over the klist
-    while ((knode = klist_next(&iter))) {
-        // Retrieve the parent structure from the node
-        entry = container_of(knode, struct packet_log, node);
-
-        // Print the log object details
-        printk(KERN_INFO
-               "Log Entry: Timestamp=%lu, Protocol=%u, Action=%u, "
-               "Src_IP=%pI4, Dst_IP=%pI4, Src_Port=%u, Dst_Port=%u, "
-               "Reason=%u, Count=%u\n",
-               entry->log_object.timestamp,
-               entry->log_object.protocol,
-               entry->log_object.action,
-               &entry->log_object.src_ip,
-               &entry->log_object.dst_ip,
-               ntohs(entry->log_object.src_port),
-               ntohs(entry->log_object.dst_port),
-               entry->log_object.reason,
-               entry->log_object.count);
-    }
-
-    // Exit the iterator
-    klist_iter_exit(&iter);
-
-    printk(KERN_INFO "=== End of Packet Logs ===\n");
-}
-void print_connections_table(void) {
-    struct klist_iter iter;
-    struct klist_node *knode;
-    struct state_rule_row *entry;
-
-    printk(KERN_INFO "=== Printing Connecitnos Table Logs ===\n");
-
-    // Initialize the iterator for the klist
-    klist_iter_init(&connections_table, &iter);
-
-    // Iterate over the klist
-    while ((knode = klist_next(&iter))) {
-        // Retrieve the parent structure from the node
-        entry = container_of(knode, struct state_rule_row, node);
-
-        // Print the log object details
-        printk(KERN_INFO
-               "Src_IP=%pI4, Dst_IP=%pI4, Src_Port=%u, Dst_Port=%u, "
-               "Reason=%u",
-               &entry->connection_rule.packet.src_ip,
-               &entry->connection_rule.packet.dst_ip,
-               ntohs(entry->connection_rule.packet.src_port),
-               ntohs(entry->connection_rule.packet.dst_port),
-               entry->connection_rule.state);
-    }
-
-    // Exit the iterator
-    klist_iter_exit(&iter);
-
-    printk(KERN_INFO "=== End of Connectinos Table ===\n");
-}
-
 
 void add_or_update_log_entry(log_row_t *new_entry) {
     struct klist_iter iter;
