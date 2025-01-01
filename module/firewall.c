@@ -193,6 +193,7 @@ static int parse_rule(const char *rule_str, rule_t *rule) {
         rule->src_port = PORT_ANY;
     } else if (strcmp(src_port_str, ">1023") == 0){
         rule->src_port = PORT_ABOVE_1023;
+        printk(KERN_CRIT "%s src_port is: %d",rule->rule_name, rule->src_port);
     } else {
         if (convert_src_port(src_port_str, &rule->src_port) != 0){
             printk(KERN_CRIT "Error in provided rule port: %s", src_port_str);
@@ -203,8 +204,8 @@ static int parse_rule(const char *rule_str, rule_t *rule) {
     if (strcmp(dst_port_str, "any") == 0) {
         rule->dst_port = PORT_ANY;
     } else if (strcmp(dst_port_str, ">1023") == 0){
-        printk(KERN_CRIT "@@@@@ %s", dst_port_str);
         rule->dst_port = PORT_ABOVE_1023;
+        printk(KERN_CRIT "%s dst_port is: %d",rule->rule_name, rule->dst_port);
     } else {
         if (convert_src_port(dst_port_str, &rule->dst_port) != 0){
             printk(KERN_CRIT "Error in provided rule port: %s", dst_port_str);
