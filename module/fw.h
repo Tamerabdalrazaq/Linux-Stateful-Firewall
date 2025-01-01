@@ -53,7 +53,7 @@ typedef enum {
 #define IN_NET_DEVICE_NAME			"enp0s8"
 #define OUT_NET_DEVICE_NAME			"enp0s9"
 
-// auxiliary values, for your convenience
+// auxiliary values, for your  convenience
 #define IP_VERSION		(4)
 #define PORT_ANY		(0)
 #define PORT_ABOVE_1023	(htons(1023))
