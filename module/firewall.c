@@ -614,8 +614,6 @@ static int get_packet_verdict(struct sk_buff *skb, const struct nf_hook_state *s
     packet_identifier.dst_ip = dst_ip;
     packet_identifier.src_port = src_port;
     packet_identifier.dst_port = dst_port;
-
-    printk(KERN_INFO "Processing packet:\n src_ip: %i")
     
     log_entry.timestamp = jiffies;           // Use jiffies as the timestamp
     log_entry.protocol = protocol;          // Protocol extracted from the IP header
@@ -624,9 +622,6 @@ static int get_packet_verdict(struct sk_buff *skb, const struct nf_hook_state *s
     log_entry.src_port = src_port;          // Source port from transport fields
     log_entry.dst_port = dst_port;          // Destination port from transport fields
     log_entry.count = 1;                    // Initial hit count       
-    
-    printk(KERN_INFO "ack bit is %d", ack);
-    printk(KERN_INFO "Protocol: %d", protocol);
 
     if (is_christmas_packet) {
         log_entry.reason = REASON_XMAS_PACKET;
