@@ -711,7 +711,6 @@ static int get_packet_verdict(struct sk_buff *skb, const struct nf_hook_state *s
 static unsigned int module_hook(void *priv, struct sk_buff *skb, const struct nf_hook_state *state) {
     unsigned int verdict = NF_DROP;
     struct iphdr *ip_header;
-
     ip_header = ip_hdr(skb);
     if (!ip_header) {
         return NF_ACCEPT; // Accept non-IPv4 packets (e.g., IPv6)
@@ -726,6 +725,8 @@ static unsigned int module_hook(void *priv, struct sk_buff *skb, const struct nf
     if (ip_header->protocol != PROT_TCP && ip_header->protocol != PROT_UDP && ip_header->protocol != PROT_ICMP) {
         return NF_ACCEPT;
     }
+    
+    printk(KERN_INFO "\n***   Recieved a new packet ***\n");
 
     verdict = get_packet_verdict(skb, state);
     return verdict;
