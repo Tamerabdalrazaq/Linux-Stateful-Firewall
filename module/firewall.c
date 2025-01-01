@@ -566,24 +566,57 @@ static int find_connection(packet_identifier_t packet_identifier){
     return -1;
 }
 
-static int establish_connection(packet_identifier_t packet_identifier){
-    int found_connection = find_connection(packet_identifier);
 
+static void reverse_packet_identifier(const packet_identifier_t *packet, packet_identifier_t *reversed) {
+    reversed->src_ip = packet->dst_ip;
+    reversed->dst_ip = packet->src_ip;
+    reversed->src_port = packet->dst_port;
+    reversed->dst_port = packet->src_port;
+}
+
+static int initiate_connection(packet_identifier_t packet_identifier) {
+    int found_connection = find_connection(packet_identifier);
     if (found_connection >= 0)
         return NF_DROP;
-    // No match found: create a new entry and add it to the klist
-    struct state_rule_row *new_rule = kmalloc(sizeof(struct state_rule_row), GFP_KERNEL);
-    if (!new_rule)
-        return NF_DROP; // Handle memory allocation failure
 
-    // Copy the new_entry into the new log_object
-    memcpy(&new_rule->connection_rule.packet, &packet_identifier, sizeof(packet_identifier_t));
+    // Allocate memory for reversed_packet_identifier
+    packet_identifier_t *reversed_packet_identifier = kmalloc(sizeof(packet_identifier_t), GFP_KERNEL);
+    if (!reversed_packet_identifier) {
+        printk(KERN_ERR "Memory allocation failed for reversed_packet_identifier\n");
+        return NF_DROP;
+    }
+    reverse_packet_identifier(&packet_identifier, reversed_packet_identifier);
 
-    // Add the new log entry to the klist
-    klist_add_tail(&new_rule->node, &connections_table);
+    // Allocate memory for new_rule_sender and new_rule_reciever
+    struct state_rule_row *new_rule_sender = kmalloc(sizeof(struct state_rule_row), GFP_KERNEL);
+    struct state_rule_row *new_rule_reciever = kmalloc(sizeof(struct state_rule_row), GFP_KERNEL);
+    if (!new_rule_sender || !new_rule_reciever) {
+        printk(KERN_ERR "Memory allocation failed for new_rule_sender or new_rule_reciever\n");
+        kfree(reversed_packet_identifier);
+        if (new_rule_sender) kfree(new_rule_sender);
+        if (new_rule_reciever) kfree(new_rule_reciever);
+        return NF_DROP;
+    }
+
+    // Initialize the state rules
+    new_rule_sender->connection_rule.state = STATE_SYN_SENT;
+    new_rule_reciever->connection_rule.state = STATE_LISTEN;
+
+    // Copy packet identifiers
+    memcpy(&new_rule_sender->connection_rule.packet, &packet_identifier, sizeof(packet_identifier_t));
+    memcpy(&new_rule_reciever->connection_rule.packet, reversed_packet_identifier, sizeof(packet_identifier_t));
+
+    // Free reversed_packet_identifier after use
+    kfree(reversed_packet_identifier);
+
+    // Add the new entries to the klist
+    klist_add_tail(&new_rule_sender->node, &connections_table);
+    klist_add_tail(&new_rule_reciever->node, &connections_table);
+
     print_connections_table();
     return NF_ACCEPT;
 }
+
 
 
 static int comp_packet_to_static_rules(packet_identifier_t packet_identifier, __u8 protocol, __u8 ack, direction_t direction) {
@@ -692,7 +725,7 @@ static int get_packet_verdict(struct sk_buff *skb, const struct nf_hook_state *s
         if (found_rule_index >= 0) {
             if (protocol == PROT_TCP  && FW_RULES[found_rule_index].action){
                 // Try establishing a new connection for TCP packets - drop if invalid connection.
-                if(!establish_connection(packet_identifier)){
+                if(!initiate_connection(packet_identifier)){
                     log_entry.action = NF_DROP;
                     log_entry.reason = REASON_ILLEGAL_VALUE;
                     add_or_update_log_entry(&log_entry);
