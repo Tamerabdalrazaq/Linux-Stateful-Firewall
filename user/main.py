@@ -49,7 +49,6 @@ def process_src_port(src_port):
         return converted_port
     else:
         # The string does not represent an integer, keep it as is
-        print(f"src_port is not numeric: {src_port}")
         return src_port
 
 
