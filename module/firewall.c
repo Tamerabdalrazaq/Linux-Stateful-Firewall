@@ -614,6 +614,13 @@ static int get_packet_verdict(struct sk_buff *skb, const struct nf_hook_state *s
     packet_identifier.dst_ip = dst_ip;
     packet_identifier.src_port = src_port;
     packet_identifier.dst_port = dst_port;
+
+    pr_info("Packet Details:\n");
+    pr_info("  Source IP: %pI4\n", src_ip);
+    pr_info("  Destination IP: %pI4\n", dst_ip);
+    pr_info("  Source Port: %u\n", ntohs(src_port));
+    pr_info("  Destination Port: %u\n", ntohs(dst_port));
+
     
     log_entry.timestamp = jiffies;           // Use jiffies as the timestamp
     log_entry.protocol = protocol;          // Protocol extracted from the IP header
