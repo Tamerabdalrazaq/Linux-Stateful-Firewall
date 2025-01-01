@@ -50,7 +50,12 @@ static rule_t* FW_RULES;
 
 
 int compare_packets(packet_identifier_t p1, packet_identifier_t p2){
-    return (p1.src_ip == p2.src_ip && p1.dst_ip == p2.dst_ip && p1.src_port == p2.src_port && p1.src_port == p2.src_port && p1.dst_port == p2.dst_port && p1.src_port == p2.src_port);
+    return (p1.src_ip == p2.src_ip && 
+    p1.dst_ip == p2.dst_ip && 
+    p1.src_port == p2.src_port && 
+    p1.src_port == p2.src_port && 
+    p1.dst_port == p2.dst_port && 
+    p1.src_port == p2.src_port);
 }
 
 // Display_rules the rules
@@ -576,6 +581,7 @@ static void reverse_packet_identifier(const packet_identifier_t *packet, packet_
 
 static int initiate_connection(packet_identifier_t packet_identifier) {
     int found_connection = find_connection(packet_identifier);
+    printk("find connection: %d", found_connection);
     if (found_connection >= 0)
         return NF_DROP;
 
