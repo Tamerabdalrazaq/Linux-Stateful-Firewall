@@ -30,7 +30,8 @@ struct packet_log {
 
 // Define connection_row struct for connections_table
 struct connection_rule_row {
-    connection_rule_t connection_rule;       
+    connection_rule_t connection_rule_srv;       
+    connection_rule_t connection_rule_cli;       
     struct klist_node node;
 };
 
@@ -431,11 +432,19 @@ void print_connection( struct connection_rule_row *entry){
             printk(KERN_INFO
                "Src_IP=%pI4, Dst_IP=%pI4, Src_Port=%u, Dst_Port=%u, "
                "State=%u",
-               &entry->connection_rule.packet.src_ip,
-               &entry->connection_rule.packet.dst_ip,
-               ntohs(entry->connection_rule.packet.src_port),
-               ntohs(entry->connection_rule.packet.dst_port),
-               entry->connection_rule.state);
+               &entry->connection_rule_srv.packet.src_ip,
+               &entry->connection_rule_srv.packet.dst_ip,
+               ntohs(entry->connection_rule_srv.packet.src_port),
+               ntohs(entry->connection_rule_srv.packet.dst_port),
+               entry->connection_rule_srv.state);
+            printk(KERN_INFO
+               "Src_IP=%pI4, Dst_IP=%pI4, Src_Port=%u, Dst_Port=%u, "
+               "State=%u",
+               &entry->connection_rule_cli.packet.src_ip,
+               &entry->connection_rule_cli.packet.dst_ip,
+               ntohs(entry->connection_rule_cli.packet.src_port),
+               ntohs(entry->connection_rule_cli.packet.dst_port),
+               entry->connection_rule_cli.state);
 }
 
 void print_connections_table(void) {
@@ -509,7 +518,7 @@ void add_or_update_log_entry(log_row_t *new_entry) {
 }
 
 
-static void extract_transport_fields(struct sk_buff *skb, __u8 protocol, __be16 *src_port, __be16 *dst_port, __u8 *ack, int* is_christmas_packet) { 
+static void extract_transport_fields(struct sk_buff *skb, __u8 protocol, __be16 *src_port, __be16 *dst_port, __u8 *syn, __u8 *ack, int* is_christmas_packet) { 
     struct tcphdr *tcp_header;
     struct udphdr *udp_header;
     struct icmphdr *icmp_header;
@@ -527,6 +536,7 @@ static void extract_transport_fields(struct sk_buff *skb, __u8 protocol, __be16 
             *src_port = (tcp_header->source);
             *dst_port = (tcp_header->dest);
             *ack = (tcp_header->ack ? ACK_YES : ACK_NO);
+            *syn = (tcp_header->syn ? SYN_YES : SYN_NO);
 
             // Check if the packet is a Christmas tree packet
             if (tcp_header->fin && tcp_header->urg && tcp_header->psh) {
@@ -562,7 +572,8 @@ static struct connection_rule_row* find_connection_row(packet_identifier_t packe
     // Iterate over the klist to find a matching entry
     while ((knode = klist_next(&iter))) {
         existing_entry = container_of(knode, struct connection_rule_row, node);
-        if (compare_packets(existing_entry->connection_rule.packet, packet_identifier)){
+        if (compare_packets(existing_entry->connection_rule_cli.packet, packet_identifier) ||
+            compare_packets(existing_entry->connection_rule_srv.packet, packet_identifier)){
             return existing_entry;
         }
         counter++;
@@ -596,29 +607,26 @@ static int initiate_connection(packet_identifier_t packet_identifier) {
 
     // Allocate memory for new_rule_sender and new_rule_reciever
     struct connection_rule_row *new_rule_sender = kmalloc(sizeof(struct connection_rule_row), GFP_KERNEL);
-    struct connection_rule_row *new_rule_reciever = kmalloc(sizeof(struct connection_rule_row), GFP_KERNEL);
-    if (!new_rule_sender || !new_rule_reciever) {
-        printk(KERN_ERR "Memory allocation failed for new_rule_sender or new_rule_reciever\n");
+    if (!new_rule_sender) {
+        printk(KERN_ERR "Memory allocation failed for new_rule_sender\n");
         kfree(reversed_packet_identifier);
-        if (new_rule_sender) kfree(new_rule_sender);
-        if (new_rule_reciever) kfree(new_rule_reciever);
+        kfree(new_rule_sender);
         return NF_DROP;
     }
 
     // Initialize the state rules
-    new_rule_sender->connection_rule.state = STATE_SYN_SENT;
-    new_rule_reciever->connection_rule.state = STATE_LISTEN;
+    new_rule_sender->connection_rule_cli.state = STATE_SYN_SENT;
+    new_rule_sender->connection_rule_srv.state = STATE_LISTEN;
 
     // Copy packet identifiers
-    memcpy(&new_rule_sender->connection_rule.packet, &packet_identifier, sizeof(packet_identifier_t));
-    memcpy(&new_rule_reciever->connection_rule.packet, reversed_packet_identifier, sizeof(packet_identifier_t));
+    memcpy(&new_rule_sender->connection_rule_cli.packet, &packet_identifier, sizeof(packet_identifier_t));
+    memcpy(&new_rule_sender->connection_rule_srv.packet, &reversed_packet_identifier, sizeof(packet_identifier_t));
 
     // Free reversed_packet_identifier after use
     kfree(reversed_packet_identifier);
 
     // Add the new entries to the klist
     klist_add_tail(&new_rule_sender->node, &connections_table);
-    klist_add_tail(&new_rule_reciever->node, &connections_table);
 
     print_connections_table();
     return NF_ACCEPT;
@@ -676,6 +684,127 @@ static int comp_packet_to_static_rules(packet_identifier_t packet_identifier, __
     return -1;
 } 
 
+// Handles TCP state machine and changes the state accordingly. 
+// Returns verdict NF_ACCEPT (allow packet) or NF_DROP (drop packet)
+static int handle_tcp_state_machine(packet_identifier_t packet_identifier, 
+                                    struct connection_rule_row* found_connection, 
+                                    __u8 syn, __u8 ack, __u8 rst, __u8 fin) {
+    connection_rule_t* srv_rule = &found_connection->connection_rule_srv;
+    connection_rule_t* cli_rule = &found_connection->connection_rule_cli;
+    int sender_client = compare_packets(packet_identifier, cli_rule->packet);
+
+    // Handle RST (Reset): Always drop connection on RST
+    if (rst == RST_YES) {
+        srv_rule->state = STATE_CLOSED;
+        cli_rule->state = STATE_CLOSED;
+        return NF_DROP;
+    }
+
+    // Handle server-side state transitions
+    switch (srv_rule->state) {
+        case STATE_LISTEN:
+            if (syn == SYN_YES && ack == ACK_YES && !sender_client) {
+                srv_rule->state = STATE_SYN_RECEIVED;
+                return NF_ACCEPT;
+            }
+            break;
+
+        case STATE_SYN_RECEIVED:
+            if (ack == ACK_YES && syn == SYN_NO && sender_client) {
+                srv_rule->state = STATE_ESTABLISHED;
+                return NF_ACCEPT;
+            }
+            break;
+
+        case STATE_ESTABLISHED:
+            if (ack == ACK_YES && !sender_client && cli_rule->state == STATE_FIN_WAIT_1) {
+                srv_rule->state = STATE_CLOSE_WAIT;
+                return NF_ACCEPT;
+            }
+            break;
+
+        case STATE_CLOSE_WAIT:
+            if (fin == FIN_YES) {
+                srv_rule->state = STATE_LAST_ACK;
+                return NF_ACCEPT;
+            }
+            break;
+
+        case STATE_LAST_ACK:
+            if (ack == ACK_YES) {
+                srv_rule->state = STATE_CLOSED;
+                return NF_ACCEPT;
+            }
+            break;
+
+        case STATE_CLOSED:
+            return NF_DROP;
+
+        default:
+            return NF_DROP;
+    }
+
+    // Handle client-side state transitions
+    switch (cli_rule->state) {
+        case STATE_SYN_SENT:
+            if (srv_rule->state == STATE_SYN_RECEIVED && sender_client &&
+                syn == SYN_NO && ack == ACK_YES) {
+                cli_rule->state = STATE_ESTABLISHED;
+                return NF_ACCEPT;
+            }
+            break;
+
+        case STATE_ESTABLISHED:
+            if (fin == FIN_YES && sender_client) {
+                cli_rule->state = STATE_FIN_WAIT_1;
+                return NF_ACCEPT;
+            }
+            if (fin == FIN_YES && !sender_client) {
+                cli_rule->state = STATE_CLOSE_WAIT;
+                return NF_ACCEPT;
+            }
+            break;
+
+        case STATE_FIN_WAIT_1:
+            if (ack == ACK_YES && !sender_client) {
+                cli_rule->state = STATE_FIN_WAIT_2;
+                return NF_ACCEPT;
+            } else if (fin == FIN_YES && !sender_client) {
+                cli_rule->state = STATE_CLOSING;
+                return NF_ACCEPT;
+            }
+            break;
+
+        case STATE_FIN_WAIT_2:
+            if (ack == ACK_YES && sender_client) {
+                cli_rule->state = STATE_TIME_WAIT;
+                return NF_ACCEPT;
+            }
+            break;
+
+        case STATE_CLOSING:
+            if (ack == ACK_YES && !sender_client) {
+                cli_rule->state = STATE_TIME_WAIT;
+                return NF_ACCEPT;
+            }
+            break;
+
+        case STATE_TIME_WAIT:
+            cli_rule->state = STATE_CLOSED;
+            return NF_ACCEPT;
+
+        case STATE_CLOSED:
+            return NF_DROP;
+
+        default:
+            return NF_DROP;
+    }
+
+    // Default case: No valid transition, drop packet
+    return NF_DROP;
+}
+
+
 
 
 // Given a TCP/UDP/ICMP packet
@@ -683,7 +812,7 @@ static int get_packet_verdict(struct sk_buff *skb, const struct nf_hook_state *s
     __be32 src_ip = 0, dst_ip = 0;
     __be16 src_port = 0, dst_port = 0;
     __u8 protocol = 0;
-    __u8 ack = 0;
+    __u8 ack, syn;
     struct iphdr *ip_header;
     direction_t direction;
     int is_christmas_packet = 0, found_rule_index;
@@ -704,7 +833,7 @@ static int get_packet_verdict(struct sk_buff *skb, const struct nf_hook_state *s
     if (protocol != PROT_ICMP &&  protocol != PROT_TCP && protocol != PROT_ICMP)
         return NF_ACCEPT;
 
-    extract_transport_fields(skb, protocol, &src_port, &dst_port, &ack, &is_christmas_packet);
+    extract_transport_fields(skb, protocol, &src_port, &dst_port, &syn, &ack, &is_christmas_packet);
 
     packet_identifier.src_ip = src_ip;
     packet_identifier.dst_ip = dst_ip;
@@ -757,7 +886,7 @@ static int get_packet_verdict(struct sk_buff *skb, const struct nf_hook_state *s
             return NF_DROP;
         } else {
             printk (KERN_INFO "\n\n_!_ Connection found _!_\n\n");
-            print_connection(found_connection);
+            return handle_tcp_state_machine(packet_identifier, found_connection, syn, ack);
         }
     }
     return NF_DROP;

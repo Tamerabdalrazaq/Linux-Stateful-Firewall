@@ -74,6 +74,24 @@ typedef enum {
 } ack_t;
 
 typedef enum {
+	SYN_NO 		= 0x01,
+	SYN_YES 	= 0x02,
+	SYN_ANY 	= SYN_NO | SYN_YES,
+} syn_t;
+
+typedef enum {
+	FIN_NO 		= 0x01,
+	FIN_YES 	= 0x02,
+	FIN_ANY 	= FIN_NO | FIN_YES,
+} fin_t;
+
+typedef enum {
+	RST_NO 		= 0x01,
+	RST_YES 	= 0x02,
+	RST_ANY 	= RST_NO | RST_YES,
+} rst_t;
+
+typedef enum {
 	DIRECTION_IN 	= 0x01,
 	DIRECTION_OUT 	= 0x02,
 	DIRECTION_ANY 	= DIRECTION_IN | DIRECTION_OUT,
