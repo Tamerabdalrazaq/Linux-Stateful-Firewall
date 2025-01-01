@@ -29,7 +29,7 @@ struct packet_log {
 };
 
 // Define connection_row struct for connections_table
-struct state_rule_row {
+struct connection_rule_row {
     connection_rule_t connection_rule;       
     struct klist_node node;
 };
@@ -426,10 +426,22 @@ void print_packet_logs(void) {
 
     printk(KERN_INFO "=== End of Packet Logs ===\n");
 }
+
+void print_connection( struct connection_rule_row *entry){
+            printk(KERN_INFO
+               "Src_IP=%pI4, Dst_IP=%pI4, Src_Port=%u, Dst_Port=%u, "
+               "State=%u",
+               &entry->connection_rule.packet.src_ip,
+               &entry->connection_rule.packet.dst_ip,
+               ntohs(entry->connection_rule.packet.src_port),
+               ntohs(entry->connection_rule.packet.dst_port),
+               entry->connection_rule.state);
+}
+
 void print_connections_table(void) {
     struct klist_iter iter;
     struct klist_node *knode;
-    struct state_rule_row *entry;
+    struct connection_rule_row *entry;
 
     printk(KERN_INFO "=== Printing Connecitnos Table Logs ===\n");
 
@@ -438,18 +450,8 @@ void print_connections_table(void) {
 
     // Iterate over the klist
     while ((knode = klist_next(&iter))) {
-        // Retrieve the parent structure from the node
-        entry = container_of(knode, struct state_rule_row, node);
-
-        // Print the log object details
-        printk(KERN_INFO
-               "Src_IP=%pI4, Dst_IP=%pI4, Src_Port=%u, Dst_Port=%u, "
-               "Reason=%u",
-               &entry->connection_rule.packet.src_ip,
-               &entry->connection_rule.packet.dst_ip,
-               ntohs(entry->connection_rule.packet.src_port),
-               ntohs(entry->connection_rule.packet.dst_port),
-               entry->connection_rule.state);
+        entry = container_of(knode, struct connection_rule_row, node);
+        print_connection(entry);
     }
 
     // Exit the iterator
@@ -548,10 +550,10 @@ static void extract_transport_fields(struct sk_buff *skb, __u8 protocol, __be16 
     }
 }
 
-static int find_connection(packet_identifier_t packet_identifier){
+static struct connection_rule_row* find_connection_row(packet_identifier_t packet_identifier){
     struct klist_iter iter;
     struct klist_node *knode;
-    struct state_rule_row *existing_entry;
+    struct connection_rule_row *existing_entry;
     int counter = 0;
 
     // Initialize an iterator for the klist
@@ -559,16 +561,16 @@ static int find_connection(packet_identifier_t packet_identifier){
 
     // Iterate over the klist to find a matching entry
     while ((knode = klist_next(&iter))) {
-        existing_entry = container_of(knode, struct state_rule_row, node);
+        existing_entry = container_of(knode, struct connection_rule_row, node);
         if (compare_packets(existing_entry->connection_rule.packet, packet_identifier)){
-            return counter;
+            return existing_entry;
         }
         counter++;
     }
 
     // Exit the iterator
     klist_iter_exit(&iter);
-    return -1;
+    return NULL;
 }
 
 
@@ -580,9 +582,8 @@ static void reverse_packet_identifier(const packet_identifier_t *packet, packet_
 }
 
 static int initiate_connection(packet_identifier_t packet_identifier) {
-    int found_connection = find_connection(packet_identifier);
-    printk("find connection: %d", found_connection);
-    if (found_connection >= 0)
+    struct connection_rule_row* found_connection = find_connection_row(packet_identifier);
+    if (found_connection != NULL)
         return NF_DROP;
 
     // Allocate memory for reversed_packet_identifier
@@ -594,8 +595,8 @@ static int initiate_connection(packet_identifier_t packet_identifier) {
     reverse_packet_identifier(&packet_identifier, reversed_packet_identifier);
 
     // Allocate memory for new_rule_sender and new_rule_reciever
-    struct state_rule_row *new_rule_sender = kmalloc(sizeof(struct state_rule_row), GFP_KERNEL);
-    struct state_rule_row *new_rule_reciever = kmalloc(sizeof(struct state_rule_row), GFP_KERNEL);
+    struct connection_rule_row *new_rule_sender = kmalloc(sizeof(struct connection_rule_row), GFP_KERNEL);
+    struct connection_rule_row *new_rule_reciever = kmalloc(sizeof(struct connection_rule_row), GFP_KERNEL);
     if (!new_rule_sender || !new_rule_reciever) {
         printk(KERN_ERR "Memory allocation failed for new_rule_sender or new_rule_reciever\n");
         kfree(reversed_packet_identifier);
@@ -750,8 +751,13 @@ static int get_packet_verdict(struct sk_buff *skb, const struct nf_hook_state *s
         return NF_DROP;
     } else if (ack == ACK_YES && protocol == PROT_TCP) {
         // printk(KERN_INFO "Handling a dynamic packet..");
-        printk (KERN_INFO "\n\n_!_ Motherfucker HAHAHAHAHAHAHAH _!_\n\n");
-        return NF_ACCEPT;
+        struct connection_rule_row* found_connection = find_connection_row(packet_identifier);
+        if (found_connection == NULL){
+            printk (KERN_INFO "\n\n_!_ Motherfucker NO_CONNECTION 404 _!_\n\n");
+            return NF_DROP;
+        } else {
+            printk (KERN_INFO "\n\n_!_ Connection found _!_\n\n");
+        }
     }
     return NF_DROP;
 }
