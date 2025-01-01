@@ -274,7 +274,9 @@ ssize_t modify_rules(struct device *dev, struct device_attribute *attr, const ch
         }
         if (parse_rule(line, &FW_RULES[i]) < 0) {
             printk(KERN_ALERT "ERROR IN Rule Parsing.");
+            printk(KERN_ALERT "Terminating ...");
             kfree(FW_RULES);
+            RULES_COUNT = 0;
             kfree(rules_str);
             mutex_unlock(&rules_mutex);
             return -EINVAL;
