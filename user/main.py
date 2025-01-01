@@ -1,5 +1,5 @@
 import os
-import time
+import socket
 from datetime import datetime, timedelta
 import sys
 
@@ -41,6 +41,18 @@ ACK_BIT_MAP = {
 sysfs_clr_log_file_path = '/sys/class/fw/log/reset'
 
 
+def process_src_port(src_port):
+    if src_port.isdigit():
+        # The string represents an integer, convert it to int and then apply ntohs
+        port_num = int(src_port)
+        converted_port = socket.ntohs(port_num)
+        return converted_port
+    else:
+        # The string does not represent an integer, keep it as is
+        print(f"src_port is not numeric: {src_port}")
+        return src_port
+
+
 def format_rules(rules_string):
     """
     Formats a string of firewall rules into a readable format.
@@ -62,8 +74,8 @@ def format_rules(rules_string):
         src_ip = parts[2]
         dst_ip = parts[3]
         protocol = int(parts[4])
-        src_port = parts[5]
-        dst_port = parts[6]
+        src_port = process_src_port(parts[5])
+        dst_port = process_src_port(parts[6])
         ack_bit = int(parts[7])
         action = int(parts[8])
 
