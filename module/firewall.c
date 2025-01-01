@@ -540,7 +540,7 @@ static int establish_connection(packet_identifier_t packet_identifier){
         return NF_DROP; // Handle memory allocation failure
 
     // Copy the new_entry into the new log_object
-    memcpy(&new_rule->connection_rule.packet, packet_identifier, sizeof(packet_identifier_t));
+    memcpy(&new_rule->connection_rule.packet, &packet_identifier, sizeof(packet_identifier_t));
 
     // Add the new log entry to the klist
     klist_add_tail(&new_rule->node, &connections_table);
@@ -563,7 +563,7 @@ static int comp_packet_to_static_rules(packet_identifier_t packet_identifier, __
         if (rule->src_port != PORT_ANY && rule->src_port != packet_identifier.src_port){
             if (rule->src_port != PORT_ABOVE_1023)
                 continue;
-            if (src_port < 1023)
+            if (packet_identifier.src_port < 1023)
                 continue;
         }
         if (rule->dst_port != PORT_ANY && rule->dst_port != packet_identifier.dst_port){
