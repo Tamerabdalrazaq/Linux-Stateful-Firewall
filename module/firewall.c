@@ -62,8 +62,6 @@ ssize_t display_rules(struct device *dev, struct device_attribute *attr, char *b
     // Iterate over each rule and append its details to the buffer
     for (i = 0; i < RULES_COUNT; i++) {
         rule_t *rule = &FW_RULES[i];
-        printk(KERN_CRIT "%s", rule->rule_name);
-        printk(KERN_CRIT "%d %d", rule->src_port, rule->dst_port);
         // Add each field of the rule in a readable format
         len += scnprintf(buf + len, PAGE_SIZE - len,
                          "%s %d %pI4/%d %pI4/%d %d %d %d %d %d\n",
@@ -584,29 +582,47 @@ static int comp_packet_to_static_rules(packet_identifier_t packet_identifier, __
     int i;
     for (i = 0; i < RULES_COUNT; i++) {
         rule_t *rule = &FW_RULES[i];
-        if (rule->direction != DIRECTION_ANY && rule->direction != direction)
+        printk(KERN_CRIT "Comparing against %s", rule->rule_name);
+        if (rule->direction != DIRECTION_ANY && rule->direction != direction){
+            printk(KERN_CRIT "Dropped at direction");
             continue;
-        if (rule->src_ip != IP_ANY && (packet_identifier.src_ip & rule->src_prefix_mask) != (rule->src_ip & rule->src_prefix_mask))
+        }
+        if (rule->src_ip != IP_ANY && (packet_identifier.src_ip & rule->src_prefix_mask) != (rule->src_ip & rule->src_prefix_mask)){
+            printk(KERN_CRIT "Dropped at src_ip");
             continue;
-        if (rule->dst_ip != IP_ANY && (packet_identifier.dst_ip & rule->dst_prefix_mask) != (rule->dst_ip & rule->dst_prefix_mask))
+        }
+        if (rule->dst_ip != IP_ANY && (packet_identifier.dst_ip & rule->dst_prefix_mask) != (rule->dst_ip & rule->dst_prefix_mask)){
+            printk(KERN_CRIT "Dropped at dst_ip");
             continue;
+        }
         if (rule->src_port != PORT_ANY && rule->src_port != packet_identifier.src_port){
-            if (rule->src_port != PORT_ABOVE_1023)
+            if (rule->src_port != PORT_ABOVE_1023){
+                printk(KERN_CRIT "Dropped at port src_port != PORT_ABOVE_1023");
                 continue;
-            if (packet_identifier.src_port < 1023)
+            }
+            if (packet_identifier.src_port < 1023){
+                printk(KERN_CRIT "Dropped at port src_port < 1023");
                 continue;
+            }
         }
         if (rule->dst_port != PORT_ANY && rule->dst_port != packet_identifier.dst_port){
-            if (rule->dst_port != PORT_ABOVE_1023)
+            if (rule->dst_port != PORT_ABOVE_1023){
+                printk(KERN_CRIT "Dropped at dst_port  != PORT_ABOVE_1023");
                 continue;
-            if (packet_identifier.dst_port < 1023)
+            }
+            if (packet_identifier.dst_port < 1023){
+                printk(KERN_CRIT "Dropped at dst_port  <1023");
                 continue;
+            }
         }
-        if (rule->protocol != PROT_ANY && rule->protocol != protocol)
+        if (rule->protocol != PROT_ANY && rule->protocol != protocol){
+            printk(KERN_CRIT "Dropped at protocol");
             continue;
-        if (protocol == PROT_TCP && rule->ack != ACK_ANY && rule->ack != ack)
+        }
+        if (protocol == PROT_TCP && rule->ack != ACK_ANY && rule->ack != ack){
+            printk(KERN_CRIT "Dropped at ack");
             continue;
-        
+        }
         return i;
     }
     return -1;
