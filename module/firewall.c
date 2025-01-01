@@ -396,8 +396,8 @@ void print_fw_rules(void) {
         printk(KERN_INFO "Rule %d:\n", i + 1);
         printk(KERN_INFO "  Name: %s\n", rule->rule_name);
         printk(KERN_INFO "  Direction: %d\n", rule->direction);
-        printk(KERN_INFO "  Source IP: %pI4/%d\n", src_ip_str, rule->src_prefix_size);
-        printk(KERN_INFO "  Destination IP: %pI4/%d\n", dst_ip_str, rule->dst_prefix_size);
+        printk(KERN_INFO "  Source IP: %pI4/%d\n", rule->src_ip, rule->src_prefix_size);
+        printk(KERN_INFO "  Destination IP: %pI4/%d\n", rule->dst_ip, rule->dst_prefix_size);
         printk(KERN_INFO "  Source Port: %u\n", ntohs(rule->src_port));
         printk(KERN_INFO "  Destination Port: %u\n", ntohs(rule->dst_port));
         printk(KERN_INFO "  Protocol: %u\n", rule->protocol);
