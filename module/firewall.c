@@ -62,7 +62,7 @@ ssize_t display_rules(struct device *dev, struct device_attribute *attr, char *b
     // Iterate over each rule and append its details to the buffer
     for (i = 0; i < RULES_COUNT; i++) {
         rule_t *rule = &FW_RULES[i];
-
+        printk(KERN_CRIT "%d %d", rule->src_port, rule->dst_port);
         // Add each field of the rule in a readable format
         len += scnprintf(buf + len, PAGE_SIZE - len,
                          "%s %d %pI4/%d %pI4/%d %d %d %d %d %d\n",
@@ -684,7 +684,7 @@ static int get_packet_verdict(struct sk_buff *skb, const struct nf_hook_state *s
         add_or_update_log_entry(&log_entry);
         return NF_DROP;
     } else if (ack == ACK_YES && protocol == PROT_TCP) {
-        printk(KERN_INFO "Handling a dynamic packet..");
+        // printk(KERN_INFO "Handling a dynamic packet..");
         return NF_ACCEPT;
     }
     return NF_DROP;
