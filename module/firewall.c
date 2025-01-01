@@ -569,7 +569,7 @@ static int find_connection(packet_identifier_t packet_identifier){
 static int establish_connection(packet_identifier_t packet_identifier){
     int found_connection = find_connection(packet_identifier);
 
-    if (found_connection < 0)
+    if (found_connection >= 0)
         return NF_DROP;
     // No match found: create a new entry and add it to the klist
     struct state_rule_row *new_rule = kmalloc(sizeof(struct state_rule_row), GFP_KERNEL);
