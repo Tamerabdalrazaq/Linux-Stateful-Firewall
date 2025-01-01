@@ -84,6 +84,28 @@ ssize_t display_rules(struct device *dev, struct device_attribute *attr, char *b
 }
 
 
+int convert_src_port(const char *src_port_str, __be16 *network_port) {
+    int src_port;
+    int ret;
+
+    // Convert string to integer
+    ret = kstrtoint(src_port_str, 10, &src_port);
+    if (ret) {
+        printk(KERN_ERROR "Invalid src_port string: %s\n", src_port_str);
+        return -EINVAL;  // Invalid argument
+    }
+
+    // Check for valid port range (1-65535)
+    if (src_port < 1 || src_port > 65535) {
+        printk(KERN_ERROR "Port out of range: %d\n", src_port);
+        return -ERANGE;
+    }
+
+    // Convert to network byte order
+    *network_port = htons((uint16_t)src_port);
+
+    return 0;
+}
 // Helper function to parse IP/prefix into IP, mask, and size
 static int parse_ip_prefix(const char *ip_prefix, __be32 *ip, __be32 *mask, __u8 *prefix_size) {
     char ip_str[16];
@@ -171,7 +193,10 @@ static int parse_rule(const char *rule_str, rule_t *rule) {
     } else if (strcmp(src_port_str, ">1023") == 0){
         rule->src_port = PORT_ABOVE_1023;
     } else {
-        rule->src_port = htons((__be16)src_port);
+        if (convert_src_port(src_port_str, &rule->src_port) != 0){
+            printk(KERN_CRIT "Error in provided rule port: %s", src_port_str);
+            return -EINVAL;
+        }
     }
 
     if (strcmp(dst_port_str, "any") == 0) {
@@ -179,7 +204,10 @@ static int parse_rule(const char *rule_str, rule_t *rule) {
     } else if (strcmp(dst_port_str, ">1023") == 0){
         rule->dst_port = PORT_ABOVE_1023;
     } else {
-        rule->dst_port = htons((__be16)dst_port);
+        if (convert_src_port(dst_port_str, &rule->dst_port) != 0){
+            printk(KERN_CRIT "Error in provided rule port: %s", dst_port_str);
+            return -EINVAL;
+        }
     }
 
     // Parse ACK
@@ -488,8 +516,8 @@ static void extract_transport_fields(struct sk_buff *skb, __u8 protocol, __be16 
     if (protocol == PROT_TCP) {
         tcp_header = tcp_hdr(skb);
         if (tcp_header) {
-            *src_port = ntohs(tcp_header->source);
-            *dst_port = ntohs(tcp_header->dest);
+            *src_port = (tcp_header->source);
+            *dst_port = (tcp_header->dest);
             *ack = (tcp_header->ack ? ACK_YES : ACK_NO);
 
             // Check if the packet is a Christmas tree packet
@@ -500,8 +528,8 @@ static void extract_transport_fields(struct sk_buff *skb, __u8 protocol, __be16 
     } else if (protocol == PROT_UDP) {
         udp_header = udp_hdr(skb);
         if (udp_header) {
-            *src_port = ntohs(udp_header->source);
-            *dst_port = ntohs(udp_header->dest);
+            *src_port = (udp_header->source);
+            *dst_port = (udp_header->dest);
         }
     } else if (protocol == PROT_ICMP) {
         icmp_header = icmp_hdr(skb);
