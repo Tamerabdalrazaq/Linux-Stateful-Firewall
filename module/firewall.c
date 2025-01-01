@@ -757,6 +757,7 @@ static int get_packet_verdict(struct sk_buff *skb, const struct nf_hook_state *s
             return NF_DROP;
         } else {
             printk (KERN_INFO "\n\n_!_ Connection found _!_\n\n");
+            print_connection(found_connection);
         }
     }
     return NF_DROP;
