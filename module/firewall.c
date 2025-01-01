@@ -62,6 +62,7 @@ ssize_t display_rules(struct device *dev, struct device_attribute *attr, char *b
     // Iterate over each rule and append its details to the buffer
     for (i = 0; i < RULES_COUNT; i++) {
         rule_t *rule = &FW_RULES[i];
+        printk(KERN_CRIT "%s", rule->name);
         printk(KERN_CRIT "%d %d", rule->src_port, rule->dst_port);
         // Add each field of the rule in a readable format
         len += scnprintf(buf + len, PAGE_SIZE - len,
