@@ -610,6 +610,8 @@ static int get_packet_verdict(struct sk_buff *skb, const struct nf_hook_state *s
         return NF_ACCEPT;
 
     extract_transport_fields(skb, protocol, &src_port, &dst_port, &ack, &is_christmas_packet);
+
+    printk(KERN_ALERT "dst_port: %d", ntohs(dst_port));
     packet_identifier.src_ip = src_ip;
     packet_identifier.dst_ip = dst_ip;
     packet_identifier.src_port = src_port;
