@@ -703,6 +703,7 @@ static int get_packet_verdict(struct sk_buff *skb, const struct nf_hook_state *s
         return NF_DROP;
     } else if (ack == ACK_YES && protocol == PROT_TCP) {
         // printk(KERN_INFO "Handling a dynamic packet..");
+        printk (KERN_INFO "\n\n_!_ Motherfucker HAHAHAHAHAHAHAH _!_\n\n");
         return NF_ACCEPT;
     }
     return NF_DROP;
@@ -725,7 +726,7 @@ static unsigned int module_hook(void *priv, struct sk_buff *skb, const struct nf
     if (ip_header->protocol != PROT_TCP && ip_header->protocol != PROT_UDP && ip_header->protocol != PROT_ICMP) {
         return NF_ACCEPT;
     }
-    
+
     printk(KERN_INFO "\n***   Recieved a new packet ***\n");
 
     verdict = get_packet_verdict(skb, state);
