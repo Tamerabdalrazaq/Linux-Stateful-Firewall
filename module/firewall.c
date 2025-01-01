@@ -30,7 +30,7 @@ struct packet_log {
 
 // Define connection_row struct for connections_table
 struct state_rule_row {
-    state_rule_t connection_rule;       
+    connection_rule_t connection_rule;       
     struct klist_node node;
 };
 
@@ -49,6 +49,9 @@ static int RULES_COUNT = 0;
 static rule_t* FW_RULES;
 
 
+int compare_packets(packet_identifier_t p1, packet_identifier_t p2){
+    return (p1.src_ip == p2.src_ip && p1.dst_ip == p2.dst_ip && p1.src_port == p2.src_port && p1.src_port == p2.src_port && p1.dst_port == p2.dst_port && p1.src_port == p2.src_port)
+}
 
 // Display_rules the rules
 ssize_t display_rules(struct device *dev, struct device_attribute *attr, char *buf) 
@@ -389,6 +392,37 @@ void print_packet_logs(void) {
 
     printk(KERN_INFO "=== End of Packet Logs ===\n");
 }
+void print_connections_table(void) {
+    struct klist_iter iter;
+    struct klist_node *knode;
+    struct state_rule_row *entry;
+
+    printk(KERN_INFO "=== Printing Connecitnos Table Logs ===\n");
+
+    // Initialize the iterator for the klist
+    klist_iter_init(&state_rule_rows, &iter);
+
+    // Iterate over the klist
+    while ((knode = klist_next(&iter))) {
+        // Retrieve the parent structure from the node
+        entry = container_of(knode, struct state_rule_row, node);
+
+        // Print the log object details
+        printk(KERN_INFO
+               "Src_IP=%pI4, Dst_IP=%pI4, Src_Port=%u, Dst_Port=%u, "
+               "Reason=%u",
+               &entry->connection_rule.packet.src_ip,
+               &entry->connection_rule.packet.dst_ip,
+               ntohs(entry->connection_rule.packet.src_port),
+               ntohs(entry->connection_rule.packet.dst_port),
+               entry->connection_rule.state)
+    }
+
+    // Exit the iterator
+    klist_iter_exit(&iter);
+
+    printk(KERN_INFO "=== End of Connectinos Table ===\n");
+}
 
 
 void add_or_update_log_entry(log_row_t *new_entry) {
@@ -481,27 +515,61 @@ static void extract_transport_fields(struct sk_buff *skb, __u8 protocol, __be16 
 }
 
 
+static int establish_connection(packet_identifier_t packet_identifier){
+    struct klist_iter iter;
+    struct klist_node *knode;
+    struct state_rule_row *existing_entry;
 
-static int comp_packet_to_rules(__be32 src_ip, __be32 dst_ip, __be16 src_port, __be16 dst_port, __u8 protocol, __u8 ack, direction_t direction) {
+    // Initialize an iterator for the klist
+    klist_iter_init(&connections_table, &iter);
+
+    // Iterate over the klist to find a matching entry
+    while ((knode = klist_next(&iter))) {
+        existing_entry = container_of(knode, struct state_rule_row, node);
+        if (compare_packets(existing_entry->connection_rule, packet_identifier)){
+            return NF_DROP;
+        }
+    }
+
+    // Exit the iterator
+    klist_iter_exit(&iter);
+
+    // No match found: create a new entry and add it to the klist
+    struct state_rule_row *new_rule = kmalloc(sizeof(struct state_rule_row), GFP_KERNEL);
+    if (!new_rule)
+        return NF_DROP; // Handle memory allocation failure
+
+    // Copy the new_entry into the new log_object
+    memcpy(&new_rule->connection_rule.packet, packet_identifier, sizeof(packet_identifier_t));
+
+    // Add the new log entry to the klist
+    klist_add_tail(&new_rule->node, &connections_table);
+    logs_num += 1;
+
+    return NF_ACCEPT;
+}
+
+
+static int comp_packet_to_static_rules(packet_identifier_t packet_identifier, __u8 protocol, __u8 ack, direction_t direction) {
     int i;
     for (i = 0; i < RULES_COUNT; i++) {
         rule_t *rule = &FW_RULES[i];
         if (rule->direction != DIRECTION_ANY && rule->direction != direction)
             continue;
-        if (rule->src_ip != IP_ANY && (src_ip & rule->src_prefix_mask) != (rule->src_ip & rule->src_prefix_mask))
+        if (rule->src_ip != IP_ANY && (packet_identifier.src_ip & rule->src_prefix_mask) != (rule->src_ip & rule->src_prefix_mask))
             continue;
-        if (rule->dst_ip != IP_ANY && (dst_ip & rule->dst_prefix_mask) != (rule->dst_ip & rule->dst_prefix_mask))
+        if (rule->dst_ip != IP_ANY && (packet_identifier.dst_ip & rule->dst_prefix_mask) != (rule->dst_ip & rule->dst_prefix_mask))
             continue;
-        if (rule->src_port != PORT_ANY && rule->src_port != src_port){
+        if (rule->src_port != PORT_ANY && rule->src_port != packet_identifier.src_port){
             if (rule->src_port != PORT_ABOVE_1023)
                 continue;
             if (src_port < 1023)
                 continue;
         }
-        if (rule->dst_port != PORT_ANY && rule->dst_port != dst_port){
+        if (rule->dst_port != PORT_ANY && rule->dst_port != packet_identifier.dst_port){
             if (rule->dst_port != PORT_ABOVE_1023)
                 continue;
-            if (dst_port < 1023)
+            if (packet_identifier.dst_port < 1023)
                 continue;
         }
         if (rule->protocol != PROT_ANY && rule->protocol != protocol)
@@ -515,6 +583,7 @@ static int comp_packet_to_rules(__be32 src_ip, __be32 dst_ip, __be16 src_port, _
 } 
 
 
+
 // Given a TCP/UDP/ICMP packet
 static int get_packet_verdict(struct sk_buff *skb, const struct nf_hook_state *state) {
     __be32 src_ip = 0, dst_ip = 0;
@@ -525,6 +594,7 @@ static int get_packet_verdict(struct sk_buff *skb, const struct nf_hook_state *s
     direction_t direction;
     int is_christmas_packet = 0, found_rule_index;
     log_row_t log_entry;
+    packet_identifier_t packet_identifier;
 
     memset(&log_entry, 0, sizeof(log_row_t)); // Initialize to zero
     direction = strcmp(state->in->name, IN_NET_DEVICE_NAME) == 0 ? DIRECTION_IN : DIRECTION_OUT;
@@ -541,7 +611,11 @@ static int get_packet_verdict(struct sk_buff *skb, const struct nf_hook_state *s
         return NF_ACCEPT;
 
     extract_transport_fields(skb, protocol, &src_port, &dst_port, &ack, &is_christmas_packet);
-
+    packet_identifier.src_ip = src_ip;
+    packet_identifier.dst_ip = dst_ip;
+    packet_identifier.src_port = src_port;
+    packet_identifier.dst_port = dst_port;
+    
     log_entry.timestamp = jiffies;           // Use jiffies as the timestamp
     log_entry.protocol = protocol;          // Protocol extracted from the IP header
     log_entry.src_ip = src_ip;              // Source IP from the packet
@@ -557,19 +631,35 @@ static int get_packet_verdict(struct sk_buff *skb, const struct nf_hook_state *s
         return NF_DROP;
     }
 
-    // Compare packet to rules
-    found_rule_index = comp_packet_to_rules(src_ip, dst_ip, src_port, dst_port, protocol, ack, direction);
-    if (found_rule_index >= 0) {
-        printk(KERN_INFO "Matching rule %d", found_rule_index);
-        log_entry.action = FW_RULES[found_rule_index].action;      
-        log_entry.reason = found_rule_index;   
+    // Stateless Inspection
+    if (ack == 0){
+        found_rule_index = comp_packet_to_static_rules(packet_identifier, protocol, ack, direction);
+        if (found_rule_index >= 0) {
+            if (protocol == PROT_TCP  && FW_RULES[found_rule_index].action){
+                // Try establishing a new connection for TCP packets - drop if invalid connection.
+                if(!establish_connection(packet_identifier)){
+                    log_entry.action = NF_DROP      
+                    log_entry.reason = REASON_ILLEGAL_VALUE;
+                    add_or_update_log_entry(&log_entry);
+                    return NF_DROP;
+                }
+            }
+            log_entry.action = FW_RULES[found_rule_index].action;      
+            log_entry.reason = found_rule_index;   
+            add_or_update_log_entry(&log_entry);
+            return FW_RULES[found_rule_index].action;
+        }
+
+        log_entry.action = NF_DROP;
+        log_entry.reason = REASON_NO_MATCHING_RULE;   
         add_or_update_log_entry(&log_entry);
-        return FW_RULES[found_rule_index].action;
+        return NF_DROP;
+    } else { // Stateful Inspection
+        // Check in connections table..
     }
 
-    log_entry.action = NF_DROP;
-    log_entry.reason = REASON_NO_MATCHING_RULE;   
-    return NF_DROP;
+
+    // Compare packet to rules
 }
 
 static unsigned int module_hook(void *priv, struct sk_buff *skb, const struct nf_hook_state *state) {

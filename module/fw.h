@@ -116,8 +116,12 @@ typedef struct {
 	__be32	dst_ip;
 	__be16	src_port;  
 	__be16	dst_port; 
+} packet_identifier_t;
+
+typedef struct {
+	packet_identifier_t packet;
 	tcp_state_t	state;   			
-} state_rule_t;
+} connection_rule_t;
 
 // logging
 typedef struct {
