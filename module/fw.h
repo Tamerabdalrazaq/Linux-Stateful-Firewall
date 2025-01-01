@@ -56,7 +56,7 @@ typedef enum {
 // auxiliary values, for your convenience
 #define IP_VERSION		(4)
 #define PORT_ANY		(0)
-#define PORT_ABOVE_1023	(htonl(1023))
+#define PORT_ABOVE_1023	(htons(1023))
 #define MAX_RULES		(50)
 #define RULE_NUM_FIELDS	(9)
 #define IP_ANY 		    (htonl(0x00000000))
