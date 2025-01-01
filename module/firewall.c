@@ -543,11 +543,11 @@ static void extract_transport_fields(struct sk_buff *skb, __u8 protocol, __be16 
     }
 }
 
-
-static int establish_connection(packet_identifier_t packet_identifier){
+static int find_connection(packet_identifier_t packet_identifier){
     struct klist_iter iter;
     struct klist_node *knode;
     struct state_rule_row *existing_entry;
+    int counter = 0;
 
     // Initialize an iterator for the klist
     klist_iter_init(&connections_table, &iter);
@@ -556,13 +556,21 @@ static int establish_connection(packet_identifier_t packet_identifier){
     while ((knode = klist_next(&iter))) {
         existing_entry = container_of(knode, struct state_rule_row, node);
         if (compare_packets(existing_entry->connection_rule.packet, packet_identifier)){
-            return NF_DROP;
+            return counter;
         }
+        counter++;
     }
 
     // Exit the iterator
     klist_iter_exit(&iter);
+    return -1;
+}
 
+static int establish_connection(packet_identifier_t packet_identifier){
+    int found_connection = find_connection(packet_identifier);
+
+    if (found_connection < 0)
+        return NF_DROP;
     // No match found: create a new entry and add it to the klist
     struct state_rule_row *new_rule = kmalloc(sizeof(struct state_rule_row), GFP_KERNEL);
     if (!new_rule)
