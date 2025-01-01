@@ -622,7 +622,10 @@ static int get_packet_verdict(struct sk_buff *skb, const struct nf_hook_state *s
     log_entry.src_port = src_port;          // Source port from transport fields
     log_entry.dst_port = dst_port;          // Destination port from transport fields
     log_entry.count = 1;                    // Initial hit count       
-           
+    
+    printk(KERN_INFO "ack bit is %d", ack);
+    printk(KERN_INFO "Protocol: %d", protocol);
+
     if (is_christmas_packet) {
         log_entry.reason = REASON_XMAS_PACKET;
         log_entry.action = NF_DROP;
@@ -654,7 +657,6 @@ static int get_packet_verdict(struct sk_buff *skb, const struct nf_hook_state *s
         add_or_update_log_entry(&log_entry);
         return NF_DROP;
     } else { // Stateful Inspection
-        printk(KERN_INFO "ack bit is %d", ack);
         return NF_ACCEPT;
     }
     return NF_DROP;
