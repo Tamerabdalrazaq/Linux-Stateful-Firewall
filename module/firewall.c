@@ -50,7 +50,7 @@ static rule_t* FW_RULES;
 
 
 int compare_packets(packet_identifier_t p1, packet_identifier_t p2){
-    return (p1.src_ip == p2.src_ip && p1.dst_ip == p2.dst_ip && p1.src_port == p2.src_port && p1.src_port == p2.src_port && p1.dst_port == p2.dst_port && p1.src_port == p2.src_port)
+    return (p1.src_ip == p2.src_ip && p1.dst_ip == p2.dst_ip && p1.src_port == p2.src_port && p1.src_port == p2.src_port && p1.dst_port == p2.dst_port && p1.src_port == p2.src_port);
 }
 
 // Display_rules the rules
@@ -400,7 +400,7 @@ void print_connections_table(void) {
     printk(KERN_INFO "=== Printing Connecitnos Table Logs ===\n");
 
     // Initialize the iterator for the klist
-    klist_iter_init(&state_rule_rows, &iter);
+    klist_iter_init(&connections_table, &iter);
 
     // Iterate over the klist
     while ((knode = klist_next(&iter))) {
@@ -415,7 +415,7 @@ void print_connections_table(void) {
                &entry->connection_rule.packet.dst_ip,
                ntohs(entry->connection_rule.packet.src_port),
                ntohs(entry->connection_rule.packet.dst_port),
-               entry->connection_rule.state)
+               entry->connection_rule.state);
     }
 
     // Exit the iterator
@@ -526,7 +526,7 @@ static int establish_connection(packet_identifier_t packet_identifier){
     // Iterate over the klist to find a matching entry
     while ((knode = klist_next(&iter))) {
         existing_entry = container_of(knode, struct state_rule_row, node);
-        if (compare_packets(existing_entry->connection_rule, packet_identifier)){
+        if (compare_packets(existing_entry->connection_rule.packet, packet_identifier)){
             return NF_DROP;
         }
     }
@@ -638,7 +638,7 @@ static int get_packet_verdict(struct sk_buff *skb, const struct nf_hook_state *s
             if (protocol == PROT_TCP  && FW_RULES[found_rule_index].action){
                 // Try establishing a new connection for TCP packets - drop if invalid connection.
                 if(!establish_connection(packet_identifier)){
-                    log_entry.action = NF_DROP      
+                    log_entry.action = NF_DROP;
                     log_entry.reason = REASON_ILLEGAL_VALUE;
                     add_or_update_log_entry(&log_entry);
                     return NF_DROP;
@@ -655,11 +655,9 @@ static int get_packet_verdict(struct sk_buff *skb, const struct nf_hook_state *s
         add_or_update_log_entry(&log_entry);
         return NF_DROP;
     } else { // Stateful Inspection
-        // Check in connections table..
+        return NF_ACCEPT;
     }
-
-
-    // Compare packet to rules
+    return NF_DROP;
 }
 
 static unsigned int module_hook(void *priv, struct sk_buff *skb, const struct nf_hook_state *state) {
