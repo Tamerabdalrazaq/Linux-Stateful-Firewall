@@ -202,7 +202,7 @@ static int parse_rule(const char *rule_str, rule_t *rule) {
     if (strcmp(dst_port_str, "any") == 0) {
         rule->dst_port = PORT_ANY;
     } else if (strcmp(dst_port_str, ">1023") == 0){
-        printk(KERN_CRIT "@@@@@ %s", dst_port_str)
+        printk(KERN_CRIT "@@@@@ %s", dst_port_str);
         rule->dst_port = PORT_ABOVE_1023;
     } else {
         if (convert_src_port(dst_port_str, &rule->dst_port) != 0){
