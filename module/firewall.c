@@ -634,7 +634,7 @@ static int get_packet_verdict(struct sk_buff *skb, const struct nf_hook_state *s
     }
 
     // Stateless Inspection
-    if (ack == 0){
+    if (ack == ACK_NO || protocol != PROT_TCP){
         found_rule_index = comp_packet_to_static_rules(packet_identifier, protocol, ack, direction);
         if (found_rule_index >= 0) {
             if (protocol == PROT_TCP  && FW_RULES[found_rule_index].action){
@@ -656,7 +656,8 @@ static int get_packet_verdict(struct sk_buff *skb, const struct nf_hook_state *s
         log_entry.reason = REASON_NO_MATCHING_RULE;   
         add_or_update_log_entry(&log_entry);
         return NF_DROP;
-    } else { // Stateful Inspection
+    } else if (ack == ACK_YES && protocol == PROT_TCP) {
+        printk(KERN_INFO "Handling a dynamic packet..")
         return NF_ACCEPT;
     }
     return NF_DROP;
