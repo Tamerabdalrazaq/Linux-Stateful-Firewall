@@ -386,8 +386,6 @@ ssize_t read_logs(struct file *filp, char __user *user_buf, size_t count, loff_t
 }
 
 void print_fw_rules(void) {
-    char src_ip_str[16];
-    char dst_ip_str[16];
     int i;
 
     printk(KERN_INFO "Firewall Rules:\n");
@@ -395,14 +393,11 @@ void print_fw_rules(void) {
     for (i = 0; i < RULES_COUNT; i++) {
         rule_t *rule = &FW_RULES[i];
 
-        ip_to_string(rule->src_ip, src_ip_str);
-        ip_to_string(rule->dst_ip, dst_ip_str);
-
         printk(KERN_INFO "Rule %d:\n", i + 1);
         printk(KERN_INFO "  Name: %s\n", rule->rule_name);
         printk(KERN_INFO "  Direction: %d\n", rule->direction);
-        printk(KERN_INFO "  Source IP: %s/%d\n", src_ip_str, rule->src_prefix_size);
-        printk(KERN_INFO "  Destination IP: %s/%d\n", dst_ip_str, rule->dst_prefix_size);
+        printk(KERN_INFO "  Source IP: %pI4/%d\n", src_ip_str, rule->src_prefix_size);
+        printk(KERN_INFO "  Destination IP: %pI4/%d\n", dst_ip_str, rule->dst_prefix_size);
         printk(KERN_INFO "  Source Port: %u\n", ntohs(rule->src_port));
         printk(KERN_INFO "  Destination Port: %u\n", ntohs(rule->dst_port));
         printk(KERN_INFO "  Protocol: %u\n", rule->protocol);
