@@ -654,6 +654,7 @@ static int get_packet_verdict(struct sk_buff *skb, const struct nf_hook_state *s
         add_or_update_log_entry(&log_entry);
         return NF_DROP;
     } else { // Stateful Inspection
+        printk(KERN_INFO "ack bit is %d", ack);
         return NF_ACCEPT;
     }
     return NF_DROP;
