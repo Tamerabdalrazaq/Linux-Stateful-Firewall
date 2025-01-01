@@ -1,5 +1,5 @@
+sudo rmmod firewall;
 git pull;
 cd module;
 make;
-sudo rmmod firewall;
 sudo insmod firewall.ko;
