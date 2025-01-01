@@ -657,7 +657,7 @@ static int get_packet_verdict(struct sk_buff *skb, const struct nf_hook_state *s
         add_or_update_log_entry(&log_entry);
         return NF_DROP;
     } else if (ack == ACK_YES && protocol == PROT_TCP) {
-        printk(KERN_INFO "Handling a dynamic packet..")
+        printk(KERN_INFO "Handling a dynamic packet..");
         return NF_ACCEPT;
     }
     return NF_DROP;
