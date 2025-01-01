@@ -544,8 +544,7 @@ static int establish_connection(packet_identifier_t packet_identifier){
 
     // Add the new log entry to the klist
     klist_add_tail(&new_rule->node, &connections_table);
-    logs_num += 1;
-
+    print_connections_table();
     return NF_ACCEPT;
 }
 
