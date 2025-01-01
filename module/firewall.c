@@ -285,6 +285,7 @@ ssize_t modify_rules(struct device *dev, struct device_attribute *attr, const ch
     kfree(rules_str);
     mutex_unlock(&rules_mutex);
 
+    print_fw_rules();
     return count;
 }
 
@@ -382,6 +383,32 @@ ssize_t read_logs(struct file *filp, char __user *user_buf, size_t count, loff_t
     kfree(kernel_buf);
 
     return written;
+}
+
+void print_fw_rules(void) {
+    char src_ip_str[16];
+    char dst_ip_str[16];
+    int i;
+
+    printk(KERN_INFO "Firewall Rules:\n");
+
+    for (i = 0; i < RULES_COUNT; i++) {
+        rule_t *rule = &FW_RULES[i];
+
+        ip_to_string(rule->src_ip, src_ip_str);
+        ip_to_string(rule->dst_ip, dst_ip_str);
+
+        printk(KERN_INFO "Rule %d:\n", i + 1);
+        printk(KERN_INFO "  Name: %s\n", rule->rule_name);
+        printk(KERN_INFO "  Direction: %d\n", rule->direction);
+        printk(KERN_INFO "  Source IP: %s/%d\n", src_ip_str, rule->src_prefix_size);
+        printk(KERN_INFO "  Destination IP: %s/%d\n", dst_ip_str, rule->dst_prefix_size);
+        printk(KERN_INFO "  Source Port: %u\n", ntohs(rule->src_port));
+        printk(KERN_INFO "  Destination Port: %u\n", ntohs(rule->dst_port));
+        printk(KERN_INFO "  Protocol: %u\n", rule->protocol);
+        printk(KERN_INFO "  ACK: %u\n", rule->ack);
+        printk(KERN_INFO "  Action: %u\n", rule->action);
+    }
 }
 
 
@@ -640,7 +667,6 @@ static int get_packet_verdict(struct sk_buff *skb, const struct nf_hook_state *s
 
     extract_transport_fields(skb, protocol, &src_port, &dst_port, &ack, &is_christmas_packet);
 
-    printk(KERN_ALERT "dst_port: %d or %d", ntohs(dst_port), dst_port);
     packet_identifier.src_ip = src_ip;
     packet_identifier.dst_ip = dst_ip;
     packet_identifier.src_port = src_port;
