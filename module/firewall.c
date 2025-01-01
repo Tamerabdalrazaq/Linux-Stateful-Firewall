@@ -631,7 +631,7 @@ static int get_packet_verdict(struct sk_buff *skb, const struct nf_hook_state *s
     }
 
     // Stateless Inspection
-    if (ack == ACK_NO || protocol != PROT_TCP){
+    if (ack == ACK_NO){
         found_rule_index = comp_packet_to_static_rules(packet_identifier, protocol, ack, direction);
         if (found_rule_index >= 0) {
             if (protocol == PROT_TCP  && FW_RULES[found_rule_index].action){
