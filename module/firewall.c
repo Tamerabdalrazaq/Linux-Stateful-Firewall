@@ -518,7 +518,9 @@ void add_or_update_log_entry(log_row_t *new_entry) {
 }
 
 
-static void extract_transport_fields(struct sk_buff *skb, __u8 protocol, __be16 *src_port, __be16 *dst_port, __u8 *syn, __u8 *ack, int* is_christmas_packet) { 
+static void extract_transport_fields(struct sk_buff *skb, __u8 protocol, __be16 *src_port,
+                                    __be16 *dst_port, __u8 *syn, __u8 *ack, __u8 *fin, __u8 *rst,
+                                    int* is_christmas_packet) { 
     struct tcphdr *tcp_header;
     struct udphdr *udp_header;
     struct icmphdr *icmp_header;
@@ -537,6 +539,8 @@ static void extract_transport_fields(struct sk_buff *skb, __u8 protocol, __be16 
             *dst_port = (tcp_header->dest);
             *ack = (tcp_header->ack ? ACK_YES : ACK_NO);
             *syn = (tcp_header->syn ? SYN_YES : SYN_NO);
+            *fin = (tcp_header->fin ? FIN_YES : FIN_NO);
+            *rst = (tcp_header->rst ? RST_YES : RST_NO);
 
             // Check if the packet is a Christmas tree packet
             if (tcp_header->fin && tcp_header->urg && tcp_header->psh) {
@@ -750,7 +754,7 @@ static int handle_fin_state(struct connection_rule_row* connection, connection_r
             case STATE_LAST_ACK:
                 if (ack == ACK_YES && !packet_sent) {
                         rule->state = STATE_CLOSED;
-                        remove_connection_row(connection)
+                        remove_connection_row(connection);
                         return NF_ACCEPT;
                     }
                     break;
@@ -810,7 +814,6 @@ static int handle_tcp_state_machine(packet_identifier_t packet_identifier,
             return handle_fin_state(found_connection, cli_rule, sender_client, 1, srv_rule->state, ack, fin);
     }
 
-    // Default case: No valid transition, drop packet
     return NF_DROP;
 }
 
@@ -820,7 +823,7 @@ static int get_packet_verdict(struct sk_buff *skb, const struct nf_hook_state *s
     __be32 src_ip = 0, dst_ip = 0;
     __be16 src_port = 0, dst_port = 0;
     __u8 protocol = 0;
-    __u8 ack, syn;
+    __u8 ack, syn, fin, rst;
     struct iphdr *ip_header;
     direction_t direction;
     int is_christmas_packet = 0, found_rule_index;
@@ -841,7 +844,7 @@ static int get_packet_verdict(struct sk_buff *skb, const struct nf_hook_state *s
     if (protocol != PROT_ICMP &&  protocol != PROT_TCP && protocol != PROT_ICMP)
         return NF_ACCEPT;
 
-    extract_transport_fields(skb, protocol, &src_port, &dst_port, &syn, &ack, &is_christmas_packet);
+    extract_transport_fields(skb, protocol, &src_port, &dst_port, &syn, &ack, &fin, rst, &is_christmas_packet);
 
     packet_identifier.src_ip = src_ip;
     packet_identifier.dst_ip = dst_ip;
@@ -894,7 +897,7 @@ static int get_packet_verdict(struct sk_buff *skb, const struct nf_hook_state *s
             return NF_DROP;
         } else {
             printk (KERN_INFO "\n\n_!_ Connection found _!_\n\n");
-            return handle_tcp_state_machine(packet_identifier, found_connection, syn, ack);
+            return handle_tcp_state_machine(packet_identifier, found_connection, syn, ack, rst, fin);
         }
     }
     return NF_DROP;
