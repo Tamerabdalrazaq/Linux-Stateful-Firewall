@@ -762,6 +762,7 @@ static int handle_fin_state(struct connection_rule_row* connection, connection_r
             default:
                 return NF_DROP;
         }
+        return NF_DROP;
 }
 
 // Handles TCP state machine and changes the state accordingly. 
