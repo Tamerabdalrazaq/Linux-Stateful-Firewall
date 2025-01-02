@@ -684,6 +684,65 @@ static int comp_packet_to_static_rules(packet_identifier_t packet_identifier, __
     return -1;
 } 
 
+
+static int handle_fin_state(connection_rule_t* rule, int sender,
+                            int rule_owner, tcp_state_t others_state, __u8 ack, __u8 fin){
+    int packet_sent = (sender == rule_owner);
+        switch (rule->state) {
+            case STATE_ESTABLISHED:
+                if (fin == FIN_YES && (packet_sent)) {
+                    rule->state = STATE_FIN_WAIT_1;
+                    return NF_ACCEPT;
+                }
+                if (fin == FIN_NO && ack == ACK_YES &&
+                    packet_sent && others_state == STATE_FIN_WAIT_1)
+                {
+                    rule->state = STATE_CLOSE_WAIT;
+                    return NF_ACCEPT;
+                }
+                break;
+
+            case STATE_FIN_WAIT_1:
+                if (ack == ACK_YES && fin == FIN_NO && !packet_sent) {
+                    rule->state = STATE_FIN_WAIT_2;
+                    return NF_ACCEPT;
+                } else if (fin == FIN_YES && !packet_sent) { // Handle simultanuous closing.....
+                    rule->state = STATE_CLOSING;
+                    return NF_ACCEPT;
+                }
+                break;
+
+            case STATE_FIN_WAIT_2:
+                if (ack == ACK_YES && packet_sent) { // Received fin and responded with ack.
+                    rule->state = STATE_TIME_WAIT;
+                    return NF_ACCEPT;
+                }
+                break;
+
+            case STATE_CLOSING:
+                if (ack == ACK_YES && !packet_sent) {
+                    rule->state = STATE_TIME_WAIT;
+                    return NF_ACCEPT;
+                }
+                break;
+            case STATE_CLOSE_WAIT:
+                if (fin == FIN_YES && packet_sent) { // Received fin and responded with ack.
+                        rule->state = STATE_LAST_ACK;
+                        return NF_ACCEPT;
+                    }
+                    break;
+            case STATE_LAST_ACK:
+                if (ack == ACK_YES && !packet_sent) {
+                        rule->state = STATE_LAST_ACK;
+                        return NF_ACCEPT;
+                    }
+                    break;
+
+            default:
+                return NF_DROP;
+        }
+}
+
 // Handles TCP state machine and changes the state accordingly. 
 // Returns verdict NF_ACCEPT (allow packet) or NF_DROP (drop packet)
 static int handle_tcp_state_machine(packet_identifier_t packet_identifier, 
@@ -717,25 +776,43 @@ static int handle_tcp_state_machine(packet_identifier_t packet_identifier,
             break;
 
         case STATE_ESTABLISHED:
-            if (ack == ACK_YES && !sender_client && cli_rule->state == STATE_FIN_WAIT_1) {
+            if (fin == FIN_YES && !sender_client) {
+                srv_rule->state = STATE_FIN_WAIT_1;
+                return NF_ACCEPT;
+            }
+            if (fin == FIN_YES && sender_client) {
                 srv_rule->state = STATE_CLOSE_WAIT;
                 return NF_ACCEPT;
             }
             break;
 
-        case STATE_CLOSE_WAIT:
-            if (fin == FIN_YES) {
-                srv_rule->state = STATE_LAST_ACK;
+        case STATE_FIN_WAIT_1:
+            if (ack == ACK_YES && fin == FIN_NO && sender_client) {
+                srv_rule->state = STATE_FIN_WAIT_2;
+                return NF_ACCEPT;
+            } else if (fin == FIN_YES && sender_client) {
+                srv_rule->state = STATE_CLOSING;
                 return NF_ACCEPT;
             }
             break;
 
-        case STATE_LAST_ACK:
-            if (ack == ACK_YES) {
-                srv_rule->state = STATE_CLOSED;
+        case STATE_FIN_WAIT_2:
+            if (ack == ACK_YES && !sender_client) {
+                srv_rule->state = STATE_TIME_WAIT;
                 return NF_ACCEPT;
             }
             break;
+
+        case STATE_CLOSING:
+            if (ack == ACK_YES && sender_client) {
+                srv_rule->state = STATE_TIME_WAIT;
+                return NF_ACCEPT;
+            }
+            break;
+
+        case STATE_TIME_WAIT:
+            srv_rule->state = STATE_CLOSED;
+            return NF_ACCEPT;
 
         case STATE_CLOSED:
             return NF_DROP;
@@ -766,7 +843,7 @@ static int handle_tcp_state_machine(packet_identifier_t packet_identifier,
             break;
 
         case STATE_FIN_WAIT_1:
-            if (ack == ACK_YES && !sender_client) {
+            if (ack == ACK_YES && fin == FIN_NO && !sender_client) {
                 cli_rule->state = STATE_FIN_WAIT_2;
                 return NF_ACCEPT;
             } else if (fin == FIN_YES && !sender_client) {
