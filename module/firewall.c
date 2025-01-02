@@ -632,6 +632,22 @@ static int initiate_connection(packet_identifier_t packet_identifier) {
     return NF_ACCEPT;
 }
 
+// Removes the connection from the klist connections_table
+static int remove_connection_row(struct connection_rule_row *connection) {
+    if (!connection) {
+        printk(KERN_ERR "remove_connection_row: NULL connection pointer\n");
+        return -EINVAL;  // Return error for invalid argument
+    }
+
+    // Remove the node from the klist
+    klist_remove(&connection->node);
+
+    kfree(connection);
+
+    printk(KERN_INFO "Connection successfully removed from the klist\n");
+    print_connections_table();
+    return 0;  // Success
+}
 
 
 static int comp_packet_to_static_rules(packet_identifier_t packet_identifier, __u8 protocol, __u8 ack, direction_t direction) {
@@ -685,8 +701,8 @@ static int comp_packet_to_static_rules(packet_identifier_t packet_identifier, __
 } 
 
 
-static int handle_fin_state(connection_rule_t* rule, int sender,
-                            int rule_owner, tcp_state_t others_state, __u8 ack, __u8 fin){
+static int handle_fin_state(struct connection_rule_row* connection, connection_rule_t* rule, 
+                            int sender, int rule_owner, tcp_state_t others_state, __u8 ack, __u8 fin){
     int packet_sent = (sender == rule_owner);
         switch (rule->state) {
             case STATE_ESTABLISHED:
@@ -733,7 +749,8 @@ static int handle_fin_state(connection_rule_t* rule, int sender,
                     break;
             case STATE_LAST_ACK:
                 if (ack == ACK_YES && !packet_sent) {
-                        rule->state = STATE_LAST_ACK;
+                        rule->state = STATE_CLOSED;
+                        remove_connection_row(connection)
                         return NF_ACCEPT;
                     }
                     break;
@@ -774,51 +791,8 @@ static int handle_tcp_state_machine(packet_identifier_t packet_identifier,
                 return NF_ACCEPT;
             }
             break;
-
-        case STATE_ESTABLISHED:
-            if (fin == FIN_YES && !sender_client) {
-                srv_rule->state = STATE_FIN_WAIT_1;
-                return NF_ACCEPT;
-            }
-            if (fin == FIN_YES && sender_client) {
-                srv_rule->state = STATE_CLOSE_WAIT;
-                return NF_ACCEPT;
-            }
-            break;
-
-        case STATE_FIN_WAIT_1:
-            if (ack == ACK_YES && fin == FIN_NO && sender_client) {
-                srv_rule->state = STATE_FIN_WAIT_2;
-                return NF_ACCEPT;
-            } else if (fin == FIN_YES && sender_client) {
-                srv_rule->state = STATE_CLOSING;
-                return NF_ACCEPT;
-            }
-            break;
-
-        case STATE_FIN_WAIT_2:
-            if (ack == ACK_YES && !sender_client) {
-                srv_rule->state = STATE_TIME_WAIT;
-                return NF_ACCEPT;
-            }
-            break;
-
-        case STATE_CLOSING:
-            if (ack == ACK_YES && sender_client) {
-                srv_rule->state = STATE_TIME_WAIT;
-                return NF_ACCEPT;
-            }
-            break;
-
-        case STATE_TIME_WAIT:
-            srv_rule->state = STATE_CLOSED;
-            return NF_ACCEPT;
-
-        case STATE_CLOSED:
-            return NF_DROP;
-
         default:
-            return NF_DROP;
+            return handle_fin_state(found_connection, srv_rule, sender_client, 0, cli_rule->state, ack, fin);
     }
 
     // Handle client-side state transitions
@@ -831,57 +805,13 @@ static int handle_tcp_state_machine(packet_identifier_t packet_identifier,
             }
             break;
 
-        case STATE_ESTABLISHED:
-            if (fin == FIN_YES && sender_client) {
-                cli_rule->state = STATE_FIN_WAIT_1;
-                return NF_ACCEPT;
-            }
-            if (fin == FIN_YES && !sender_client) {
-                cli_rule->state = STATE_CLOSE_WAIT;
-                return NF_ACCEPT;
-            }
-            break;
-
-        case STATE_FIN_WAIT_1:
-            if (ack == ACK_YES && fin == FIN_NO && !sender_client) {
-                cli_rule->state = STATE_FIN_WAIT_2;
-                return NF_ACCEPT;
-            } else if (fin == FIN_YES && !sender_client) {
-                cli_rule->state = STATE_CLOSING;
-                return NF_ACCEPT;
-            }
-            break;
-
-        case STATE_FIN_WAIT_2:
-            if (ack == ACK_YES && sender_client) {
-                cli_rule->state = STATE_TIME_WAIT;
-                return NF_ACCEPT;
-            }
-            break;
-
-        case STATE_CLOSING:
-            if (ack == ACK_YES && !sender_client) {
-                cli_rule->state = STATE_TIME_WAIT;
-                return NF_ACCEPT;
-            }
-            break;
-
-        case STATE_TIME_WAIT:
-            cli_rule->state = STATE_CLOSED;
-            return NF_ACCEPT;
-
-        case STATE_CLOSED:
-            return NF_DROP;
-
         default:
-            return NF_DROP;
+            return handle_fin_state(found_connection, cli_rule, sender_client, 1, srv_rule->state, ack, fin);
     }
 
     // Default case: No valid transition, drop packet
     return NF_DROP;
 }
-
-
 
 
 // Given a TCP/UDP/ICMP packet
