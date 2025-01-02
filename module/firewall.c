@@ -149,7 +149,6 @@ size_t get_rules_number(const char *buf, size_t count) {
 static int parse_rule(const char *rule_str, rule_t *rule) {
     char src_ip_prefix[32], dst_ip_prefix[32], src_port_str[10], dst_port_str[10];
     char direction_str[10], protocol_str[10], ack_str[10], action_str[10];
-    int src_port, dst_port;
     int successful_scans = sscanf(rule_str, "%19s %9s %31s %31s %9s %9s %9s %9s %9s",
                rule->rule_name, direction_str, src_ip_prefix, dst_ip_prefix,
                protocol_str, src_port_str, dst_port_str, ack_str, action_str);
@@ -845,7 +844,7 @@ static int get_packet_verdict(struct sk_buff *skb, const struct nf_hook_state *s
     if (protocol != PROT_ICMP &&  protocol != PROT_TCP && protocol != PROT_ICMP)
         return NF_ACCEPT;
 
-    extract_transport_fields(skb, protocol, &src_port, &dst_port, &syn, &ack, &fin, rst, &is_christmas_packet);
+    extract_transport_fields(skb, protocol, &src_port, &dst_port, &syn, &ack, &fin, &rst, &is_christmas_packet);
 
     packet_identifier.src_ip = src_ip;
     packet_identifier.dst_ip = dst_ip;
