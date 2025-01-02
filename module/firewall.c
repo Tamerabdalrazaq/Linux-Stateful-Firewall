@@ -753,7 +753,7 @@ static int handle_fin_state(struct connection_rule_row* connection, connection_r
             case STATE_LAST_ACK:
                 if (ack == ACK_YES && !packet_sent) {
                         rule->state = STATE_CLOSED;
-                        remove_connection_row(connection);
+                        // remove_connection_row(connection);
                         return NF_ACCEPT;
                     }
                     break;
@@ -777,7 +777,7 @@ static int handle_tcp_state_machine(packet_identifier_t packet_identifier,
     if (rst == RST_YES) {
         srv_rule->state = STATE_CLOSED;
         cli_rule->state = STATE_CLOSED;
-        remove_connection_row(found_connection);
+        // remove_connection_row(found_connection);
         return NF_ACCEPT;
     }
 
