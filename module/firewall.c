@@ -773,7 +773,8 @@ static int handle_tcp_state_machine(packet_identifier_t packet_identifier,
     if (rst == RST_YES) {
         srv_rule->state = STATE_CLOSED;
         cli_rule->state = STATE_CLOSED;
-        return NF_DROP;
+        remove_connection_row(found_connection);
+        return NF_ACCEPT;
     }
 
     // Handle server-side state transitions
