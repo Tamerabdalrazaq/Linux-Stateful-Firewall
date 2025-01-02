@@ -635,7 +635,7 @@ static int initiate_connection(packet_identifier_t packet_identifier) {
     return NF_ACCEPT;
 }
 
-// Removes the connection from the klist connections_table
+// Removes the connection from the klist connections_table 
 static int remove_connection_row(struct connection_rule_row *connection) {
     if (!connection) {
         printk(KERN_ERR "remove_connection_row: NULL connection pointer\n");
