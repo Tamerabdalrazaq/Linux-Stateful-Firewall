@@ -623,7 +623,7 @@ static int initiate_connection(packet_identifier_t packet_identifier) {
 
     // Copy packet identifiers
     memcpy(&new_rule_sender->connection_rule_cli.packet, &packet_identifier, sizeof(packet_identifier_t));
-    memcpy(&new_rule_sender->connection_rule_srv.packet, &reversed_packet_identifier, sizeof(packet_identifier_t));
+    memcpy(&new_rule_sender->connection_rule_srv.packet, reversed_packet_identifier, sizeof(packet_identifier_t));
 
     // Free reversed_packet_identifier after use
     kfree(reversed_packet_identifier);
