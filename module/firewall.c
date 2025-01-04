@@ -50,6 +50,25 @@ static int RULES_COUNT = 0;
 static rule_t* FW_RULES;
 
 
+static void print_packet_identifier(const packet_identifier_t *pkt)
+{
+    char src_ip[16];
+    char dst_ip[16];
+
+    // Convert the source and destination IPs to human-readable strings
+    snprintf(src_ip, sizeof(src_ip), "%pI4", &pkt->src_ip);
+    snprintf(dst_ip, sizeof(dst_ip), "%pI4", &pkt->dst_ip);
+
+    // Log the packet identifier details
+    printk(KERN_INFO "Packet Identifier:\n");
+    printk(KERN_INFO "  Source IP: %s\n", src_ip);
+    printk(KERN_INFO "  Destination IP: %s\n", dst_ip);
+    printk(KERN_INFO "  Source Port: %u\n", ntohs(pkt->src_port));
+    printk(KERN_INFO "  Destination Port: %u\n", ntohs(pkt->dst_port));
+}
+
+
+
 int compare_packets(packet_identifier_t p1, packet_identifier_t p2){
     return (p1.src_ip == p2.src_ip && 
     p1.dst_ip == p2.dst_ip && 
@@ -710,12 +729,14 @@ static int handle_fin_state(struct connection_rule_row* connection, connection_r
         switch (rule->state) {
             case STATE_ESTABLISHED:
                 if (fin == FIN_YES && (packet_sent)) {
+                    printk(KERN_INFO "STATCE_MACHINE: Accepting for Established -> Wait_1");
                     rule->state = STATE_FIN_WAIT_1;
                     return NF_ACCEPT;
                 }
                 if (fin == FIN_NO && ack == ACK_YES &&
                     packet_sent && others_state == STATE_FIN_WAIT_1)
                 {
+                    printk(KERN_INFO "STATCE_MACHINE: Accepting for Established -> Close_Wait");
                     rule->state = STATE_CLOSE_WAIT;
                     return NF_ACCEPT;
                 }
@@ -723,9 +744,11 @@ static int handle_fin_state(struct connection_rule_row* connection, connection_r
 
             case STATE_FIN_WAIT_1:
                 if (ack == ACK_YES && fin == FIN_NO && !packet_sent) {
+                    printk(KERN_INFO "STATCE_MACHINE: Accepting for Wait_1 -> Wait_2");
                     rule->state = STATE_FIN_WAIT_2;
                     return NF_ACCEPT;
                 } else if (fin == FIN_YES && !packet_sent) { // Handle simultanuous closing.....
+                    printk(KERN_INFO "STATCE_MACHINE: Accepting for Wait_1 -> Closing");
                     rule->state = STATE_CLOSING;
                     return NF_ACCEPT;
                 }
@@ -733,25 +756,29 @@ static int handle_fin_state(struct connection_rule_row* connection, connection_r
 
             case STATE_FIN_WAIT_2:
                 if (ack == ACK_YES && packet_sent) { // Received fin and responded with ack.
-                    rule->state = STATE_TIME_WAIT;
+                    printk(KERN_INFO "STATCE_MACHINE_srv: Accepting for Wait_2 -> Time_wait");
+                    rule->state = STATE_CLOSED;
                     return NF_ACCEPT;
                 }
                 break;
 
             case STATE_CLOSING:
                 if (ack == ACK_YES && !packet_sent) {
-                    rule->state = STATE_TIME_WAIT;
+                    printk(KERN_INFO "STATCE_MACHINE_srv: Accepting for Closing -> Time_wait");
+                    rule->state = STATE_CLOSED;
                     return NF_ACCEPT;
                 }
                 break;
             case STATE_CLOSE_WAIT:
                 if (fin == FIN_YES && packet_sent) { // Received fin and responded with ack.
+                        printk(KERN_INFO "STATCE_MACHINE_srv: Accepting for Close_wait -> Last_ACK");
                         rule->state = STATE_LAST_ACK;
                         return NF_ACCEPT;
                     }
                     break;
             case STATE_LAST_ACK:
                 if (ack == ACK_YES && !packet_sent) {
+                    printk(KERN_INFO "STATCE_MACHINE_srv: Accepting for Last_ACK -> Closed");
                         rule->state = STATE_CLOSED;
                         // remove_connection_row(connection);
                         return NF_ACCEPT;
@@ -772,11 +799,12 @@ static int handle_tcp_state_machine(packet_identifier_t packet_identifier,
     connection_rule_t* srv_rule = &found_connection->connection_rule_srv;
     connection_rule_t* cli_rule = &found_connection->connection_rule_cli;
     int sender_client = compare_packets(packet_identifier, cli_rule->packet);
-
+    printk(KERN_INFO "**********************\n\n");
     // Handle RST (Reset): Always drop connection on RST
     if (rst == RST_YES) {
         srv_rule->state = STATE_CLOSED;
         cli_rule->state = STATE_CLOSED;
+        printk(KERN_INFO "STATCE_MACHINE_srv: Accepting for rst = 1");
         // remove_connection_row(found_connection);
         return NF_ACCEPT;
     }
@@ -785,6 +813,7 @@ static int handle_tcp_state_machine(packet_identifier_t packet_identifier,
     switch (srv_rule->state) {
         case STATE_LISTEN:
             if (syn == SYN_YES && ack == ACK_YES && !sender_client) {
+                printk(KERN_INFO "STATCE_MACHINE_srv: Accepting for Listen -> Syn_received");
                 srv_rule->state = STATE_SYN_RECEIVED;
                 return NF_ACCEPT;
             }
@@ -792,6 +821,7 @@ static int handle_tcp_state_machine(packet_identifier_t packet_identifier,
 
         case STATE_SYN_RECEIVED:
             if (ack == ACK_YES && syn == SYN_NO && sender_client) {
+                printk(KERN_INFO "STATCE_MACHINE_srv: Accepting for Syn_received -> Established");
                 srv_rule->state = STATE_ESTABLISHED;
                 return NF_ACCEPT;
             }
@@ -805,6 +835,7 @@ static int handle_tcp_state_machine(packet_identifier_t packet_identifier,
         case STATE_SYN_SENT:
             if (srv_rule->state == STATE_SYN_RECEIVED && sender_client &&
                 syn == SYN_NO && ack == ACK_YES) {
+                    printk(KERN_INFO "STATCE_MACHINE_cli: Accepting for STATE_SYN_SENT -> Established");
                 cli_rule->state = STATE_ESTABLISHED;
                 return NF_ACCEPT;
             }
@@ -834,15 +865,19 @@ static int get_packet_verdict(struct sk_buff *skb, const struct nf_hook_state *s
     direction = strcmp(state->in->name, IN_NET_DEVICE_NAME) == 0 ? DIRECTION_IN : DIRECTION_OUT;
 
     ip_header = ip_hdr(skb);
-    if (!ip_header)
+    if (!ip_header){
+        printk(KERN_INFO "Accepting a non-IP packet.");
         return NF_ACCEPT;
+    }
 
     src_ip = ip_header->saddr;
     dst_ip = ip_header->daddr;
     protocol = ip_header->protocol;
 
-    if (protocol != PROT_ICMP &&  protocol != PROT_TCP && protocol != PROT_ICMP)
+    if (protocol != PROT_ICMP &&  protocol != PROT_TCP && protocol != PROT_ICMP){
+        printk(KERN_INFO "Accepting an unsupported protocol.");
         return NF_ACCEPT;
+    }
 
     extract_transport_fields(skb, protocol, &src_port, &dst_port, &syn, &ack, &fin, &rst, &is_christmas_packet);
 
@@ -851,6 +886,9 @@ static int get_packet_verdict(struct sk_buff *skb, const struct nf_hook_state *s
     packet_identifier.src_port = src_port;
     packet_identifier.dst_port = dst_port;
     
+    printk(KERN_INFO "Processing this packet:");
+    print_packet_identifier(&packet_identifier);
+
     log_entry.timestamp = jiffies;           // Use jiffies as the timestamp
     log_entry.protocol = protocol;          // Protocol extracted from the IP header
     log_entry.src_ip = src_ip;              // Source IP from the packet
@@ -868,11 +906,14 @@ static int get_packet_verdict(struct sk_buff *skb, const struct nf_hook_state *s
 
     // Stateless Inspection
     if (ack == ACK_NO){
+        printk(KERN_INFO "Packet with ack = 0");
         found_rule_index = comp_packet_to_static_rules(packet_identifier, protocol, ack, direction);
         if (found_rule_index >= 0) {
             if (protocol == PROT_TCP  && FW_RULES[found_rule_index].action){
+                printk(KERN_INFO "Initiating a new connection");
                 // Try establishing a new connection for TCP packets - drop if invalid connection.
                 if(!initiate_connection(packet_identifier)){
+                    printk(KERN_ERR "Connection could not be intiated");
                     log_entry.action = NF_DROP;
                     log_entry.reason = REASON_ILLEGAL_VALUE;
                     add_or_update_log_entry(&log_entry);
@@ -890,13 +931,13 @@ static int get_packet_verdict(struct sk_buff *skb, const struct nf_hook_state *s
         add_or_update_log_entry(&log_entry);
         return NF_DROP;
     } else if (ack == ACK_YES && protocol == PROT_TCP) {
-        // printk(KERN_INFO "Handling a dynamic packet..");
+        printk(KERN_INFO "\n**Handling a dynamic packet..");
         struct connection_rule_row* found_connection = find_connection_row(packet_identifier);
         if (found_connection == NULL){
-            printk (KERN_INFO "\n\n_!_ Motherfucker NO_CONNECTION 404 _!_\n\n");
+            printk (KERN_INFO "\n\nNo connecition found in the table. DROPPING.\n\n");
             return NF_DROP;
         } else {
-            printk (KERN_INFO "\n\n_!_ Connection found _!_\n\n");
+            printk (KERN_INFO "\n\nConnection found. Comparing agains TCP state machine.\n\n");
             return handle_tcp_state_machine(packet_identifier, found_connection, syn, ack, rst, fin);
         }
     }
