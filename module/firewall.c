@@ -964,6 +964,7 @@ static int get_packet_verdict(struct sk_buff *skb, const struct nf_hook_state *s
             return NF_DROP;
         } else {
             printk (KERN_INFO "\n\nConnection found. Comparing agains TCP state machine.\n\n");
+            printk (KERN_INFO "TCP Packet flags:\n SYN = %d   ACK = %d   rst = %d   fin = %d", syn, ack, rst, fin);
             return handle_tcp_state_machine(packet_identifier, found_connection, syn, ack, rst, fin);
         }
     }
