@@ -809,7 +809,6 @@ static int handle_tcp_state_machine(packet_identifier_t packet_identifier,
     connection_rule_t* cli_rule = &found_connection->connection_rule_cli;
     int sender_client = compare_packets(packet_identifier, cli_rule->packet);
     int srv_verdict, cli_verdict;
-    printk(KERN_INFO "**********************\n\n");
     // Handle RST (Reset): Always drop connection on RST
     if (rst == RST_YES) {
         srv_rule->state = STATE_CLOSED;
@@ -846,8 +845,8 @@ static int handle_tcp_state_machine(packet_identifier_t packet_identifier,
     // Handle client-side state transitions
     switch (cli_rule->state) {
         case STATE_SYN_SENT:
-            if (srv_rule->state == STATE_SYN_RECEIVED && sender_client &&
-                syn == SYN_NO && ack == ACK_YES) {
+            if ((srv_rule->state == STATE_SYN_RECEIVED || srv_rule->state == STATE_ESTABLISHED) && 
+                sender_client && syn == SYN_NO && ack == ACK_YES) {
                     printk(KERN_INFO "STATCE_MACHINE_cli: Accepting for STATE_SYN_SENT -> Established");
                 cli_rule->state = STATE_ESTABLISHED;
                 cli_verdict = NF_ACCEPT;
