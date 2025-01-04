@@ -730,7 +730,7 @@ static int handle_fin_state(struct connection_rule_row* connection, connection_r
         switch (rule->state) {
             case STATE_ESTABLISHED:
                 if (fin == FIN_YES && (packet_sent)) {
-                    printk(KERN_INFO "%s terminating is session");
+                    printk(KERN_CRIT "%s is terminating the session");
                     printk(KERN_INFO "STATCE_MACHINE_%s: Accepting for Established -> Wait_1", terminator);
                     rule->state = STATE_FIN_WAIT_1;
                     print_connections_table();
@@ -905,6 +905,7 @@ static int get_packet_verdict(struct sk_buff *skb, const struct nf_hook_state *s
     }
 
     extract_transport_fields(skb, protocol, &src_port, &dst_port, &syn, &ack, &fin, &rst, &is_christmas_packet);
+    printk (KERN_INFO "TCP Packet flags:\n SYN = %d   ACK = %d   RST = %d   FIN = %d", syn, ack, rst, fin);
 
     packet_identifier.src_ip = src_ip;
     packet_identifier.dst_ip = dst_ip;
@@ -964,7 +965,6 @@ static int get_packet_verdict(struct sk_buff *skb, const struct nf_hook_state *s
             return NF_DROP;
         } else {
             printk (KERN_INFO "\n\nConnection found. Comparing agains TCP state machine.\n\n");
-            printk (KERN_INFO "TCP Packet flags:\n SYN = %d   ACK = %d   rst = %d   fin = %d", syn, ack, rst, fin);
             return handle_tcp_state_machine(packet_identifier, found_connection, syn, ack, rst, fin);
         }
     }
