@@ -940,6 +940,7 @@ static int get_packet_verdict(struct sk_buff *skb, const struct nf_hook_state *s
 
         log_entry.action = NF_DROP;
         log_entry.reason = REASON_NO_MATCHING_RULE;   
+        printk(KERN_INFO "\nDropping - No static match");
         add_or_update_log_entry(&log_entry);
         return NF_DROP;
     } else if (ack == ACK_YES && protocol == PROT_TCP) {
