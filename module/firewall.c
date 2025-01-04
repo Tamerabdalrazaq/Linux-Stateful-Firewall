@@ -726,10 +726,12 @@ static int comp_packet_to_static_rules(packet_identifier_t packet_identifier, __
 static int handle_fin_state(struct connection_rule_row* connection, connection_rule_t* rule, 
                             int sender, int rule_owner, tcp_state_t others_state, __u8 ack, __u8 fin){
     int packet_sent = (sender == rule_owner);
+    char terminator[10] = (sender == 0) ? "srv": "cli";
         switch (rule->state) {
             case STATE_ESTABLISHED:
                 if (fin == FIN_YES && (packet_sent)) {
-                    printk(KERN_INFO "STATCE_MACHINE: Accepting for Established -> Wait_1");
+                    printk(KERN_INFO "%s terminating is session");
+                    printk(KERN_INFO "STATCE_MACHINE_%s: Accepting for Established -> Wait_1", terminator);
                     rule->state = STATE_FIN_WAIT_1;
                     print_connections_table();
                     return NF_ACCEPT;
@@ -737,7 +739,7 @@ static int handle_fin_state(struct connection_rule_row* connection, connection_r
                 if (fin == FIN_NO && ack == ACK_YES &&
                     packet_sent && others_state == STATE_FIN_WAIT_1)
                 {
-                    printk(KERN_INFO "STATCE_MACHINE: Accepting for Established -> Close_Wait");
+                    printk(KERN_INFO "STATCE_MACHINE_%s: Accepting for Established -> Close_Wait", terminator);
                     rule->state = STATE_CLOSE_WAIT;
                     print_connections_table();
                     return NF_ACCEPT;
@@ -746,12 +748,12 @@ static int handle_fin_state(struct connection_rule_row* connection, connection_r
 
             case STATE_FIN_WAIT_1:
                 if (ack == ACK_YES && fin == FIN_NO && !packet_sent) {
-                    printk(KERN_INFO "STATCE_MACHINE: Accepting for Wait_1 -> Wait_2");
+                    printk(KERN_INFO "STATCE_MACHINE_%s: Accepting for Wait_1 -> Wait_2", terminator);
                     rule->state = STATE_FIN_WAIT_2;
                     print_connections_table();
                     return NF_ACCEPT;
                 } else if (fin == FIN_YES && !packet_sent) { // Handle simultanuous closing.....
-                    printk(KERN_INFO "STATCE_MACHINE: Accepting for Wait_1 -> Closing");
+                    printk(KERN_INFO "STATCE_MACHINE_%s: Accepting for Wait_1 -> Closing", terminator);
                     rule->state = STATE_CLOSING;
                     print_connections_table();
                     return NF_ACCEPT;
@@ -760,7 +762,7 @@ static int handle_fin_state(struct connection_rule_row* connection, connection_r
 
             case STATE_FIN_WAIT_2:
                 if (ack == ACK_YES && packet_sent) { // Received fin and responded with ack.
-                    printk(KERN_INFO "STATCE_MACHINE: Accepting for Wait_2 -> Time_wait");
+                    printk(KERN_INFO "STATCE_MACHINE_%s: Accepting for Wait_2 -> Time_wait", terminator);
                     rule->state = STATE_CLOSED;
                     print_connections_table();
                     return NF_ACCEPT;
@@ -769,7 +771,7 @@ static int handle_fin_state(struct connection_rule_row* connection, connection_r
 
             case STATE_CLOSING:
                 if (ack == ACK_YES && !packet_sent) {
-                    printk(KERN_INFO "STATCE_MACHINE: Accepting for Closing -> Time_wait");
+                    printk(KERN_INFO "STATCE_MACHINE_%s: Accepting for Closing -> Time_wait", terminator);
                     rule->state = STATE_CLOSED;
                     print_connections_table();
                     return NF_ACCEPT;
@@ -777,7 +779,7 @@ static int handle_fin_state(struct connection_rule_row* connection, connection_r
                 break;
             case STATE_CLOSE_WAIT:
                 if (fin == FIN_YES && packet_sent) { // Received fin and responded with ack.
-                        printk(KERN_INFO "STATCE_MACHINE: Accepting for Close_wait -> Last_ACK");
+                        printk(KERN_INFO "STATCE_MACHINE_%s: Accepting for Close_wait -> Last_ACK", terminator);
                         rule->state = STATE_LAST_ACK;
                         print_connections_table();
                         return NF_ACCEPT;
@@ -785,7 +787,7 @@ static int handle_fin_state(struct connection_rule_row* connection, connection_r
                     break;
             case STATE_LAST_ACK:
                 if (ack == ACK_YES && !packet_sent) {
-                    printk(KERN_INFO "STATCE_MACHINE: Accepting for Last_ACK -> Closed");
+                    printk(KERN_INFO "STATCE_MACHINE_%s: Accepting for Last_ACK -> Closed", terminator);
                         rule->state = STATE_CLOSED;
                         // remove_connection_row(connection);
                         print_connections_table();
@@ -794,7 +796,7 @@ static int handle_fin_state(struct connection_rule_row* connection, connection_r
                     break;
 
             default:
-                printk(KERN_INFO "\n\n*** STATCE_MACHINE: Dropping by default *** \n\n");
+                printk(KERN_INFO "\n\n*** STATCE_MACHINE_%s: Dropping by default *** \n\n", terminator);
                 return NF_DROP;
         }
         return NF_DROP;
@@ -986,7 +988,7 @@ static unsigned int module_hook(void *priv, struct sk_buff *skb, const struct nf
         return NF_ACCEPT;
     }
 
-    printk(KERN_INFO "\n***   Recieved a new packet ***\n");
+    printk(KERN_INFO "\n\n************\nRecieved a new packet \n************\n\n");
 
     verdict = get_packet_verdict(skb, state);
     return verdict;
