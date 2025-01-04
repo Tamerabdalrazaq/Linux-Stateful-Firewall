@@ -995,7 +995,7 @@ static struct file_operations fops = {
 // Initialization function; handles error registering the hooks with cleanups and an indicative return value
 static int __init fw_init(void) {    
     int ret;
-    printk(KERN_INFO "Loading firewall module...!\n");
+    printk(KERN_INFO "\n\n\n\n\nLoading firewall module...!\n\n\n\n\n");
     // ******
     // Devices setup
     // ******
