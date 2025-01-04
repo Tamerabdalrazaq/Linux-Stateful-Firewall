@@ -726,7 +726,7 @@ static int comp_packet_to_static_rules(packet_identifier_t packet_identifier, __
 static int handle_fin_state(struct connection_rule_row* connection, connection_rule_t* rule, 
                             int sender, int rule_owner, tcp_state_t others_state, __u8 ack, __u8 fin){
     int packet_sent = (sender == rule_owner);
-    char terminator[10] = (sender == 0) ? "srv": "cli";
+    char* terminator = (sender == 0) ? "srv": "cli";
         switch (rule->state) {
             case STATE_ESTABLISHED:
                 if (fin == FIN_YES && (packet_sent)) {
