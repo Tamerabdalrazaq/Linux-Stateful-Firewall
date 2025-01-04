@@ -841,7 +841,7 @@ static int handle_tcp_state_machine(packet_identifier_t packet_identifier,
             }
             break;
         case STATE_ESTABLISHED:
-            if (ack == ACK_YES && fin == FIN_NO){
+            if (ack == ACK_YES && fin == FIN_NO && cli_rule->state == STATE_ESTABLISHED){
                 printk(KERN_INFO "STATCE_MACHINE_srv: accepting data packet");
                 srv_verdict = NF_ACCEPT;
                 break;
@@ -861,7 +861,7 @@ static int handle_tcp_state_machine(packet_identifier_t packet_identifier,
             }
             break;
         case STATE_ESTABLISHED:
-            if (ack == ACK_YES && fin == FIN_NO){
+            if (ack == ACK_YES && fin == FIN_NO && srv_rule->state == STATE_ESTABLISHED){
                 printk(KERN_INFO "STATCE_MACHINE_cli: accepting data packet");
                 srv_verdict = NF_ACCEPT;
                 break;
