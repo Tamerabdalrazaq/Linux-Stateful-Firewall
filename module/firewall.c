@@ -808,6 +808,7 @@ static int handle_tcp_state_machine(packet_identifier_t packet_identifier,
     connection_rule_t* srv_rule = &found_connection->connection_rule_srv;
     connection_rule_t* cli_rule = &found_connection->connection_rule_cli;
     int sender_client = compare_packets(packet_identifier, cli_rule->packet);
+    int srv_verdict, cli_verdict;
     printk(KERN_INFO "**********************\n\n");
     // Handle RST (Reset): Always drop connection on RST
     if (rst == RST_YES) {
@@ -826,7 +827,7 @@ static int handle_tcp_state_machine(packet_identifier_t packet_identifier,
                 printk(KERN_INFO "STATCE_MACHINE_srv: Accepting for Listen -> Syn_received");
                 srv_rule->state = STATE_SYN_RECEIVED;
                 print_connections_table();
-                return NF_ACCEPT;
+                srv_verdict = NF_ACCEPT;
             }
             break;
 
@@ -835,11 +836,11 @@ static int handle_tcp_state_machine(packet_identifier_t packet_identifier,
                 printk(KERN_INFO "STATCE_MACHINE_srv: Accepting for Syn_received -> Established");
                 srv_rule->state = STATE_ESTABLISHED;
                 print_connections_table();
-                return NF_ACCEPT;
+                srv_verdict = NF_ACCEPT;
             }
             break;
         default:
-            return handle_fin_state(found_connection, srv_rule, sender_client, 0, cli_rule->state, ack, fin);
+            srv_verdict = handle_fin_state(found_connection, srv_rule, sender_client, 0, cli_rule->state, ack, fin);
     }
 
     // Handle client-side state transitions
@@ -849,15 +850,15 @@ static int handle_tcp_state_machine(packet_identifier_t packet_identifier,
                 syn == SYN_NO && ack == ACK_YES) {
                     printk(KERN_INFO "STATCE_MACHINE_cli: Accepting for STATE_SYN_SENT -> Established");
                 cli_rule->state = STATE_ESTABLISHED;
-                return NF_ACCEPT;
+                cli_verdict NF_ACCEPT;
             }
             break;
 
         default:
-            return handle_fin_state(found_connection, cli_rule, sender_client, 1, srv_rule->state, ack, fin);
+            cli_verdict = handle_fin_state(found_connection, cli_rule, sender_client, 1, srv_rule->state, ack, fin);
     }
 
-    return NF_DROP;
+    return (srv_verdict == NF_ACCEPT || cli_verdict == NF_ACCEPT) ? NF_ACCEPT : NF_DROP;
 }
 
 
