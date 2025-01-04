@@ -731,6 +731,7 @@ static int handle_fin_state(struct connection_rule_row* connection, connection_r
                 if (fin == FIN_YES && (packet_sent)) {
                     printk(KERN_INFO "STATCE_MACHINE: Accepting for Established -> Wait_1");
                     rule->state = STATE_FIN_WAIT_1;
+                    print_connections_table();
                     return NF_ACCEPT;
                 }
                 if (fin == FIN_NO && ack == ACK_YES &&
@@ -738,6 +739,7 @@ static int handle_fin_state(struct connection_rule_row* connection, connection_r
                 {
                     printk(KERN_INFO "STATCE_MACHINE: Accepting for Established -> Close_Wait");
                     rule->state = STATE_CLOSE_WAIT;
+                    print_connections_table();
                     return NF_ACCEPT;
                 }
                 break;
@@ -746,46 +748,53 @@ static int handle_fin_state(struct connection_rule_row* connection, connection_r
                 if (ack == ACK_YES && fin == FIN_NO && !packet_sent) {
                     printk(KERN_INFO "STATCE_MACHINE: Accepting for Wait_1 -> Wait_2");
                     rule->state = STATE_FIN_WAIT_2;
+                    print_connections_table();
                     return NF_ACCEPT;
                 } else if (fin == FIN_YES && !packet_sent) { // Handle simultanuous closing.....
                     printk(KERN_INFO "STATCE_MACHINE: Accepting for Wait_1 -> Closing");
                     rule->state = STATE_CLOSING;
+                    print_connections_table();
                     return NF_ACCEPT;
                 }
                 break;
 
             case STATE_FIN_WAIT_2:
                 if (ack == ACK_YES && packet_sent) { // Received fin and responded with ack.
-                    printk(KERN_INFO "STATCE_MACHINE_srv: Accepting for Wait_2 -> Time_wait");
+                    printk(KERN_INFO "STATCE_MACHINE: Accepting for Wait_2 -> Time_wait");
                     rule->state = STATE_CLOSED;
+                    print_connections_table();
                     return NF_ACCEPT;
                 }
                 break;
 
             case STATE_CLOSING:
                 if (ack == ACK_YES && !packet_sent) {
-                    printk(KERN_INFO "STATCE_MACHINE_srv: Accepting for Closing -> Time_wait");
+                    printk(KERN_INFO "STATCE_MACHINE: Accepting for Closing -> Time_wait");
                     rule->state = STATE_CLOSED;
+                    print_connections_table();
                     return NF_ACCEPT;
                 }
                 break;
             case STATE_CLOSE_WAIT:
                 if (fin == FIN_YES && packet_sent) { // Received fin and responded with ack.
-                        printk(KERN_INFO "STATCE_MACHINE_srv: Accepting for Close_wait -> Last_ACK");
+                        printk(KERN_INFO "STATCE_MACHINE: Accepting for Close_wait -> Last_ACK");
                         rule->state = STATE_LAST_ACK;
+                        print_connections_table();
                         return NF_ACCEPT;
                     }
                     break;
             case STATE_LAST_ACK:
                 if (ack == ACK_YES && !packet_sent) {
-                    printk(KERN_INFO "STATCE_MACHINE_srv: Accepting for Last_ACK -> Closed");
+                    printk(KERN_INFO "STATCE_MACHINE: Accepting for Last_ACK -> Closed");
                         rule->state = STATE_CLOSED;
                         // remove_connection_row(connection);
+                        print_connections_table();
                         return NF_ACCEPT;
                     }
                     break;
 
             default:
+                printk(KERN_INFO "\n\n*** STATCE_MACHINE: Dropping by default *** \n\n");
                 return NF_DROP;
         }
         return NF_DROP;
@@ -805,6 +814,7 @@ static int handle_tcp_state_machine(packet_identifier_t packet_identifier,
         srv_rule->state = STATE_CLOSED;
         cli_rule->state = STATE_CLOSED;
         printk(KERN_INFO "STATCE_MACHINE_srv: Accepting for rst = 1");
+        print_connections_table();
         // remove_connection_row(found_connection);
         return NF_ACCEPT;
     }
@@ -815,6 +825,7 @@ static int handle_tcp_state_machine(packet_identifier_t packet_identifier,
             if (syn == SYN_YES && ack == ACK_YES && !sender_client) {
                 printk(KERN_INFO "STATCE_MACHINE_srv: Accepting for Listen -> Syn_received");
                 srv_rule->state = STATE_SYN_RECEIVED;
+                print_connections_table();
                 return NF_ACCEPT;
             }
             break;
@@ -823,6 +834,7 @@ static int handle_tcp_state_machine(packet_identifier_t packet_identifier,
             if (ack == ACK_YES && syn == SYN_NO && sender_client) {
                 printk(KERN_INFO "STATCE_MACHINE_srv: Accepting for Syn_received -> Established");
                 srv_rule->state = STATE_ESTABLISHED;
+                print_connections_table();
                 return NF_ACCEPT;
             }
             break;
