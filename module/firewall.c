@@ -488,6 +488,55 @@ void print_connections_table(void) {
 }
 
 
+static ssize_t read_connections_table(struct device *dev, struct device_attribute *attr, char *buf) {
+    struct klist_iter iter;
+    struct connection_rule_row *entry;
+    size_t offset = 0;
+    char temp_buffer[128];
+    ssize_t len;
+
+    klist_iter_init(&connections_table, &iter);
+
+    while ((entry = klist_next(&iter)) != NULL) {
+        len = snprintf(temp_buffer, sizeof(temp_buffer),
+                       "%pI4,%u,%pI4,%u,%u\n",
+                       &entry->connection_rule_srv.packet.src_ip,
+                       ntohs(entry->connection_rule_srv.packet.src_port),
+                       &entry->connection_rule_srv.packet.dst_ip,
+                       ntohs(entry->connection_rule_srv.packet.dst_port),
+                       entry->connection_rule_srv.state);
+
+        if (len < 0 || offset + len >= PAGE_SIZE) {
+            break;
+        }
+
+        memcpy(buf + offset, temp_buffer, len);
+        offset += len;
+
+        len = snprintf(temp_buffer, sizeof(temp_buffer),
+                       "%pI4,%u,%pI4,%u,%u\n",
+                       &entry->connection_rule_cli.packet.src_ip,
+                       ntohs(entry->connection_rule_cli.packet.src_port),
+                       &entry->connection_rule_cli.packet.dst_ip,
+                       ntohs(entry->connection_rule_cli.packet.dst_port),
+                       entry->connection_rule_cli.state);
+
+        if (len < 0 || offset + len >= PAGE_SIZE) {
+            break;
+        }
+
+        memcpy(buf + offset, temp_buffer, len);
+        offset += len;
+    }
+
+    klist_iter_exit(&iter);
+
+    return offset;
+}
+
+
+
+
 void add_or_update_log_entry(log_row_t *new_entry) {
     struct klist_iter iter;
     struct klist_node *knode;
@@ -958,13 +1007,13 @@ static int get_packet_verdict(struct sk_buff *skb, const struct nf_hook_state *s
         add_or_update_log_entry(&log_entry);
         return NF_DROP;
     } else if (ack == ACK_YES && protocol == PROT_TCP) {
-        printk(KERN_INFO "\n**Handling a dynamic packet..");
+        printk(KERN_INFO "**Handling a dynamic packet..");
         struct connection_rule_row* found_connection = find_connection_row(packet_identifier);
         if (found_connection == NULL){
             printk (KERN_INFO "\n\nNo connecition found in the table. DROPPING.\n\n");
             return NF_DROP;
         } else {
-            printk (KERN_INFO "\n\nConnection found. Comparing agains TCP state machine.\n\n");
+            printk (KERN_INFO "Connection found. Comparing agains TCP state machine.\n");
             return handle_tcp_state_machine(packet_identifier, found_connection, syn, ack, rst, fin);
         }
     }
@@ -999,6 +1048,7 @@ static unsigned int module_hook(void *priv, struct sk_buff *skb, const struct nf
 
 static DEVICE_ATTR(rules, S_IWUSR | S_IRUGO , display_rules, modify_rules);
 static DEVICE_ATTR(reset, S_IWUSR, NULL, reset_logs);
+static DEVICE_ATTR(conns, S_IRUSR, read_connections_table, NULL);
 
 static struct file_operations fops = {
     .owner = THIS_MODULE,
@@ -1058,6 +1108,28 @@ static int __init fw_init(void) {
     // Create the "reset" sysfs attribute for the "log" device
     if (device_create_file(log_device, (const struct device_attribute *)&dev_attr_reset.attr))
     {
+        device_destroy(sysfs_class, MKDEV(major_number, 1));
+        device_destroy(sysfs_class, MKDEV(major_number, 0));
+        class_destroy(sysfs_class);
+        unregister_chrdev(major_number, "fw_log");
+        return -1;
+    }
+
+
+    conns_device = device_create(sysfs_class, NULL, MKDEV(major_number, 2), NULL, "conns");
+    if (IS_ERR(conns_device))
+    {
+        device_destroy(sysfs_class, MKDEV(major_number, 0));
+        device_destroy(sysfs_class, MKDEV(major_number, 1));
+        class_destroy(sysfs_class);
+        unregister_chrdev(major_number, "fw_log");
+        return -1;
+    }
+
+    // Create the "conns" sysfs attribute for the "conns" device
+    if (device_create_file(conns_device, (const struct device_attribute *)&dev_attr_conns.attr))
+    {
+        device_destroy(sysfs_class, MKDEV(major_number, 2));
         device_destroy(sysfs_class, MKDEV(major_number, 1));
         device_destroy(sysfs_class, MKDEV(major_number, 0));
         class_destroy(sysfs_class);

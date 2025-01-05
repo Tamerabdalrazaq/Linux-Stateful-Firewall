@@ -1,9 +1,8 @@
-// What is it for:	REASON_FW_INACTIVE           = -1,
-//					REASON_ILLEGAL_VALUE         = -6,
-// IN_NET_DEVICE_NAME is device dependent
-// IPV6 Packets??
-// Buffer size limited char dev.
-// Log: latest timestamp
+// TODO:
+// Removing connection after termination and reset.
+// Add a new device
+// Refactor the code
+
 
 #ifndef _FW_H_
 #define _FW_H_

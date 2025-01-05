@@ -20,9 +20,21 @@ try:
     # Optionally receive a response
     response = sock.recv(1024)
     print(f"Received response: {response.decode()}")
+
+    # Initiating connection termination by sending a FIN (this happens when the socket is closed)
+    print("Initiating connection termination...")
+    sock.shutdown(socket.SHUT_WR)  # Indicate we're done sending data, but still able to receive data
+
+    # Wait for any response from the server, including a potential FIN
+    response = sock.recv(1024)  # This can receive the server's FIN or other data
+    if not response:
+        print("No more data from server. Connection termination is complete.")
+    else:
+        print(f"Received data after shutdown: {response.decode()}")
+
 except Exception as e:
     print(f"An error occurred: {e}")
 finally:
-    # Close the socket
+    # Close the socket after the exchange
     sock.close()
     print("Connection closed.")
