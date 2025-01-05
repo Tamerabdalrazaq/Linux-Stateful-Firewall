@@ -102,6 +102,37 @@ def format_rules(rules_string):
     return "\n".join(formatted_rules)
 
 
+def show_connections_table():
+    # Define the path to the sysfs device
+    sysfs_path = "/sys/class/fw/conns/conns"
+    
+    try:
+        # Read the file content
+        with open(sysfs_path, "r") as file:
+            lines = file.readlines()
+        
+        # Print the header for the connections table
+        print("{:<15} {:<15} {:<15} {:<15}".format("Source IP", "Source Port", "Destination IP", "Destination Port"))
+        print("=" * 60)
+        
+        # Process each line and print the formatted table
+        for line in lines:
+            # Strip whitespace and split by commas
+            parts = line.strip().split(",")
+            if len(parts) == 4:
+                src_ip, src_port, dst_ip, dst_port = parts
+                print("{:<15} {:<15} {:<15} {:<15}".format(src_ip, src_port, dst_ip, dst_port))
+            else:
+                print("Invalid line format:", line.strip())
+    
+    except FileNotFoundError:
+        print("Error: The sysfs device {} does not exist.".format(sysfs_path))
+    except PermissionError:
+        print("Error: Permission denied to read {}.".format(sysfs_path))
+    except Exception as e:
+        print("Error: An unexpected error occurred: {}".format(e))
+
+
 def clear_log():
     try:
         with open(sysfs_clr_log_file_path, 'w') as f:
@@ -225,7 +256,7 @@ def main():
         if len(args) == 3 and args[1] == "load_rules":
             load_rules(args[2])
         # Reset stats
-        elif len(args) == 2 and args[1] in ["show_log", "clear_log", "show_rules"]:
+        elif len(args) == 2 and args[1] in ["show_log", "clear_log", "show_rules", "show_conns"]:
             param = args[1]
             if param == "show_log":
                 show_log()
@@ -233,6 +264,8 @@ def main():
                 clear_log()
             elif param == "show_rules":
                 show_rules()
+            elif param == "show_conns":
+                show_connections_table()
         # Read Stats
         else:
             print("Invalid Argument.")
