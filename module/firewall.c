@@ -491,6 +491,7 @@ void print_connections_table(void) {
 
 static ssize_t read_connections_table(struct device *dev, struct device_attribute *attr, char *buf) {
     struct klist_iter iter;
+    struct klist_node *knode;
     struct connection_rule_row *entry;
     size_t offset = 0;
     char temp_buffer[128];
@@ -498,7 +499,8 @@ static ssize_t read_connections_table(struct device *dev, struct device_attribut
 
     klist_iter_init(&connections_table, &iter);
 
-    while ((entry = klist_next(&iter)) != NULL) {
+    while ((knode = klist_next(&iter)) != NULL) {
+        entry = container_of(knode, struct connection_rule_row, node);
         len = snprintf(temp_buffer, sizeof(temp_buffer),
                        "%pI4,%u,%pI4,%u,%u\n",
                        &entry->connection_rule_srv.packet.src_ip,
