@@ -21,6 +21,7 @@ static int major_number;
 static struct class* sysfs_class = NULL;
 static struct device* sysfs_device = NULL;
 struct device *log_device;
+struct device *conns_device;
 
 // Define packet_log struct
 struct packet_log {
