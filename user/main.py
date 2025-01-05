@@ -41,9 +41,35 @@ PORT_MAP = {
     1023: ">1023",
 }
 
+STATE_MAP = {
+    0x01: "STATE_LISTEN",
+    0x02: "STATE_SYN_SENT",
+    0x03: "STATE_SYN_RECEIVED",
+    0x04: "STATE_ESTABLISHED",
+    0x05: "STATE_FIN_WAIT_1",
+    0x06: "STATE_FIN_WAIT_2",
+    0x07: "STATE_CLOSE_WAIT",
+    0x08: "STATE_CLOSING",
+    0x09: "STATE_LAST_ACK",
+    0x0A: "STATE_TIME_WAIT",
+    0x0B: "STATE_CLOSED",
+}
+
 
 # Path to the sysfs file for the sysfs attribute
-sysfs_clr_log_file_path = '/sys/class/fw/log/reset'
+SYSFS_PATH_RULES='/sys/class/fw/rules/rules'
+SYSFS_PATH_LOG = '/sys/class/fw/log/reset'
+SYSFS_PATH_CONNS = "/sys/class/fw/conns/conns"
+CHARDEV_PATH_LOG='/dev/fw_log'
+
+def get_tcp_state_name(state_value):
+    """
+    Maps a TCP state value to its corresponding name.
+
+    :param state_value: Integer value representing the TCP state.
+    :return: String name of the TCP state or None if not found.
+    """
+    return STATE_MAP.get(state_value, None)
 
 
 def process_src_port(src_port):
@@ -104,23 +130,22 @@ def format_rules(rules_string):
 
 def show_connections_table():
     # Define the path to the sysfs device
-    sysfs_path = "/sys/class/fw/conns/conns"
     
     try:
         # Read the file content
-        with open(sysfs_path, "r") as file:
+        with open(SYSFS_PATH_CONNS, "r") as file:
             lines = file.readlines()
         
         # Print the header for the connections table
-        print("{:<15} {:<15} {:<15} {:<15}".format("Source IP", "Source Port", "Destination IP", "Destination Port"))
-        print("=" * 60)
+        print("{:<15} {:<15} {:<15} {:<15} {:<15}".format("Source IP", "Source Port", "Destination IP", "Destination Port", "State"))
+        print("=" * 75)
         
         # Process each line and print the formatted table
         for line in lines:
             # Strip whitespace and split by commas
             parts = line.strip().split(",")
-            if len(parts) == 4:
-                src_ip, src_port, dst_ip, dst_port = parts
+            if len(parts) == 5:
+                src_ip, src_port, dst_ip, dst_port, status = parts
                 print("{:<15} {:<15} {:<15} {:<15}".format(src_ip, src_port, dst_ip, dst_port))
             else:
                 print("Invalid line format:", line.strip())
@@ -135,10 +160,10 @@ def show_connections_table():
 
 def clear_log():
     try:
-        with open(sysfs_clr_log_file_path, 'w') as f:
+        with open(SYSFS_PATH_LOG, 'w') as f:
             f.write("{}\n".format(0))
     except IOError:
-        print("Error: {} not found. Make sure the module is loaded.".format(sysfs_clr_log_file_path))
+        print("Error: {} not found. Make sure the module is loaded.".format(SYSFS_PATH_LOG))
     except Exception as e:
         print("Error writing to sysfs: {}".format(e))
 
@@ -161,16 +186,16 @@ def jiffies_to_date(jiffies):
     return boot_time + timedelta(seconds=seconds_since_boot)
 
 
-def show_log(chardev_path='/dev/fw_log'):
+def show_log():
     """
     Reads logs from the firewall character device, parses, and prints them.
     """
-    if not os.path.exists(chardev_path):
-        print("Error: Character device '{}' does not exist.".format(chardev_path))
+    if not os.path.exists(CHARDEV_PATH_LOG):
+        print("Error: Character device '{}' does not exist.".format(CHARDEV_PATH_LOG))
         return
 
     try:
-        with open(chardev_path, 'r') as f:
+        with open(CHARDEV_PATH_LOG, 'r') as f:
             print("Reading firewall logs...")
             print("{:<20} {:<15} {:<15} {:<10} {:<10} {:<8} {:<8} {:<15} {:<5}".format(
                 "timestamp", "src_ip", "dst_ip", "src_port", "dst_port", "protocol", "action", "reason", "count"
@@ -212,40 +237,38 @@ def load_rules(file_path):
     :param file_path: Path to the file containing the rules.
     :param sysfs_path: Path to the sysfs device to write the rules.
     """
-    sysfs_path='/sys/class/fw/rules/rules'
     try:
         # Open the file containing rules and read its content
         with open(file_path, 'r') as rules_file:
             rules_content = rules_file.read()
         
         # Open the sysfs device and write the rules
-        with open(sysfs_path, 'w') as sysfs_device:
+        with open(SYSFS_PATH_RULES, 'w') as sysfs_device:
             sysfs_device.write(rules_content)
         
-        print("Rules loaded successfully from {} to {}.".format(file_path, sysfs_path))
+        print("Rules loaded successfully from {} to {}.".format(file_path, SYSFS_PATH_RULES))
     except FileNotFoundError:
-        print("Error: File '{}' or sysfs device '{}' not found.".format(file_path, sysfs_path))
+        print("Error: File '{}' or sysfs device '{}' not found.".format(file_path, SYSFS_PATH_RULES))
     except PermissionError:
-        print("Error: Permission denied when accessing '{}'. Try running as root.".format(file_path, sysfs_path))
+        print("Error: Permission denied when accessing '{}'. Try running as root.".format(file_path, SYSFS_PATH_RULES))
     except Exception as e:
         print("Error: {}".format(e))
 
 def show_rules():
     """
     Reads the content of the sysfs device for rules and prints it to the console.
-    :param sysfs_path: Path to the sysfs device to read the rules.
+    :param SYSFS_PATH_RULES: Path to the sysfs device to read the rules.
     """
-    sysfs_path='/sys/class/fw/rules/rules'
     try:
         # Open the sysfs device and read the content
-        with open(sysfs_path, 'r') as sysfs_device:
+        with open(SYSFS_PATH_RULES, 'r') as sysfs_device:
             rules_content = sysfs_device.read()
         
         print("Current Rules:\n{}".format(format_rules(rules_content)))
     except FileNotFoundError:
-        print("Error: Sysfs device '{}' not found.".format(sysfs_path))
+        print("Error: Sysfs device '{}' not found.".format(SYSFS_PATH_RULES))
     except PermissionError:
-        print("Error: Permission denied when accessing '{}'. Try running as root.".format(sysfs_path))
+        print("Error: Permission denied when accessing '{}'. Try running as root.".format(SYSFS_PATH_RULES))
     except Exception as e:
         print("Error: {}".format(e))
 
