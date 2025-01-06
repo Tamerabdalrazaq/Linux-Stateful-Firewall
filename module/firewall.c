@@ -956,7 +956,7 @@ static int get_packet_verdict(struct sk_buff *skb, const struct nf_hook_state *s
         printk(KERN_INFO "Accepting an unsupported protocol.");
         return NF_ACCEPT;
     }
-    printk(KERN_INFO "Protocol: %s", protocol);
+    printk(KERN_INFO "Protocol: %u", protocol);
     extract_transport_fields(skb, protocol, &src_port, &dst_port, &syn, &ack, &fin, &rst, &is_christmas_packet);
     if (protocol == PROT_TCP){
         printk (KERN_INFO "TCP Packet flags:\n SYN = %d   ACK = %d   RST = %d   FIN = %d", syn, ack, rst, fin);
