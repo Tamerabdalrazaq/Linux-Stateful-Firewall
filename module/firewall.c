@@ -989,7 +989,10 @@ static int get_packet_verdict(struct sk_buff *skb, const struct nf_hook_state *s
             printk(KERN_INFO "TCP packet with ack = 0");
             found_rule_index = comp_packet_to_static_rules(packet_identifier, protocol, ack, direction);
             if (found_rule_index >= 0) {
-                if (FW_RULES[found_rule_index].action){
+                log_entry.action = FW_RULES[found_rule_index].action;      
+                log_entry.reason = found_rule_index;   
+                verdict = FW_RULES[found_rule_index].action;
+                if (FW_RULES[found_rule_index].action){ 
                     printk(KERN_INFO "Initiating a new connection");
                     // Try establishing a new connection for TCP packets - drop if invalid connection.
                     if(!initiate_connection(packet_identifier)){
@@ -997,11 +1000,7 @@ static int get_packet_verdict(struct sk_buff *skb, const struct nf_hook_state *s
                         log_entry.action = NF_DROP;
                         log_entry.reason = REASON_ILLEGAL_VALUE;
                         verdict = NF_DROP;
-                    }
-                } else {
-                    log_entry.action = FW_RULES[found_rule_index].action;      
-                    log_entry.reason = found_rule_index;   
-                    verdict = FW_RULES[found_rule_index].action;
+                    } 
                 }
             } else {
                 log_entry.action = NF_DROP;
