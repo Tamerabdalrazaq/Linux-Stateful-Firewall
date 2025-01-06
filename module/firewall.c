@@ -1180,6 +1180,12 @@ static void __exit fw_exit(void)
         device_destroy(sysfs_class, MKDEV(major_number, 1));
     }
 
+    if (conns_device)
+    {
+        device_remove_file(conns_device, (const struct device_attribute *)&dev_attr_reset.attr);
+        device_destroy(sysfs_class, MKDEV(major_number, 2));
+    }
+
     // Destroy the sysfs class (only after all devices are cleaned up)
     if (sysfs_class)
         class_destroy(sysfs_class);
