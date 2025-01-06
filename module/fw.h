@@ -50,6 +50,7 @@ typedef enum {
 #define CLASS_NAME					"fw"
 #define LOOPBACK_NET_DEVICE_NAME	"lo"
 #define IN_NET_DEVICE_NAME			"enp0s8"
+#define EX_NET_DEVICE_NAME			"enp0s3"
 #define OUT_NET_DEVICE_NAME			"enp0s9"
 
 // auxiliary values, for your  convenience
