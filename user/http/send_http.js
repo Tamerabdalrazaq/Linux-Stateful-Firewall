@@ -6,7 +6,7 @@ const http = require('http');
 // Define the server details
 const options = {
     hostname: 'localhost',  // Target server (replace with actual hostname if needed)
-    port: 3000,             // Port where the server is running
+    port: 800,             // Port where the server is running
     path: '/',              // Path of the request (can be modified as needed)
     method: 'GET',          // HTTP method (GET in this case)
 };
