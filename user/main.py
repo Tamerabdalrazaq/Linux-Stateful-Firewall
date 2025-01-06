@@ -69,6 +69,7 @@ def get_tcp_state_name(state_value):
     :param state_value: Integer value representing the TCP state.
     :return: String name of the TCP state or None if not found.
     """
+    print(state_value)
     return STATE_MAP.get(state_value, "DNE")
 
 
