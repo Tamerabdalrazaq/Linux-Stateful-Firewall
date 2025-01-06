@@ -1,3 +1,5 @@
+'use strict'
+
 // client.js
 const http = require('http');
 
