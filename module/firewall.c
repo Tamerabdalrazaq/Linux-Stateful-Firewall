@@ -937,6 +937,7 @@ static int get_packet_verdict(struct sk_buff *skb, const struct nf_hook_state *s
     int is_christmas_packet = 0, found_rule_index;
     log_row_t log_entry;
     packet_identifier_t packet_identifier;
+    int verdict = NF_DROP;
 
     memset(&log_entry, 0, sizeof(log_row_t)); // Initialize to zero
     direction = strcmp(state->in->name, IN_NET_DEVICE_NAME) == 0 ? DIRECTION_IN : DIRECTION_OUT;
@@ -982,45 +983,67 @@ static int get_packet_verdict(struct sk_buff *skb, const struct nf_hook_state *s
         return NF_DROP;
     }
 
-    // Stateless Inspection
-    if (ack == ACK_NO){
-        printk(KERN_INFO "Packet with ack = 0");
+
+    if (protocol == PROT_TCP) {
+        if (ack == ACK_NO){
+            printk(KERN_INFO "TCP packet with ack = 0");
+            found_rule_index = comp_packet_to_static_rules(packet_identifier, protocol, ack, direction);
+            if (found_rule_index >= 0) {
+                if (FW_RULES[found_rule_index].action){
+                    printk(KERN_INFO "Initiating a new connection");
+                    // Try establishing a new connection for TCP packets - drop if invalid connection.
+                    if(!initiate_connection(packet_identifier)){
+                        printk(KERN_ERR "Connection could not be intiated");
+                        log_entry.action = NF_DROP;
+                        log_entry.reason = REASON_ILLEGAL_VALUE;
+                        verdict = NF_DROP;
+                    }
+                } else {
+                    log_entry.action = FW_RULES[found_rule_index].action;      
+                    log_entry.reason = found_rule_index;   
+                    verdict = FW_RULES[found_rule_index].action;
+                }
+            } else {
+                log_entry.action = NF_DROP;
+                log_entry.reason = REASON_NO_MATCHING_RULE;   
+                printk(KERN_INFO "\nDropping - No static match");
+                verdict = NF_DROP;
+            }
+
+        } else {
+            printk(KERN_INFO "**Handling a dynamic packet..");
+            struct connection_rule_row* found_connection = find_connection_row(packet_identifier);
+            if (found_connection == NULL){
+                printk (KERN_INFO "\n\nNo connecition found in the table. DROPPING.\n\n");
+                log_entry.action = NF_DROP;
+                log_entry.reason = REASON_NO_CONNECTION;   
+                verdict = NF_DROP;
+            } else {
+                printk (KERN_INFO "Connection found. Comparing agains TCP state machine.\n");
+                verdict = handle_tcp_state_machine(packet_identifier, found_connection, syn, ack, rst, fin);
+                if (verdict)
+                    log_entry.reason = REASON_INVALID_CONNECTION;   
+                else
+                    log_entry.reason = REASON_VALID_CONNECTION;   
+                log_entry.action = verdict;
+            }
+        }
+    } else {
         found_rule_index = comp_packet_to_static_rules(packet_identifier, protocol, ack, direction);
         if (found_rule_index >= 0) {
-            if (protocol == PROT_TCP  && FW_RULES[found_rule_index].action){
-                printk(KERN_INFO "Initiating a new connection");
-                // Try establishing a new connection for TCP packets - drop if invalid connection.
-                if(!initiate_connection(packet_identifier)){
-                    printk(KERN_ERR "Connection could not be intiated");
-                    log_entry.action = NF_DROP;
-                    log_entry.reason = REASON_ILLEGAL_VALUE;
-                    add_or_update_log_entry(&log_entry);
-                    return NF_DROP;
-                }
-            }
             log_entry.action = FW_RULES[found_rule_index].action;      
             log_entry.reason = found_rule_index;   
-            add_or_update_log_entry(&log_entry);
-            return FW_RULES[found_rule_index].action;
-        }
-
-        log_entry.action = NF_DROP;
-        log_entry.reason = REASON_NO_MATCHING_RULE;   
-        printk(KERN_INFO "\nDropping - No static match");
-        add_or_update_log_entry(&log_entry);
-        return NF_DROP;
-    } else if (ack == ACK_YES && protocol == PROT_TCP) {
-        printk(KERN_INFO "**Handling a dynamic packet..");
-        struct connection_rule_row* found_connection = find_connection_row(packet_identifier);
-        if (found_connection == NULL){
-            printk (KERN_INFO "\n\nNo connecition found in the table. DROPPING.\n\n");
-            return NF_DROP;
+            verdict = FW_RULES[found_rule_index].action;
         } else {
-            printk (KERN_INFO "Connection found. Comparing agains TCP state machine.\n");
-            return handle_tcp_state_machine(packet_identifier, found_connection, syn, ack, rst, fin);
+            log_entry.action = NF_DROP;
+            log_entry.reason = REASON_NO_MATCHING_RULE;   
+            printk(KERN_INFO "\nDropping - No static match");
+            verdict = NF_DROP;
         }
     }
-    return NF_DROP;
+    
+    add_or_update_log_entry(&log_entry);
+    return verdict;
 }
 
 static unsigned int module_hook(void *priv, struct sk_buff *skb, const struct nf_hook_state *state) {

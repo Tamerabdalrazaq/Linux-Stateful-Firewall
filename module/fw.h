@@ -38,7 +38,10 @@ typedef enum {
 typedef enum {
 	REASON_FW_INACTIVE           = -1,
 	REASON_NO_MATCHING_RULE      = -2,
-	REASON_XMAS_PACKET           = -4,
+	REASON_NO_CONNECTION         = -3,
+	REASON_INVALID_CONNECTION    = -4,
+	REASON_VALID_CONNECTION      = -5,
+	REASON_XMAS_PACKET           = -6,
 	REASON_ILLEGAL_VALUE         = -6,
 } reason_t;
 	
