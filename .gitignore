@@ -1,0 +1,9 @@
+*.o
+*.ko
+*.mk
+*.order
+*.cmd
+*.symvers
+*.mod.c
+**/.tmp_versions/
+**/node_modules/
