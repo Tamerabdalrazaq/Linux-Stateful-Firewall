@@ -1028,8 +1028,10 @@ static unsigned int module_hook(void *priv, struct sk_buff *skb, const struct nf
     struct iphdr *ip_header;
     ip_header = ip_hdr(skb);
     // Accept external incoming packets (** FOR DEV MODE ONLY **) 
-    if (DEV_MODE && ->in->name, IN_NET_DEVICE_EXTRNL)
+    if (DEV_MODE && ->in->name, IN_NET_DEVICE_EXTRNL){
+        printk(KERN_INFO "(DEV) Accepting External Packet ");
         return NF_ACCEPT;
+    }
     if (!ip_header) {
         return NF_ACCEPT; // Accept non-IPv4 packets (e.g., IPv6)
     }
