@@ -69,7 +69,7 @@ def get_tcp_state_name(state_value):
     :param state_value: Integer value representing the TCP state.
     :return: String name of the TCP state or None if not found.
     """
-    return STATE_MAP.get(state_value, None)
+    return STATE_MAP.get(state_value, "DNE")
 
 
 def process_src_port(src_port):
@@ -151,9 +151,9 @@ def show_connections_table():
                 print("Invalid line format:", line.strip())
     
     except FileNotFoundError:
-        print("Error: The sysfs device {} does not exist.".format(sysfs_path))
+        print("Error: The sysfs device {} does not exist.".format(SYSFS_PATH_CONNS))
     except PermissionError:
-        print("Error: Permission denied to read {}.".format(sysfs_path))
+        print("Error: Permission denied to read {}.".format(SYSFS_PATH_CONNS))
     except Exception as e:
         print("Error: An unexpected error occurred: {}".format(e))
 
