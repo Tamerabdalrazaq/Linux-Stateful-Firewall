@@ -22,7 +22,7 @@
 // Testing
 #include <linux/netfilter.h>
 
-
+int DEV_MODE = 1
 
 // the protocols we will work with
 typedef enum {

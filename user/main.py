@@ -42,17 +42,17 @@ PORT_MAP = {
 }
 
 STATE_MAP = {
-    0x01: "STATE_LISTEN",
-    0x02: "STATE_SYN_SENT",
-    0x03: "STATE_SYN_RECEIVED",
-    0x04: "STATE_ESTABLISHED",
-    0x05: "STATE_FIN_WAIT_1",
-    0x06: "STATE_FIN_WAIT_2",
-    0x07: "STATE_CLOSE_WAIT",
-    0x08: "STATE_CLOSING",
-    0x09: "STATE_LAST_ACK",
-    0x0A: "STATE_TIME_WAIT",
-    0x0B: "STATE_CLOSED",
+    0x01: "LISTEN",
+    0x02: "SYN_SENT",
+    0x03: "SYN_RECEIVED",
+    0x04: "ESTABLISHED",
+    0x05: "FIN_WAIT_1",
+    0x06: "FIN_WAIT_2",
+    0x07: "CLOSE_WAIT",
+    0x08: "CLOSING",
+    0x09: "LAST_ACK",
+    0x0A: "TIME_WAIT",
+    0x0B: "CLOSED",
 }
 
 

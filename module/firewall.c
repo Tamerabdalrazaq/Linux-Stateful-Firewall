@@ -1027,6 +1027,9 @@ static unsigned int module_hook(void *priv, struct sk_buff *skb, const struct nf
     unsigned int verdict = NF_DROP;
     struct iphdr *ip_header;
     ip_header = ip_hdr(skb);
+    // Accept external incoming packets (** FOR DEV MODE ONLY **) 
+    if (DEV_MODE && ->in->name, IN_NET_DEVICE_EXTRNL)
+        return NF_ACCEPT;
     if (!ip_header) {
         return NF_ACCEPT; // Accept non-IPv4 packets (e.g., IPv6)
     }
