@@ -1021,9 +1021,9 @@ static int get_packet_verdict(struct sk_buff *skb, const struct nf_hook_state *s
                 printk (KERN_INFO "Connection found. Comparing agains TCP state machine.\n");
                 verdict = handle_tcp_state_machine(packet_identifier, found_connection, syn, ack, rst, fin);
                 if (verdict)
-                    log_entry.reason = REASON_INVALID_CONNECTION;   
-                else
                     log_entry.reason = REASON_VALID_CONNECTION;   
+                else
+                    log_entry.reason = REASON_INVALID_CONNECTION;   
                 log_entry.action = verdict;
             }
         }
