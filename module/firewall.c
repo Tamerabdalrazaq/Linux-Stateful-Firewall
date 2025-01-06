@@ -1074,6 +1074,7 @@ static unsigned int module_hook(void *priv, struct sk_buff *skb, const struct nf
     printk(KERN_INFO "\n\n************\nRecieved a new packet \n************\n\n");
 
     verdict = get_packet_verdict(skb, state);
+    printk(KERN_INFO "\n\n************\nEnd packet <- %s \n************\n\n", verdict ? "Accept": "Drop");
     return verdict;
 }
 
