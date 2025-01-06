@@ -1028,7 +1028,7 @@ static unsigned int module_hook(void *priv, struct sk_buff *skb, const struct nf
     struct iphdr *ip_header;
     ip_header = ip_hdr(skb);
     // Accept external incoming packets (** FOR DEV MODE ONLY **) 
-    if (DEV_MODE && ->in->name, EX_NET_DEVICE_NAME){
+    if (DEV_MODE && state->in->name, EX_NET_DEVICE_NAME){
         printk(KERN_INFO "(DEV) Accepting External Packet ");
         return NF_ACCEPT;
     }
