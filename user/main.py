@@ -145,8 +145,8 @@ def show_connections_table():
             # Strip whitespace and split by commas
             parts = line.strip().split(",")
             if len(parts) == 5:
-                src_ip, src_port, dst_ip, dst_port, status = parts
-                print("{:<15} {:<15} {:<15} {:<15}".format(src_ip, src_port, dst_ip, dst_port))
+                src_ip, src_port, dst_ip, dst_port, state = parts
+                print("{:<15} {:<15} {:<15} {:<15} {:<15}".format(src_ip, src_port, dst_ip, dst_port, get_tcp_state_name(state)))
             else:
                 print("Invalid line format:", line.strip())
     
