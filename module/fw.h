@@ -42,7 +42,7 @@ typedef enum {
 	REASON_INVALID_CONNECTION    = -4,
 	REASON_VALID_CONNECTION      = -5,
 	REASON_XMAS_PACKET           = -6,
-	REASON_ILLEGAL_VALUE         = -6,
+	REASON_ILLEGAL_VALUE         = -7,
 } reason_t;
 	
 
