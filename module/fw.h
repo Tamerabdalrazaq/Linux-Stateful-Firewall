@@ -2,6 +2,7 @@
 // Removing connection after termination and reset.
 // Add a new device
 // Refactor the code
+// ICMP Packets port log
 
 
 #ifndef _FW_H_
