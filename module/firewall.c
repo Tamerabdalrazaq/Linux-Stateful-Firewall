@@ -814,7 +814,7 @@ static int handle_fin_state(struct connection_rule_row* connection, connection_r
 
             case STATE_FIN_WAIT_2:
                 if (ack == ACK_YES && packet_sent) { // Received fin and responded with ack.
-                    printk(KERN_INFO "STATCE_MACHINE_%s: Accepting for Wait_2 -> Time_wait", terminator);
+                    printk(KERN_INFO "STATCE_MACHINE_%s: Accepting for Wait_2 -> CLOSED", terminator);
                     rule->state = STATE_CLOSED;
                     print_connections_table();
                     return NF_ACCEPT;
@@ -823,7 +823,7 @@ static int handle_fin_state(struct connection_rule_row* connection, connection_r
 
             case STATE_CLOSING:
                 if (ack == ACK_YES && !packet_sent) {
-                    printk(KERN_INFO "STATCE_MACHINE_%s: Accepting for Closing -> Time_wait", terminator);
+                    printk(KERN_INFO "STATCE_MACHINE_%s: Accepting for Closing -> CLOSED", terminator);
                     rule->state = STATE_CLOSED;
                     print_connections_table();
                     return NF_ACCEPT;
@@ -1071,10 +1071,10 @@ static unsigned int module_hook(void *priv, struct sk_buff *skb, const struct nf
         return NF_ACCEPT;
     }
 
-    printk(KERN_INFO "\n\n************\nRecieved a new packet \n************\n\n");
+    printk(KERN_INFO "\n\n************\nRecieved a new packet \n\n\n");
 
     verdict = get_packet_verdict(skb, state);
-    printk(KERN_INFO "\n\n************\nEnd packet <- %s \n************\n\n", verdict ? "Accept": "Drop");
+    printk(KERN_INFO "\n\n\nEnd packet <- %s \n************\n\n", verdict ? "Accept": "Drop");
     return verdict;
 }
 
