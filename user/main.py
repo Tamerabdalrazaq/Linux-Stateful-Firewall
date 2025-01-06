@@ -42,17 +42,17 @@ PORT_MAP = {
 }
 
 STATE_MAP = {
-    1: "STATE_LISTEN",
-    2: "STATE_SYN_SENT",
-    3: "STATE_SYN_RECEIVED",
-    4: "STATE_ESTABLISHED",
-    5: "STATE_FIN_WAIT_1",
-    6: "STATE_FIN_WAIT_2",
-    7: "STATE_CLOSE_WAIT",
-    8: "STATE_CLOSING",
-    9: "STATE_LAST_ACK",
-    10: "STATE_TIME_WAIT",
-    11: "STATE_CLOSED",
+    0x01: "STATE_LISTEN",
+    0x02: "STATE_SYN_SENT",
+    0x03: "STATE_SYN_RECEIVED",
+    0x04: "STATE_ESTABLISHED",
+    0x05: "STATE_FIN_WAIT_1",
+    0x06: "STATE_FIN_WAIT_2",
+    0x07: "STATE_CLOSE_WAIT",
+    0x08: "STATE_CLOSING",
+    0x09: "STATE_LAST_ACK",
+    0x0A: "STATE_TIME_WAIT",
+    0x0B: "STATE_CLOSED",
 }
 
 
@@ -69,8 +69,7 @@ def get_tcp_state_name(state_value):
     :param state_value: Integer value representing the TCP state.
     :return: String name of the TCP state or None if not found.
     """
-    print(state_value)
-    return STATE_MAP.get(state_value, "DNE")
+    return STATE_MAP.get(int(state_value), "DNE")
 
 
 def process_src_port(src_port):
