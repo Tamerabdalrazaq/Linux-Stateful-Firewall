@@ -926,15 +926,6 @@ static int handle_tcp_state_machine(packet_identifier_t packet_identifier,
 }
 
 
-
-static void handle_tcp(packet_identifier_t packet_identifier, log_row_t* pt_log_entry, int *pt_verdict,
-                           __u8 syn, __u8 ack, __u8 rst, __u8 fin, direction_t direction) {
-    if (ack == ACK_NO) 
-        tcp_handle_syn(packet_identifier, pt_log_entry, pt_verdict, ack, direction);
-    else if (ack == ACK_YES) 
-        tcp_handle_ack(packet_identifier, pt_log_entry, pt_verdict, syn, rst, fin);
-}
-
 static void tcp_handle_syn(packet_identifier_t packet_identifier, log_row_t* pt_log_entry, int *pt_verdict,
                            __u8 syn, direction_t direction) {
     int found_rule_index;
@@ -955,8 +946,8 @@ static void tcp_handle_syn(packet_identifier_t packet_identifier, log_row_t* pt_
             } 
         }
     } else {
-        pt_log_entry.action = NF_DROP;
-        pt_log_entry.reason = REASON_NO_MATCHING_RULE;   
+        pt_log_entry->action = NF_DROP;
+        pt_log_entry->reason = REASON_NO_MATCHING_RULE;   
         printk(KERN_INFO "\nDropping - No static match");
         *pt_verdict = NF_DROP;
     }
@@ -980,6 +971,14 @@ static void tcp_handle_ack(packet_identifier_t packet_identifier, log_row_t* pt_
             pt_log_entry->reason = REASON_INVALID_CONNECTION;   
         pt_log_entry->action = *pt_verdict;
     }
+}
+
+static void handle_tcp(packet_identifier_t packet_identifier, log_row_t* pt_log_entry, int *pt_verdict,
+                           __u8 syn, __u8 ack, __u8 rst, __u8 fin, direction_t direction) {
+    if (ack == ACK_NO) 
+        tcp_handle_syn(packet_identifier, pt_log_entry, pt_verdict, ack, direction);
+    else if (ack == ACK_YES) 
+        tcp_handle_ack(packet_identifier, pt_log_entry, pt_verdict, syn, rst, fin);
 }
 
 static void hanlde_non_tcp(packet_identifier_t packet_identifier, log_row_t* log_entry, int *verdict,
