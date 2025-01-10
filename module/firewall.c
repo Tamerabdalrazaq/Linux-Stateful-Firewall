@@ -989,7 +989,7 @@ static void handle_new_connection(packet_identifier_t packet_identifier, log_row
 
 static void handle_tcp(packet_identifier_t packet_identifier, log_row_t* pt_log_entry, int *pt_verdict,
                            __u8 syn, __u8 ack, __u8 rst, __u8 fin, direction_t direction) {
-    if (ack == ACK_NO){
+    if (ack == ACK_NO)
         tcp_handle_syn(packet_identifier, pt_log_entry, pt_verdict, ack, direction);
         if (*pt_verdict)
             handle_new_connection(packet_identifier, pt_log_entry, pt_verdict);
