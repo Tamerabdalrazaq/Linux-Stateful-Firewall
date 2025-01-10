@@ -937,16 +937,6 @@ static void tcp_handle_syn(packet_identifier_t packet_identifier, log_row_t* pt_
         pt_log_entry->action = FW_RULES[found_rule_index].action;      
         pt_log_entry->reason = found_rule_index;   
         *pt_verdict = FW_RULES[found_rule_index].action;
-        if (FW_RULES[found_rule_index].action){ 
-            printk(KERN_INFO "Initiating a new connection");
-            // Try establishing a new connection for TCP packets - drop if invalid connection.
-            if(!initiate_connection(packet_identifier)){
-                printk(KERN_ERR "Connection could not be intiated");
-                pt_log_entry->action = NF_DROP;
-                pt_log_entry->reason = REASON_ILLEGAL_VALUE;
-                *pt_verdict = NF_DROP;
-            } 
-        }
     } else {
         pt_log_entry->action = NF_DROP;
         pt_log_entry->reason = REASON_NO_MATCHING_RULE;   
