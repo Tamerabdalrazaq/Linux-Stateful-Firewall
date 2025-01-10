@@ -64,6 +64,8 @@ typedef enum {
 #define MAX_RULES		(50)
 #define RULE_NUM_FIELDS	(9)
 #define IP_ANY 		    (htonl(0x00000000))
+#define HTTP_PORT 		    (80)
+#define FTP_PORT 		    (21)
 
 // device minor numbers, for your convenience
 typedef enum {
@@ -157,5 +159,6 @@ typedef struct {
 	reason_t     	reason;       	// rule#index, or values from: reason_t
 	unsigned int   	count;        	// counts this line's hits
 } log_row_t;
+
 
 #endif // _FW_H_

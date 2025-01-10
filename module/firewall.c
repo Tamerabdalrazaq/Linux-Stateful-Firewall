@@ -975,10 +975,24 @@ static void tcp_handle_ack(packet_identifier_t packet_identifier, log_row_t* pt_
     }
 }
 
+static void handle_new_connection(packet_identifier_t packet_identifier, log_row_t* pt_log_entry, 
+                                 int *pt_verdict) {
+            printk(KERN_INFO "Initiating a new connection");
+            // Create a new connection
+            if(!initiate_connection(packet_identifier)){
+                printk(KERN_ERR "Connection could not be intiated");
+                pt_log_entry->action = NF_DROP;
+                pt_log_entry->reason = REASON_ILLEGAL_VALUE;
+                *pt_verdict = NF_DROP;
+            } 
+}
+
 static void handle_tcp(packet_identifier_t packet_identifier, log_row_t* pt_log_entry, int *pt_verdict,
                            __u8 syn, __u8 ack, __u8 rst, __u8 fin, direction_t direction) {
-    if (ack == ACK_NO) 
+    if (ack == ACK_NO){
         tcp_handle_syn(packet_identifier, pt_log_entry, pt_verdict, ack, direction);
+        if (*pt_verdict)
+            handle_new_connection(packet_identifier, pt_log_entry, pt_verdict);
     else if (ack == ACK_YES) 
         tcp_handle_ack(packet_identifier, pt_log_entry, pt_verdict, syn, rst, fin);
 }
