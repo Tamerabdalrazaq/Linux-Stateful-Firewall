@@ -7,3 +7,4 @@
 *.mod.c
 **/.tmp_versions/
 **/node_modules/
+**.vscode/
