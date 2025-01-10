@@ -668,11 +668,13 @@ static void reverse_packet_identifier(const packet_identifier_t *packet, packet_
 
 static int initiate_connection(packet_identifier_t packet_identifier) {
     struct connection_rule_row* found_connection = find_connection_row(packet_identifier);
+    packet_identifier_t *reversed_packet_identifier;
+    struct connection_rule_row *new_rule_sender;
     if (found_connection != NULL)
         return NF_DROP;
 
     // Allocate memory for reversed_packet_identifier
-    packet_identifier_t *reversed_packet_identifier = kmalloc(sizeof(packet_identifier_t), GFP_KERNEL);
+    reversed_packet_identifier = kmalloc(sizeof(packet_identifier_t), GFP_KERNEL);
     if (!reversed_packet_identifier) {
         printk(KERN_ERR "Memory allocation failed for reversed_packet_identifier\n");
         return NF_DROP;
@@ -680,7 +682,7 @@ static int initiate_connection(packet_identifier_t packet_identifier) {
     reverse_packet_identifier(&packet_identifier, reversed_packet_identifier);
 
     // Allocate memory for new_rule_sender and new_rule_reciever
-    struct connection_rule_row *new_rule_sender = kmalloc(sizeof(struct connection_rule_row), GFP_KERNEL);
+    new_rule_sender = kmalloc(sizeof(struct connection_rule_row), GFP_KERNEL);
     if (!new_rule_sender) {
         printk(KERN_ERR "Memory allocation failed for new_rule_sender\n");
         kfree(reversed_packet_identifier);
@@ -955,8 +957,8 @@ static void tcp_handle_syn(packet_identifier_t packet_identifier, log_row_t* pt_
 
 static void tcp_handle_ack(packet_identifier_t packet_identifier, log_row_t* pt_log_entry, int *pt_verdict,
                             __u8 syn, __u8 rst, __u8 fin) {
-    printk(KERN_INFO "**Handling a dynamic packet..");
     struct connection_rule_row* found_connection = find_connection_row(packet_identifier);
+    printk(KERN_INFO "**Handling a dynamic packet..");
     if (found_connection == NULL){
         printk (KERN_INFO "\n\nNo connecition found in the table. DROPPING.\n\n");
         pt_log_entry->action = NF_DROP;
@@ -999,15 +1001,15 @@ static void hanlde_non_tcp(packet_identifier_t packet_identifier, log_row_t* log
 
 // Given a TCP/UDP/ICMP packet
 static int get_packet_verdict(struct sk_buff *skb, const struct nf_hook_state *state) {
-    __be32 src_ip = 0, dst_ip = 0;
-    __be16 src_port = 0, dst_port = 0;
-    __u8 protocol = 0;
+    packet_identifier_t packet_identifier;
+    log_row_t log_entry;
     __u8 ack, syn, fin, rst;
     struct iphdr *ip_header;
     direction_t direction;
-    int is_christmas_packet = 0, found_rule_index;
-    log_row_t log_entry;
-    packet_identifier_t packet_identifier;
+    __be32 src_ip = 0, dst_ip = 0;
+    __be16 src_port = 0, dst_port = 0;
+    __u8 protocol = 0;
+    int is_christmas_packet = 0;
     int verdict = NF_DROP;
 
     memset(&log_entry, 0, sizeof(log_row_t)); // Initialize to zero
