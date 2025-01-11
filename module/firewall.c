@@ -23,6 +23,8 @@ MODULE_AUTHOR("Razaq");
 MODULE_DESCRIPTION("Basic Packet Filtering");
 MODULE_VERSION("1");
 
+static __be32 FW_IN_IP = (in_aton("10.1.1.3"));
+
 static int major_number;
 static struct class* sysfs_class = NULL;
 static struct device* sysfs_device = NULL;
@@ -996,7 +998,7 @@ static int handle_mitm(struct sk_buff *skb) {
 
     iph = ip_hdr(skb);
     tcph = tcp_hdr(skb);
-    local_ip = htonl(INADDR_LOOPBACK); // Set to 127.0.0.1 (loopback)
+    local_ip = htonl(FW_IN_IP); // Set to 127.0.0.1 (loopback)
 
     // Modify the destination IP and port
     iph->daddr = local_ip;            // Set destination IP to local IP
