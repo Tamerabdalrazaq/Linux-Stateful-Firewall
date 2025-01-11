@@ -23,8 +23,6 @@ MODULE_AUTHOR("Razaq");
 MODULE_DESCRIPTION("Basic Packet Filtering");
 MODULE_VERSION("1");
 
-static __be32 FW_IN_IP = (in_aton("10.1.1.3"));
-
 static int major_number;
 static struct class* sysfs_class = NULL;
 static struct device* sysfs_device = NULL;
@@ -994,6 +992,8 @@ static int handle_mitm(struct sk_buff *skb) {
     __be32 local_ip;
     __be16 local_port = htons(800); // Set local port to 800
 
+    __be32 FW_IN_IP = (in_aton("10.1.1.3"));
+    
     printk(KERN_CRIT "Re-Routing to local process 800");
 
     iph = ip_hdr(skb);
