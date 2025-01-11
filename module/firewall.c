@@ -15,6 +15,8 @@
 #include <linux/tcp.h>
 #include <linux/ip.h>
 #include <net/ip.h>
+#include <net/tcp.h>
+
 
 MODULE_LICENSE("GPL");
 MODULE_AUTHOR("Razaq");
