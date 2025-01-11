@@ -1117,6 +1117,7 @@ static int get_packet_verdict(struct sk_buff *skb, const struct nf_hook_state *s
 static unsigned int module_hook(void *priv, struct sk_buff *skb, const struct nf_hook_state *state) {
     unsigned int verdict = NF_DROP;
     struct iphdr *ip_header;
+    struct tcphdr *tcph = tcp_hdr(skb);
     ip_header = ip_hdr(skb);
     // Accept external incoming packets (** FOR DEV MODE ONLY **) 
     if (DEV_MODE && (strcmp(state->in->name, EX_NET_DEVICE_NAME) == 0 || 
@@ -1141,6 +1142,8 @@ static unsigned int module_hook(void *priv, struct sk_buff *skb, const struct nf
     printk(KERN_INFO "\n\n************\nRecieved a new packet \n\n\n");
 
     verdict = get_packet_verdict(skb, state);
+    printk(KERN_CRIT "Source IP: %pI4, Source Port: %u\n", &ip_header->saddr, ntohs(tcph->source));
+    printk(KERN_CRIT "New Destination IP: %pI4, Destination Port: %u\n", &ip_header->daddr, ntohs(tcph->dest));
     printk(KERN_INFO "\n\n\nEnd packet <- %s \n************\n\n", verdict ? "Accept": "Drop");
     return verdict;
 }
