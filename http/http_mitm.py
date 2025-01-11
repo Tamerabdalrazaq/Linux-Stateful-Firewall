@@ -5,7 +5,15 @@ import sys
 
 # Placeholder for inspecting HTTP packets
 def inspect_packet(http_packet):
-    # This is a trivial implementation; you can replace it with your actual inspection logic
+    try:
+    # Decode the received data to a readable format
+        http_request = http_packet.decode('utf-8')
+        
+        # Print the GET request with all headers
+        print("Received HTTP Request:")
+        print(http_request)
+    except UnicodeDecodeError as e:
+        print("Failed to decode HTTP request: {}".format(e))
     return True
 
 def forward_to_destination(original_dest, packet):
