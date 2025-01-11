@@ -1120,12 +1120,14 @@ static unsigned int module_hook(void *priv, struct sk_buff *skb, const struct nf
     struct tcphdr *tcph = tcp_hdr(skb);
     ip_header = ip_hdr(skb);
     // Accept external incoming packets (** FOR DEV MODE ONLY **) 
-    if (DEV_MODE && (strcmp(state->in->name, EX_NET_DEVICE_NAME) == 0 || 
-        strcmp(state->in->name, EX_NET_DEVICE_NAME) == 0) ){
-        printk(KERN_INFO "(DEV) Accepting External Packet ");
-        return NF_ACCEPT;
-    }
+    // if (DEV_MODE && (strcmp(state->in->name, EX_NET_DEVICE_NAME) == 0 || 
+    //     strcmp(state->in->name, EX_NET_DEVICE_NAME) == 0) ){
+    //     printk(KERN_INFO "(DEV) Accepting External Packet ");
+    //     return NF_ACCEPT;
+    // }
+
     if (!ip_header) {
+        printk(KERN_INFO "\nAccepting for NON-IPv4 packets\n");
         return NF_ACCEPT; // Accept non-IPv4 packets (e.g., IPv6)
     }
 
