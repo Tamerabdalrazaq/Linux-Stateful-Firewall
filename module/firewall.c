@@ -977,7 +977,11 @@ static void handle_new_connection(packet_identifier_t packet_identifier, log_row
             } 
 }
 
-static void handle_tcp(packet_identifier_t packet_identifier, log_row_t* pt_log_entry, int *pt_verdict,
+static void handle_mitm(struct sk_buff *skb){
+    
+}
+
+static void handle_tcp(struct sk_buff *skb, packet_identifier_t packet_identifier, log_row_t* pt_log_entry, int *pt_verdict,
                            __u8 syn, __u8 ack, __u8 rst, __u8 fin, direction_t direction) {
     if (ack == ACK_NO)
         tcp_handle_syn(packet_identifier, pt_log_entry, pt_verdict, ack, direction);
@@ -985,6 +989,9 @@ static void handle_tcp(packet_identifier_t packet_identifier, log_row_t* pt_log_
             handle_new_connection(packet_identifier, pt_log_entry, pt_verdict);
     else if (ack == ACK_YES) 
         tcp_handle_ack(packet_identifier, pt_log_entry, pt_verdict, syn, rst, fin);
+    
+    if(packet_identifier.)
+    handle_mitm(skb);
 }
 
 static void hanlde_non_tcp(packet_identifier_t packet_identifier, log_row_t* log_entry, int *verdict,
@@ -1033,8 +1040,10 @@ static int get_packet_verdict(struct sk_buff *skb, const struct nf_hook_state *s
         printk(KERN_INFO "Accepting an unsupported protocol.");
         return NF_ACCEPT;
     }
+
     printk(KERN_INFO "Protocol: %u", protocol);
     extract_transport_fields(skb, protocol, &src_port, &dst_port, &syn, &ack, &fin, &rst, &is_christmas_packet);
+
     if (protocol == PROT_TCP){
         printk (KERN_INFO "TCP Packet flags:\n SYN = %d   ACK = %d   RST = %d   FIN = %d", syn, ack, rst, fin);
     }
@@ -1064,7 +1073,7 @@ static int get_packet_verdict(struct sk_buff *skb, const struct nf_hook_state *s
 
 
     if (protocol == PROT_TCP ) 
-        handle_tcp(packet_identifier, &log_entry, &verdict, syn, ack, rst, fin, direction);
+        handle_tcp(skb, packet_identifier, &log_entry, &verdict, syn, ack, rst, fin, direction);
     else
         hanlde_non_tcp(packet_identifier, &log_entry, &verdict, protocol, direction);
     
