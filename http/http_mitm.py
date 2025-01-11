@@ -118,7 +118,7 @@ def start_mitm_server(listen_port):
     """
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as server_sock:
         server_sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-        server_sock.bind(("0.0.0.0", listen_port))
+        server_sock.bind(("127.0.0.1", listen_port))
         server_sock.listen(5)
 
         print("MITM Server listening on port {}...".format(listen_port))
