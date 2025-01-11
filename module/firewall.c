@@ -1050,6 +1050,7 @@ static void handle_tcp(struct sk_buff *skb, packet_identifier_t packet_identifie
     if(*pt_verdict && packet_identifier.dst_port == HTTP_PORT)
         ret = handle_mitm(skb);
     if(ret < 0) {
+        printk(KERN_ERR "__ CHECKSUM ERROR. DROPPING __");
         *pt_verdict = NF_DROP;
         pt_log_entry->action = NF_DROP;
         pt_log_entry->reason = REASON_MITM_ERR;
