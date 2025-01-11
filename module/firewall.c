@@ -13,6 +13,7 @@
 #include <linux/device.h>
 #include <net/checksum.h>
 #include <linux/tcp.h>
+#include <linux/ip.h>
 
 MODULE_LICENSE("GPL");
 MODULE_AUTHOR("Razaq");
@@ -986,7 +987,7 @@ static void handle_mitm(struct sk_buff *skb) {
     __be16 local_port = htons(800); // Set local port to 800
 
     printk(KERN_INFO "Re-Routing to local process 800");
-    
+
     iph = ip_hdr(skb);
     tcph = tcp_hdr(skb);
     local_ip = htonl(INADDR_LOOPBACK); // Example: Set to 127.0.0.1 (loopback)
