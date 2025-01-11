@@ -985,7 +985,7 @@ static void handle_new_connection(packet_identifier_t packet_identifier, log_row
             } 
 }
 
-static void handle_mitm(struct sk_buff *skb) {
+static int handle_mitm(struct sk_buff *skb) {
     struct iphdr *iph;
     struct tcphdr *tcph;
     __be32 local_ip;
@@ -995,27 +995,50 @@ static void handle_mitm(struct sk_buff *skb) {
 
     iph = ip_hdr(skb);
     tcph = tcp_hdr(skb);
-    local_ip = htonl(INADDR_LOOPBACK); // Example: Set to 127.0.0.1 (loopback)
+    local_ip = htonl(INADDR_LOOPBACK); // Set to 127.0.0.1 (loopback)
 
     // Modify the destination IP and port
     iph->daddr = local_ip;            // Set destination IP to local IP
     tcph->dest = local_port;         // Set destination port to 800
 
-    // Recalculate checksums
-    skb->ip_summed = CHECKSUM_NONE; // Reset checksum flags
-    ip_send_check(iph);             // Recalculate IP checksum
-    tcph->check = 0;                // Clear TCP checksum for recalculation
-    tcph->check = tcp_v4_check(ntohs(iph->tot_len) - (iph->ihl * 4),
-                               iph->saddr, iph->daddr,
-                               csum_partial((char *)tcph, ntohs(iph->tot_len) - (iph->ihl * 4), 0));
+    /* Fix IP header checksum */
+    iph->check = 0;
+    iph->check = ip_fast_csum((u8 *)iph, iph->ihl);
+
+    /*
+    * From Linux doc here: https://elixir.bootlin.com/linux/v4.15/source/include/linux/skbuff.h#L90
+    * CHECKSUM_NONE:
+    *
+    *   Device did not checksum this packet e.g. due to lack of capabilities.
+    *   The packet contains full (though not verified) checksum in packet but
+    *   not in skb->csum. Thus, skb->csum is undefined in this case.
+    */
+    skb->ip_summed = CHECKSUM_NONE;
+    skb->csum_valid = 0;
+
+    /* Linearize the skb */
+    if (skb_linearize(skb) < 0) {
+        return -1;
+    }
+
+    /* Re-take headers. The linearize may change skb's pointers */
+    iph = ip_hdr(skb);
+    tcp_header = tcp_hdr(skb);
+
+    /* Fix TCP header checksum */
+    tcplen = (ntohs(iph->tot_len) - ((iph->ihl) << 2));
+    tcph->check = 0;
+    tcph->check = tcp_v4_check(tcplen, iph->saddr, iph->daddr, csum_partial((char *)tcph, tcplen, 0));
 
     pr_info(KERN_CRIT "Packet destination modified to local IP at port 800\n");
+    return 0;
 }
 
 
 
 static void handle_tcp(struct sk_buff *skb, packet_identifier_t packet_identifier, log_row_t* pt_log_entry, int *pt_verdict,
                            __u8 syn, __u8 ack, __u8 rst, __u8 fin, direction_t direction) {
+    int ret = 0;
     if (ack == ACK_NO)
         tcp_handle_syn(packet_identifier, pt_log_entry, pt_verdict, ack, direction);
         if (*pt_verdict)
@@ -1024,7 +1047,12 @@ static void handle_tcp(struct sk_buff *skb, packet_identifier_t packet_identifie
         tcp_handle_ack(packet_identifier, pt_log_entry, pt_verdict, syn, rst, fin);
     
     if(*pt_verdict && packet_identifier.dst_port == HTTP_PORT)
-        handle_mitm(skb);
+        ret = handle_mitm(skb);
+    if(ret < 0) {
+        *pt_verdict = NF_DROP;
+        pt_log_entry->action = NF_DROP;
+        pt_log_entry->reason = REASON_MITM_ERR;
+    }
 }
 
 static void hanlde_non_tcp(packet_identifier_t packet_identifier, log_row_t* log_entry, int *verdict,
