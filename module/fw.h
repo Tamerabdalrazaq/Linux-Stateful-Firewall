@@ -64,8 +64,8 @@ typedef enum {
 #define MAX_RULES		(50)
 #define RULE_NUM_FIELDS	(9)
 #define IP_ANY 		    (htonl(0x00000000))
-#define HTTP_PORT 		    (htonl(80))
-#define FTP_PORT 		    (htonl(21))
+#define HTTP_PORT 		    (htons(80))
+#define FTP_PORT 		    (htons(21))
 
 // device minor numbers, for your convenience
 typedef enum {
