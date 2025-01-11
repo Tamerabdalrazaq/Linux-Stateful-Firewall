@@ -22,7 +22,7 @@ def forward_to_destination(original_dest, packet):
             response = forward_sock.recv(4096)
         return response
     except Exception as e:
-        print(f"Error forwarding to destination: {e}")
+        print("Error forwarding to destination: {}".format(e))
         return None
 
 
@@ -37,11 +37,11 @@ def start_mitm_server(listen_port):
         server_sock.bind(("0.0.0.0", listen_port))
         server_sock.listen(5)
 
-        print(f"MITM Server listening on port {listen_port}...")
+        print("MITM Server listening on port {}...".format(listen_port))
 
         while True:
             client_sock, client_addr = server_sock.accept()
-            print(f"Accepted connection from {client_addr}")
+            print("Accepted connection from {}".format(client_addr))
 
             try:
                 data = client_sock.recv(4096)  # Read the HTTP packet
@@ -71,7 +71,7 @@ def start_mitm_server(listen_port):
                     print("Packet failed inspection. Dropping.")
 
             except Exception as e:
-                print(f"Error handling connection: {e}")
+                print("Error handling connection: {}".format(e))
             finally:
                 client_sock.close()
 
