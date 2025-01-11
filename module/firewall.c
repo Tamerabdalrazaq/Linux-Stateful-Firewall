@@ -1180,8 +1180,8 @@ static unsigned int module_hook(void *priv, struct sk_buff *skb, const struct nf
     printk(KERN_INFO "\n\n************\nRecieved a new packet \n\n\n");
 
     verdict = get_packet_verdict(skb, state);
-    printk(KERN_CRIT "Source IP: %pI4, Source Port: %u\n", &ip_header->saddr, ntohs(tcph->source));
-    printk(KERN_CRIT "New Destination IP: %pI4, Destination Port: %u\n", &ip_header->daddr, ntohs(tcph->dest));
+    printk(KERN_CRIT "Modified Packet - Src IP: %pI4, Src Port: %u, Dst IP: %pI4, Dst Port: %u\n",
+       &iph->saddr, ntohs(tcph->source), &iph->daddr, ntohs(tcph->dest));
     printk(KERN_INFO "\n\n\nEnd packet <- %s \n************\n\n", verdict ? "Accept": "Drop");
     return verdict;
 }
