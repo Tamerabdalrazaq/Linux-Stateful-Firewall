@@ -676,8 +676,10 @@ static int initiate_connection(packet_identifier_t packet_identifier) {
     struct connection_rule_row* found_connection = find_connection_row(packet_identifier);
     packet_identifier_t *reversed_packet_identifier;
     struct connection_rule_row *new_rule_sender;
-    if (found_connection != NULL)
+    if (found_connection != NULL){
+        printk(KERN_ERR "initiate_connection Error: Connection already exists.")
         return NF_DROP;
+    }
 
     // Allocate memory for reversed_packet_identifier
     reversed_packet_identifier = kmalloc(sizeof(packet_identifier_t), GFP_KERNEL);
@@ -989,7 +991,7 @@ static void handle_mitm(struct sk_buff *skb) {
     __be32 local_ip;
     __be16 local_port = htons(800); // Set local port to 800
 
-    printk(KERN_INFO "Re-Routing to local process 800");
+    printk(KERN_CRIT "Re-Routing to local process 800");
 
     iph = ip_hdr(skb);
     tcph = tcp_hdr(skb);
