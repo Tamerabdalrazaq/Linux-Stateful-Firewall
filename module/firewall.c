@@ -1131,6 +1131,12 @@ static unsigned int module_hook(void *priv, struct sk_buff *skb, const struct nf
 
     // Check for loopback packets (127.0.0.1/8)
     if ((ntohl(ip_header->saddr) & 0xFF000000) == 0x7F000000) {
+        printk(KERN_INFO "\nAccepting for 127.0.0.1\n");
+        return NF_ACCEPT; // Accept loopback packets without logging
+    }
+    // Check for loopback packets (127.0.0.1/8)
+    if ((ntohl(ip_header->daddr) & 0xFF000000) == 0x7F000000) {
+        printk(KERN_INFO "\nAccepting for 127.0.0.1\n");
         return NF_ACCEPT; // Accept loopback packets without logging
     }
 
