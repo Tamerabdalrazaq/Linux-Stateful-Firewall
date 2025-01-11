@@ -1183,7 +1183,7 @@ static unsigned int module_hook(void *priv, struct sk_buff *skb, const struct nf
 
     verdict = get_packet_verdict(skb, state);
     printk(KERN_CRIT "Modified Packet - Src IP: %pI4, Src Port: %u, Dst IP: %pI4, Dst Port: %u\n",
-       &iph->saddr, ntohs(tcph->source), &iph->daddr, ntohs(tcph->dest));
+       &ip_header->saddr, ntohs(tcph->source), &ip_header->daddr, ntohs(tcph->dest));
     printk(KERN_INFO "\n\n\nEnd packet <- %s \n************\n\n", verdict ? "Accept": "Drop");
     return verdict;
 }
