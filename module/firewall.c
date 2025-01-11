@@ -677,7 +677,7 @@ static int initiate_connection(packet_identifier_t packet_identifier) {
     packet_identifier_t *reversed_packet_identifier;
     struct connection_rule_row *new_rule_sender;
     if (found_connection != NULL){
-        printk(KERN_ERR "initiate_connection Error: Connection already exists.")
+        printk(KERN_ERR "initiate_connection Error: Connection already exists.");
         return NF_DROP;
     }
 
