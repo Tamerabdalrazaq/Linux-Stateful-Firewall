@@ -14,6 +14,7 @@
 #include <net/checksum.h>
 #include <linux/tcp.h>
 #include <linux/ip.h>
+#include <net/ip.h>
 
 MODULE_LICENSE("GPL");
 MODULE_AUTHOR("Razaq");
