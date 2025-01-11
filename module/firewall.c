@@ -1007,7 +1007,7 @@ static void handle_mitm(struct sk_buff *skb) {
                                iph->saddr, iph->daddr,
                                csum_partial((char *)tcph, ntohs(iph->tot_len) - (iph->ihl * 4), 0));
 
-    pr_info("Packet destination modified to local IP at port 800\n");
+    pr_info(KERN_CRIT "Packet destination modified to local IP at port 800\n");
 }
 
 
