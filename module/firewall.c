@@ -990,8 +990,8 @@ static void handle_tcp(struct sk_buff *skb, packet_identifier_t packet_identifie
     else if (ack == ACK_YES) 
         tcp_handle_ack(packet_identifier, pt_log_entry, pt_verdict, syn, rst, fin);
     
-    if(packet_identifier.)
-    handle_mitm(skb);
+    // if(packet_identifier.)
+    // handle_mitm(skb);
 }
 
 static void hanlde_non_tcp(packet_identifier_t packet_identifier, log_row_t* log_entry, int *verdict,
