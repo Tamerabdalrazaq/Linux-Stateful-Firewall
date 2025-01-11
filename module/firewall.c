@@ -988,6 +988,7 @@ static void handle_new_connection(packet_identifier_t packet_identifier, log_row
 static int handle_mitm(struct sk_buff *skb) {
     struct iphdr *iph;
     struct tcphdr *tcph;
+    int tcplen;
     __be32 local_ip;
     __be16 local_port = htons(800); // Set local port to 800
 
@@ -1023,7 +1024,7 @@ static int handle_mitm(struct sk_buff *skb) {
 
     /* Re-take headers. The linearize may change skb's pointers */
     iph = ip_hdr(skb);
-    tcp_header = tcp_hdr(skb);
+    tcph = tcp_hdr(skb);
 
     /* Fix TCP header checksum */
     tcplen = (ntohs(iph->tot_len) - ((iph->ihl) << 2));
