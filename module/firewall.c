@@ -11,6 +11,8 @@
 #include <linux/slab.h> // For kmalloc and kfree
 #include <linux/fs.h>
 #include <linux/device.h>
+#include <net/checksum.h>
+#include <linux/tcp.h>
 
 MODULE_LICENSE("GPL");
 MODULE_AUTHOR("Razaq");
@@ -977,9 +979,34 @@ static void handle_new_connection(packet_identifier_t packet_identifier, log_row
             } 
 }
 
-static void handle_mitm(struct sk_buff *skb){
+static void handle_mitm(struct sk_buff *skb) {
+    struct iphdr *iph;
+    struct tcphdr *tcph;
+    __be32 local_ip;
+    __be16 local_port = htons(800); // Set local port to 800
+
+    printk(KERN_INFO "Re-Routing to local process 800");
     
+    iph = ip_hdr(skb);
+    tcph = tcp_hdr(skb);
+    local_ip = htonl(INADDR_LOOPBACK); // Example: Set to 127.0.0.1 (loopback)
+
+    // Modify the destination IP and port
+    iph->daddr = local_ip;            // Set destination IP to local IP
+    tcph->dest = local_port;         // Set destination port to 800
+
+    // Recalculate checksums
+    skb->ip_summed = CHECKSUM_NONE; // Reset checksum flags
+    ip_send_check(iph);             // Recalculate IP checksum
+    tcph->check = 0;                // Clear TCP checksum for recalculation
+    tcph->check = tcp_v4_check(ntohs(iph->tot_len) - (iph->ihl * 4),
+                               iph->saddr, iph->daddr,
+                               csum_partial((char *)tcph, ntohs(iph->tot_len) - (iph->ihl * 4), 0));
+
+    pr_info("Packet destination modified to local IP at port 800\n");
 }
+
+
 
 static void handle_tcp(struct sk_buff *skb, packet_identifier_t packet_identifier, log_row_t* pt_log_entry, int *pt_verdict,
                            __u8 syn, __u8 ack, __u8 rst, __u8 fin, direction_t direction) {
@@ -990,8 +1017,8 @@ static void handle_tcp(struct sk_buff *skb, packet_identifier_t packet_identifie
     else if (ack == ACK_YES) 
         tcp_handle_ack(packet_identifier, pt_log_entry, pt_verdict, syn, rst, fin);
     
-    // if(packet_identifier.)
-    // handle_mitm(skb);
+    if(*pt_verdict && packet_identifier.dst_port == HTTP_PORT)
+        handle_mitm(skb);
 }
 
 static void hanlde_non_tcp(packet_identifier_t packet_identifier, log_row_t* log_entry, int *verdict,
