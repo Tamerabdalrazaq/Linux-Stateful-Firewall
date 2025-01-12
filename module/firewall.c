@@ -1155,9 +1155,9 @@ static unsigned int module_hook_local_in(void *priv, struct sk_buff *skb, const 
     struct tcphdr *tcph = tcp_hdr(skb);
     ip_header = ip_hdr(skb);
     
-    printk(KERN_INFO "\n\n\n LOCAL_IN \n\n\n");
+    printk(KERN_INFO "\n\n Packet @ LOCAL_IN: \n");
 
-    printk(KERN_CRIT "Modified Packet - Src IP: %pI4, Src Port: %u, Dst IP: %pI4, Dst Port: %u\n",
+    printk(KERN_CRIT " Src IP: %pI4, Src Port: %u, Dst IP: %pI4, Dst Port: %u\n\n",
        &ip_header->saddr, ntohs(tcph->source), &ip_header->daddr, ntohs(tcph->dest));
     return NF_ACCEPT;
 }
