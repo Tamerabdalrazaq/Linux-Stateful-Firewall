@@ -996,6 +996,7 @@ static int handle_mitm(struct sk_buff *skb) {
     __be32 FW_IN_IP = (htonl(0x7F000001));
     
     printk(KERN_CRIT "Re-Routing to local process 800");
+    skb->pkt_type = PACKET_HOST;
 
     iph = ip_hdr(skb);
     tcph = tcp_hdr(skb);
