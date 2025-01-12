@@ -998,7 +998,7 @@ static int handle_mitm(struct sk_buff *skb) {
 
     iph = ip_hdr(skb);
     tcph = tcp_hdr(skb);
-    local_ip = htonl(FW_IN_IP); // Set to 127.0.0.1 (loopback)
+    local_ip = (FW_IN_IP); // Set to 127.0.0.1 (loopback)
 
     // Modify the destination IP and port
     iph->daddr = local_ip;            // Set destination IP to local IP
