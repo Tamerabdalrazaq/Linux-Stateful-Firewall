@@ -53,6 +53,7 @@ static struct klist connections_table = KLIST_INIT(connections_table, NULL, NULL
 // Netfilter hooks for relevant packet phases
 static struct nf_hook_ops netfilter_ops_fw;
 static struct nf_hook_ops netfilter_ops_fw_local_in;
+static struct nf_hook_ops netfilter_ops_fw_local_out;
 
 static int RULES_COUNT = 0;
 static rule_t* FW_RULES;
@@ -1149,6 +1150,18 @@ static int get_packet_verdict(struct sk_buff *skb, const struct nf_hook_state *s
     return verdict;
 }
 
+static unsigned int module_hook_local_out(void *priv, struct sk_buff *skb, const struct nf_hook_state *state) {
+    unsigned int verdict = NF_DROP;
+    struct iphdr *ip_header;
+    struct tcphdr *tcph = tcp_hdr(skb);
+    ip_header = ip_hdr(skb);
+    
+    printk(KERN_INFO "\n Packet @ LOCAL_OUT: \n");
+    printk(KERN_CRIT " Src IP: %pI4, Src Port: %u, Dst IP: %pI4, Dst Port: %u\n\n",
+       &ip_header->saddr, ntohs(tcph->source), &ip_header->daddr, ntohs(tcph->dest));
+    return NF_ACCEPT;
+}
+
 static unsigned int module_hook_local_in(void *priv, struct sk_buff *skb, const struct nf_hook_state *state) {
     unsigned int verdict = NF_DROP;
     struct iphdr *ip_header;
@@ -1161,6 +1174,7 @@ static unsigned int module_hook_local_in(void *priv, struct sk_buff *skb, const 
        &ip_header->saddr, ntohs(tcph->source), &ip_header->daddr, ntohs(tcph->dest));
     return NF_ACCEPT;
 }
+
 
 
 static unsigned int module_hook(void *priv, struct sk_buff *skb, const struct nf_hook_state *state) {
@@ -1334,6 +1348,23 @@ static int __init fw_init(void) {
         nf_unregister_net_hook(&init_net, &netfilter_ops_fw);
         return ret;
     }
+    // Set up the Netfilter hook for forwarding packets
+    netfilter_ops_fw_local_out.hook = module_hook_local_out;
+    netfilter_ops_fw_local_out.pf = PF_INET;
+    netfilter_ops_fw_local_out.hooknum = NF_INET_LOCAL_OUT;
+    netfilter_ops_fw_local_out.priority = NF_IP_PRI_FIRST;
+
+    ret = nf_register_net_hook(&init_net, &netfilter_ops_fw_local_out);
+    if (ret) {
+        printk(KERN_ERR "firewall: Failed to register LOCAL_OUT hook. Error: %d\n", ret);
+        device_destroy(sysfs_class, MKDEV(major_number, 1));
+        device_destroy(sysfs_class, MKDEV(major_number, 0));
+        class_destroy(sysfs_class);
+        unregister_chrdev(major_number, "fw_log");
+        nf_unregister_net_hook(&init_net, &netfilter_ops_fw);
+        nf_unregister_net_hook(&init_net, &netfilter_ops_fw_local_in);
+        return ret;
+    }
     
     return 0;
 }
@@ -1371,6 +1402,7 @@ static void __exit fw_exit(void)
     // ****** Netfilter Cleanup ******
     nf_unregister_net_hook(&init_net, &netfilter_ops_fw);
     nf_unregister_net_hook(&init_net, &netfilter_ops_fw_local_in);
+    nf_unregister_net_hook(&init_net, &netfilter_ops_fw_local_out);
 
     printk(KERN_INFO "firewall module removed successfully.\n");
 }
