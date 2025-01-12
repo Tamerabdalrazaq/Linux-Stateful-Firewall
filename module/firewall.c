@@ -993,7 +993,7 @@ static int handle_mitm(struct sk_buff *skb) {
     __be16 local_port = htons(800); // Set local port to 800
 
     // __be32 FW_IN_IP = (in_aton("10.1.1.3"));
-    __be32 FW_IN_IP = (htonl(0x7F000001););
+    __be32 FW_IN_IP = (htonl(0x7F000001));
     
     printk(KERN_CRIT "Re-Routing to local process 800");
 
