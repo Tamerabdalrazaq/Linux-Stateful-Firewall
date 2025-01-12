@@ -1041,6 +1041,60 @@ static int handle_mitm(struct sk_buff *skb) {
     return 0;
 }
 
+static int handle_mitm_local_out(struct sk_buff *skb) {
+    struct iphdr *iph;
+    struct tcphdr *tcph;
+    int tcplen;
+    __be32 local_ip;
+    __be16 local_port = htons(80); // Set local port to 800
+
+    __be32 FW_IN_IP = (in_aton("10.1.2.2"));
+    // __be32 FW_IN_IP = (htonl(0x7F000001));
+    
+    printk(KERN_CRIT "Re-Routing to local process 800");
+    skb->pkt_type = PACKET_HOST;
+
+    iph = ip_hdr(skb);
+    tcph = tcp_hdr(skb);
+    local_ip = (FW_IN_IP); // Set to 127.0.0.1 (loopback)
+
+    // Modify the destination IP and port
+    iph->saddr = local_ip;            // Set destination IP to local IP
+    tcph->dest = local_port;         // Set destination port to 800
+
+    /* Fix IP header checksum */
+    iph->check = 0;
+    iph->check = ip_fast_csum((u8 *)iph, iph->ihl);
+
+    /*
+    * From Linux doc here: https://elixir.bootlin.com/linux/v4.15/source/include/linux/skbuff.h#L90
+    * CHECKSUM_NONE:
+    *
+    *   Device did not checksum this packet e.g. due to lack of capabilities.
+    *   The packet contains full (though not verified) checksum in packet but
+    *   not in skb->csum. Thus, skb->csum is undefined in this case.
+    */
+    skb->ip_summed = CHECKSUM_NONE;
+    skb->csum_valid = 0;
+
+    /* Linearize the skb */
+    if (skb_linearize(skb) < 0) {
+        return -1;
+    }
+
+    /* Re-take headers. The linearize may change skb's pointers */
+    iph = ip_hdr(skb);
+    tcph = tcp_hdr(skb);
+
+    /* Fix TCP header checksum */
+    tcplen = (ntohs(iph->tot_len) - ((iph->ihl) << 2));
+    tcph->check = 0;
+    tcph->check = tcp_v4_check(tcplen, iph->saddr, iph->daddr, csum_partial((char *)tcph, tcplen, 0));
+
+    pr_info(KERN_CRIT "Packet source modified to local IP at port 80\n");
+    return 0;
+}
+
 
 
 static void handle_tcp(struct sk_buff *skb, packet_identifier_t packet_identifier, log_row_t* pt_log_entry, int *pt_verdict,
@@ -1155,7 +1209,7 @@ static unsigned int module_hook_local_out(void *priv, struct sk_buff *skb, const
     struct iphdr *ip_header;
     struct tcphdr *tcph = tcp_hdr(skb);
     ip_header = ip_hdr(skb);
-    
+    handle_mitm_local_out(skb);
     printk(KERN_INFO "\n Packet @ LOCAL_OUT: \n");
     printk(KERN_CRIT " Src IP: %pI4, Src Port: %u, Dst IP: %pI4, Dst Port: %u\n\n",
        &ip_header->saddr, ntohs(tcph->source), &ip_header->daddr, ntohs(tcph->dest));
