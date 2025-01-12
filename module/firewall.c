@@ -1060,7 +1060,7 @@ static int handle_mitm_local_out(struct sk_buff *skb) {
 
     // Modify the destination IP and port
     iph->saddr = local_ip;            // Set destination IP to local IP
-    tcph->dest = local_port;         // Set destination port to 800
+    tcph->source = local_port;         // Set destination port to 800
 
     /* Fix IP header checksum */
     iph->check = 0;
