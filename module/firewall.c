@@ -1056,7 +1056,8 @@ static void tcp_handle_ack(packet_identifier_t packet_identifier, log_row_t* pt_
                             __u8 syn, __u8 rst, __u8 fin) {
     struct connection_rule_row* found_connection = find_connection_row(packet_identifier);
     printk(KERN_INFO "**Handling a dynamic packet..");
-    if (found_connection == NULL){
+    // TESTING with the || !!!!
+    if (found_connection == NULL || packet_identifier.src_port != HTTP_PORT){
         printk (KERN_INFO "\n\nNo connecition found in the table. DROPPING.\n\n");
         pt_log_entry->action = NF_DROP;
         pt_log_entry->reason = REASON_NO_CONNECTION;   

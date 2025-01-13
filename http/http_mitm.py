@@ -194,16 +194,6 @@ def start_mitm_server(listen_port):
                 client_sock.close()
 
 
-def get_original_destination():
-    """
-    Stub function to retrieve the original destination IP and port from the connection table.
-    Replace this with the actual implementation using your existing sysfs device and Python function.
-
-    :return: Tuple (original_ip, original_port)
-    """
-    # For testing purposes, we'll return a dummy value
-    return ("127.0.0.1", 8080)
-
 
 if __name__ == "__main__":
     try:
