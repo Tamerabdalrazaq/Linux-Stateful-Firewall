@@ -1137,15 +1137,14 @@ static int handle_mitm_pre_routing(struct sk_buff *skb, const struct nf_hook_sta
         local_ip = (in_aton(FW_IN_IP));
         int ret = modify_packet(skb, local_ip, local_port, NULL, NULL);
         printk(KERN_CRIT "MITM - Modifed CLI --> LOCAL:800 \n");
-        print_tcp_data(skb);
     } 
     // •	Server-to-client, inbound, pre-routing, we need to change the dest IP
     else { 
         local_ip = (in_aton("10.1.2.2"));
         int ret = modify_packet(skb, local_ip, NULL, NULL, NULL);
         printk(KERN_CRIT "MITM - Modifed SRV --> LOCAL:800 \n");
-        print_tcp_data(skb);
     }
+    print_tcp_packet(skb);
     return 0;
 }
 
