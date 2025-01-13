@@ -175,6 +175,7 @@ def start_mitm_server(listen_port):
 
                     if original_dest:
                         # Forward to the original destination
+                        print("forwarding to: {}", original_dest)
                         response = forward_to_destination(original_dest, data)
 
                         if response:
