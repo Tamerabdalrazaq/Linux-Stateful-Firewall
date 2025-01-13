@@ -57,8 +57,8 @@ typedef enum {
 #define IN_NET_DEVICE_NAME			"enp0s8"
 #define EX_NET_DEVICE_NAME			"enp0s3"
 #define OUT_NET_DEVICE_NAME			"enp0s9"
-#define FW_IN_IP					"10.1.1.3"
-#define FW_OUT_IP					"10.1.2.3"
+#define FW_IN_IP					("10.1.1.3")
+#define FW_OUT_IP					("10.1.2.3")
 
 // auxiliary values, for your  convenience
 #define IP_VERSION		(4)
