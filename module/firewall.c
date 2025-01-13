@@ -1220,15 +1220,15 @@ static unsigned int module_hook_local_out(void *priv, struct sk_buff *skb, const
         return NF_DROP;
     }
 
-    packet_identifier.src_ip = ip_header->saddr;
-    packet_identifier.dst_ip = ip_header->daddr;
-    packet_identifier.src_port = tcp_data->src_port;
-    packet_identifier.dst_port = tcp_data->dst_port;
 
     if(tcp_data->src_port == htons(800)){
         printk(KERN_ERR "\n\n********************\n\n");
         printk(KERN_ERR "Packet @ LOCAL_OUT");
         handle_mitm_local_out(skb, tcp_data);
+        packet_identifier.src_ip = ip_header->saddr;
+        packet_identifier.dst_ip = ip_header->daddr;
+        packet_identifier.src_port = tcp_data->src_port;
+        packet_identifier.dst_port = tcp_data->dst_port;
         print_packet_identifier(&packet_identifier);
     }
     return NF_ACCEPT;
