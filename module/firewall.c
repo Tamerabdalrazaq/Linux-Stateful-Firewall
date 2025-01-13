@@ -106,15 +106,6 @@ int compare_packets(packet_identifier_t p1, packet_identifier_t p2){
     p1.src_port == p2.src_port);
 }
 
-static packet_identifier_t get_packet_identifier(struct iphdr *ip_header) {
-    packet_identifier_t packet_identifier;
-    packet_identifier.src_ip = ip_header->src_ip;
-    packet_identifier.dst_ip = ip_header->dst_ip;
-    packet_identifier.src_port = ip_header->src_port;
-    packet_identifier.dst_port = ip_header->dst_port;
-    return packet_identifier;
-}
-
 // Display_rules the rules
 ssize_t display_rules(struct device *dev, struct device_attribute *attr, char *buf) 
 {
