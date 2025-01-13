@@ -1240,7 +1240,7 @@ static unsigned int module_hook_local_in(void *priv, struct sk_buff *skb, const 
     struct tcphdr *tcph = tcp_hdr(skb);
     ip_header = ip_hdr(skb);
     
-    if (tcph->dst_port == htons(800)){
+    if (tcph->dest_port == htons(800)){
         printk(KERN_INFO "\nPacket @ LOCAL_IN: \n");
 
         printk(KERN_CRIT " Src IP: %pI4, Src Port: %u, Dst IP: %pI4, Dst Port: %u\n\n",
