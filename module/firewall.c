@@ -619,6 +619,7 @@ static tcp_data_t* get_tcp_data(struct sk_buff *skb) {
     tcp_data_t* tcp_data;
     tcph = tcp_hdr(skb);
     if (!tcph){
+        printk(KERN_ERR "@get_tcp_data Could not read TCP Header ");
         return NULL;
     }
     tcp_data->src_port = (tcph->source);
