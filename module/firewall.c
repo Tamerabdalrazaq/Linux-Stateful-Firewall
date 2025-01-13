@@ -630,12 +630,12 @@ static tcp_data_t* get_tcp_data(struct sk_buff *skb) {
     if (!tcph){
         return NULL;
     }
-    tcp_data->src_port = (tcp_header->source);
-    tcp_data->dst_port = (tcp_header->dest);
-    tcp_data->ack = (tcp_header->ack ? ACK_YES : ACK_NO);
-    tcp_data->syn = (tcp_header->syn ? SYN_YES : SYN_NO);
-    tcp_data->fin = (tcp_header->fin ? FIN_YES : FIN_NO);
-    tcp_data->rst = (tcp_header->rst ? RST_YES : RST_NO);
+    tcp_data->src_port = (tcph->source);
+    tcp_data->dst_port = (tcph->dest);
+    tcp_data->ack = (tcph->ack ? ACK_YES : ACK_NO);
+    tcp_data->syn = (tcph->syn ? SYN_YES : SYN_NO);
+    tcp_data->fin = (tcph->fin ? FIN_YES : FIN_NO);
+    tcp_data->rst = (tcph->rst ? RST_YES : RST_NO);
 
     return tcp_data;
 }
