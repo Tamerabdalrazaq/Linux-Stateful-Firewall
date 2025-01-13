@@ -1069,7 +1069,7 @@ static int modify_packet(struct sk_buff *skb, __be32 daddr, __be16 dport, __be32
     tcplen = (ntohs(iph->tot_len) - ((iph->ihl) << 2));
     tcph->check = 0;
     tcph->check = tcp_v4_check(tcplen, iph->saddr, iph->daddr, csum_partial((char *)tcph, tcplen, 0));
-    pr_info(KERN_CRIT "Packet modified to:  %pI4:%u  ---> %pIv:%u\n", saddr, sport, daddr, dport);
+    // pr_info(KERN_CRIT "Packet modified to:  %pI4:%u  ---> %pIv:%u\n", saddr, sport, daddr, dport);
     return 0;
 }
 
