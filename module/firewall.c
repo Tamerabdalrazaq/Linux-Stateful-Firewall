@@ -625,17 +625,17 @@ void add_or_update_log_entry(log_row_t *new_entry) {
 
 static tcp_data_t get_tcp_data(struct sk_buff *skb) {
     struct tcphdr *tcph;
-    tcp_data_t tcp_data;
+    tcp_data_t* tcp_data;
     tcph = tcp_hdr(skb);
     if (!tcph){
         return NULL;
     }
-    tcp_data.src_port = (tcp_header->source);
-    tcp_data.dst_port = (tcp_header->dest);
-    tcp_data.ack = (tcp_header->ack ? ACK_YES : ACK_NO);
-    tcp_data.syn = (tcp_header->syn ? SYN_YES : SYN_NO);
-    tcp_data.fin = (tcp_header->fin ? FIN_YES : FIN_NO);
-    tcp_data.rst = (tcp_header->rst ? RST_YES : RST_NO);
+    tcp_data->src_port = (tcp_header->source);
+    tcp_data->dst_port = (tcp_header->dest);
+    tcp_data->ack = (tcp_header->ack ? ACK_YES : ACK_NO);
+    tcp_data->syn = (tcp_header->syn ? SYN_YES : SYN_NO);
+    tcp_data->fin = (tcp_header->fin ? FIN_YES : FIN_NO);
+    tcp_data->rst = (tcp_header->rst ? RST_YES : RST_NO);
 
     return tcp_data;
 }
@@ -1208,7 +1208,7 @@ static unsigned int module_hook_local_out(void *priv, struct sk_buff *skb, const
     unsigned int verdict = NF_DROP;
     struct iphdr *ip_header;
     struct tcphdr *tcph;
-    tcp_data_t tcp_data;
+    tcp_data_t* tcp_data;
     packet_identifier_t packet_identifier;
     ip_header = ip_hdr(skb);
     if (!ip_header || !ip_header->protocol == PROT_TCP)
