@@ -62,6 +62,22 @@ static direction_t get_direction(const struct nf_hook_state *state) {
     return strcmp(state->in->name, IN_NET_DEVICE_NAME) == 0 ? DIRECTION_IN : DIRECTION_OUT;
 }
 
+void print_tcp_data(const tcp_data_t *data) {
+    if (!data) {
+        pr_err("[tcp_data_t] Null pointer provided.\n");
+        return;
+    }
+
+    pr_info("[tcp_data_t]\n");
+    pr_info("Source Port: %u\n", ntohs(data->src_port));
+    pr_info("Destination Port: %u\n", ntohs(data->dst_port));
+
+    pr_info("ACK: %s\n", (data->ack == ACK_NO) ? "NO" : (data->ack == ACK_YES) ? "YES" : "ANY");
+    pr_info("SYN: %s\n", (data->syn == SYN_NO) ? "NO" : (data->syn == SYN_YES) ? "YES" : "ANY");
+    pr_info("FIN: %s\n", (data->fin == FIN_NO) ? "NO" : (data->fin == FIN_YES) ? "YES" : "ANY");
+    pr_info("RST: %s\n", (data->rst == RST_NO) ? "NO" : (data->rst == RST_YES) ? "YES" : "ANY");
+}
+
 static void print_packet_identifier(const packet_identifier_t *pkt)
 {
     char src_ip[16];
@@ -88,6 +104,15 @@ int compare_packets(packet_identifier_t p1, packet_identifier_t p2){
     p1.src_port == p2.src_port && 
     p1.dst_port == p2.dst_port && 
     p1.src_port == p2.src_port);
+}
+
+static packet_identifier_t get_packet_identifier(struct iphdr *ip_header) {
+    packet_identifier_t packet_identifier;
+    packet_identifier.src_ip = src_ip;
+    packet_identifier.dst_ip = dst_ip;
+    packet_identifier.src_port = src_port;
+    packet_identifier.dst_port = dst_port;
+    return packet_identifier;
 }
 
 // Display_rules the rules
@@ -598,6 +623,22 @@ void add_or_update_log_entry(log_row_t *new_entry) {
     }
 }
 
+static tcp_data_t get_tcp_data(struct sk_buff *skb) {
+    struct tcphdr *tcph;
+    tcp_data_t tcp_data;
+    tcph = tcp_hdr(skb);
+    if (!tcph){
+        return NULL;
+    }
+    tcp_data.src_port = (tcp_header->source);
+    tcp_data.dst_port = (tcp_header->dest);
+    tcp_data.ack = (tcp_header->ack ? ACK_YES : ACK_NO);
+    tcp_data.syn = (tcp_header->syn ? SYN_YES : SYN_NO);
+    tcp_data.fin = (tcp_header->fin ? FIN_YES : FIN_NO);
+    tcp_data.rst = (tcp_header->rst ? RST_YES : RST_NO);
+
+    return tcp_data;
+}
 
 static void extract_transport_fields(struct sk_buff *skb, __u8 protocol, __be16 *src_port,
                                     __be16 *dst_port, __u8 *syn, __u8 *ack, __u8 *fin, __u8 *rst,
@@ -1044,13 +1085,13 @@ static int handle_mitm(struct sk_buff *skb, const struct nf_hook_state *state) {
     return 0;
 }
 
-static int handle_mitm_local_out(struct sk_buff *skb) {
+static int handle_mitm_local_out(struct sk_buff *skb, tcp_data_t tcp_data) {
     __be32 original_ip;
     __be16 original_port = htons(80); // Set local port to 800
 
     original_ip = (in_aton("10.1.2.2"));
     int ret = modify_packet(skb, NULL, NULL, original_ip, original_port );
-    pr_info(KERN_CRIT "Packet source modified to local IP at port 80\n");
+    printk(KERN_CRIT "Packet source modified to local IP at port 80\n");
     return 0;
 }
 
@@ -1166,12 +1207,27 @@ static int get_packet_verdict(struct sk_buff *skb, const struct nf_hook_state *s
 static unsigned int module_hook_local_out(void *priv, struct sk_buff *skb, const struct nf_hook_state *state) {
     unsigned int verdict = NF_DROP;
     struct iphdr *ip_header;
-    struct tcphdr *tcph = tcp_hdr(skb);
+    struct tcphdr *tcph;
+    tcp_data_t tcp_data;
+    packet_identifier_t packet_identifier;
     ip_header = ip_hdr(skb);
-    handle_mitm_local_out(skb);
+    if (!ip_header || !ip_header->protocol == PROT_TCP)
+        return NF_ACCEPT;
+
+    tcp_data = get_tcp_data(skb);
+    if (!tcp_data) {
+        printk(KERN_ERR "DROPPING FOR INVALID TCP HEADER");
+        return NF_DROP;
+    }
+
+    packet_identifier.src_ip = ip_header->saddr;
+    packet_identifier.dst_ip = ip_header->daddr;
+    packet_identifier.src_port = tcp_data.src_port;
+    packet_identifier.dst_port = tcp_data.dst_port;
+
+    handle_mitm_local_out(skb, tcp_data);
     printk(KERN_INFO "\n Packet @ LOCAL_OUT: \n");
-    printk(KERN_CRIT " Src IP: %pI4, Src Port: %u, Dst IP: %pI4, Dst Port: %u\n\n",
-       &ip_header->saddr, ntohs(tcph->source), &ip_header->daddr, ntohs(tcph->dest));
+    print_packet_identifier(packet_identifier)
     return NF_ACCEPT;
 }
 

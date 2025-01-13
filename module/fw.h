@@ -146,6 +146,16 @@ typedef struct {
 } packet_identifier_t;
 
 typedef struct {
+	__be16	src_port;  
+	__be16	dst_port; 
+	ack_t	ack; 
+	syn_t	syn; 
+	fin_t	fin; 
+	rst_t	rst; 
+
+} tcp_data_t;
+
+typedef struct {
 	packet_identifier_t packet;
 	tcp_state_t	state;   			
 } connection_rule_t;
