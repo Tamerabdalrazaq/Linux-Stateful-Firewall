@@ -617,6 +617,14 @@ void add_or_update_log_entry(log_row_t *new_entry) {
 static tcp_data_t* get_tcp_data(struct sk_buff *skb) {
     struct tcphdr *tcph;
     tcp_data_t* tcp_data;
+
+    // Allocate memory for tcp_data
+    tcp_data = kmalloc(sizeof(tcp_data_t), GFP_KERNEL);
+    if (!tcp_data) {
+        printk(KERN_ERR "@get_tcp_data Memory allocation failed\n");
+        return NULL;
+    }
+    
     tcph = tcp_hdr(skb);
     if (!tcph){
         printk(KERN_ERR "@get_tcp_data Could not read TCP Header ");
