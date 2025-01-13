@@ -79,6 +79,36 @@ import select
 import struct
 import sys
 
+SYSFS_PATH_CONNS = "/sys/class/fw/conns/conns"
+
+def find_destination(ip, port):
+    try:
+        # Read the file content
+        with open(SYSFS_PATH_CONNS, "r") as file:
+            lines = file.readlines()
+
+        # Process each line and print the formatted table
+        for line in lines:
+            # Strip whitespace and split by commas
+            parts = line.strip().split(",")
+            src_ip, src_port, dst_ip, dst_port, state = parts
+            if src_ip == ip and src_port == port:
+                return ((dst_ip, dst_port))
+            if dst_ip == ip and dst_port == port:
+                return ((src_ip, src_port))
+        print("ERROR - Connection not found")
+
+    
+    except FileNotFoundError:
+        print("Error: The sysfs device {} does not exist.".format(SYSFS_PATH_CONNS))
+    except PermissionError:
+        print("Error: Permission denied to read {}.".format(SYSFS_PATH_CONNS))
+    except Exception as e:
+        print("Error: An unexpected error occurred: {}".format(e))
+
+
+
+
 # Placeholder for inspecting HTTP packets
 def inspect_packet(http_packet):
     try:
@@ -138,7 +168,7 @@ def start_mitm_server(listen_port):
                     print("Packet passed inspection.")
 
                     # Retrieve original destination from connection table (stub for now)
-                    original_dest = get_original_destination()  # This should query your sysfs device
+                    original_dest = find_destination()  # This should query your sysfs device
 
                     if original_dest:
                         # Forward to the original destination

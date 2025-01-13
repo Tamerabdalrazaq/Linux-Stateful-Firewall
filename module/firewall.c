@@ -108,8 +108,12 @@ void print_tcp_packet(struct sk_buff *skb) {
     pr_cont("]\n");
 }
 
-static direction_t get_direction(const struct nf_hook_state *state) {
+static direction_t get_direction_in(const struct nf_hook_state *state) {
     return strcmp(state->in->name, IN_NET_DEVICE_NAME) == 0 ? DIRECTION_IN : DIRECTION_OUT;
+}
+
+static direction_t get_direction_out(const struct nf_hook_state *state) {
+    return strcmp(state->out->name, IN_NET_DEVICE_NAME) == 0 ? DIRECTION_IN : DIRECTION_OUT;
 }
 
 void print_tcp_data(const tcp_data_t *data) {
@@ -1124,22 +1128,42 @@ static int modify_packet(struct sk_buff *skb, __be32 daddr, __be16 dport, __be32
 }
 
 
-static int handle_mitm(struct sk_buff *skb, const struct nf_hook_state *state) {
+static int handle_mitm_pre_routing(struct sk_buff *skb, const struct nf_hook_state *state) {
     __be32 local_ip;
     __be16 local_port = htons(800); // Set local port to 800
-    direction_t dir = get_direction(state);
-    local_ip = dir == DIRECTION_IN ? in_aton(FW_IN_IP) : in_aton(FW_OUT_IP); 
-    int ret = modify_packet(skb, local_ip, local_port, NULL, NULL);
-    printk(KERN_CRIT "Re-Routing to local process 800");
+    
+    // •	Client-to-server, inbound, pre-routing, we need to change the dest IP and dest port
+    if (dir == DIRECTION_IN){
+        local_ip = (in_aton(FW_IN_IP));
+        int ret = modify_packet(skb, local_ip, local_port, NULL, NULL);
+        printk(KERN_CRIT "MITM - Modifed CLI --> LOCAL:800 \n");
+        print_tcp_data(skb);
+    } 
+    // •	Server-to-client, inbound, pre-routing, we need to change the dest IP
+    else { 
+        local_ip = (in_aton("10.1.2.2"));
+        int ret = modify_packet(skb, local_ip, NULL, NULL, NULL);
+        printk(KERN_CRIT "MITM - Modifed SRV --> LOCAL:800 \n");
+        print_tcp_data(skb);
+    }
     return 0;
 }
 
-static int handle_mitm_local_out(struct sk_buff *skb, tcp_data_t* tcp_data) {
+static int handle_mitm_local_out(struct sk_buff *skb, tcp_data_t* tcp_data, direction_t dir) {
     __be32 original_ip;
-    __be16 original_port = htons(80); // Set local port to 800
-
-    original_ip = (in_aton("10.1.2.2"));
-    int ret = modify_packet(skb, NULL, NULL, original_ip, original_port );
+    __be16 original_port;
+    
+    // •	Client-to-server, outbound, local-out 
+    if (dir == DIRECTION_OUT){
+        original_ip = (in_aton("10.1.1.1"));
+        int ret = modify_packet(skb, NULL, NULL, original_ip, NULL);
+    } 
+    // •	Server-to-client, outbound, local-out,
+    else { 
+        original_port = htons(80);
+        original_ip = (in_aton("10.1.2.2"));
+        int ret = modify_packet(skb, NULL, NULL, original_ip, original_port);
+    }
     printk(KERN_CRIT "Packet source modified to local IP at port 80\n");
     return 0;
 }
@@ -1157,9 +1181,10 @@ static void handle_tcp(struct sk_buff *skb, const struct nf_hook_state *state,
     else 
         tcp_handle_ack(packet_identifier, pt_log_entry, pt_verdict, syn, rst, fin);
     
-    if(*pt_verdict && packet_identifier.dst_port == (HTTP_PORT)){
+    if(*pt_verdict && (packet_identifier.dst_port == (HTTP_PORT) || 
+                      (packet_identifier.src_port == (HTTP_PORT) ))){
         printk(KERN_INFO "Handling an HTTP Packet ...");
-        ret = handle_mitm(skb, state);
+        ret = handle_mitm_pre_routing(skb, state);
     }
     if(ret < 0) {
         printk(KERN_ERR "__ CHECKSUM ERROR. DROPPING __");
@@ -1198,7 +1223,7 @@ static int get_packet_verdict(struct sk_buff *skb, const struct nf_hook_state *s
     int verdict = NF_DROP;
 
     memset(&log_entry, 0, sizeof(log_row_t)); // Initialize to zero
-    direction = get_direction(state);
+    direction = get_direction_in(state);
 
     ip_header = ip_hdr(skb);
     if (!ip_header){
@@ -1260,7 +1285,7 @@ static unsigned int module_hook_local_out(void *priv, struct sk_buff *skb, const
     struct iphdr *ip_header;
     struct tcphdr *tcph;
     tcp_data_t* tcp_data;
-    packet_identifier_t packet_identifier;
+    direction_t dir = get_direction_out(state);
 
     ip_header = ip_hdr(skb);
     if (!ip_header || !ip_header->protocol == PROT_TCP)
@@ -1276,7 +1301,7 @@ static unsigned int module_hook_local_out(void *priv, struct sk_buff *skb, const
     if(tcp_data->src_port == htons(800)){
         printk(KERN_ERR "\n\n********************\n\n");
         printk(KERN_ERR "Packet @ LOCAL_OUT");
-        handle_mitm_local_out(skb, tcp_data);
+        handle_mitm_local_out(skb, tcp_data, dir);
         print_tcp_packet(skb);
     }
     return NF_ACCEPT;
