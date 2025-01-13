@@ -1085,7 +1085,7 @@ static int handle_mitm(struct sk_buff *skb, const struct nf_hook_state *state) {
     return 0;
 }
 
-static int handle_mitm_local_out(struct sk_buff *skb, tcp_data_t tcp_data) {
+static int handle_mitm_local_out(struct sk_buff *skb, tcp_data_t* tcp_data) {
     __be32 original_ip;
     __be16 original_port = htons(80); // Set local port to 800
 
@@ -1222,8 +1222,8 @@ static unsigned int module_hook_local_out(void *priv, struct sk_buff *skb, const
 
     packet_identifier.src_ip = ip_header->saddr;
     packet_identifier.dst_ip = ip_header->daddr;
-    packet_identifier.src_port = tcp_data.src_port;
-    packet_identifier.dst_port = tcp_data.dst_port;
+    packet_identifier.src_port = tcp_data->src_port;
+    packet_identifier.dst_port = tcp_data->dst_port;
 
     handle_mitm_local_out(skb, tcp_data);
     printk(KERN_INFO "\n Packet @ LOCAL_OUT: \n");
