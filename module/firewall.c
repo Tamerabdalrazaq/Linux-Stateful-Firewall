@@ -624,7 +624,7 @@ static tcp_data_t* get_tcp_data(struct sk_buff *skb) {
         printk(KERN_ERR "@get_tcp_data Memory allocation failed\n");
         return NULL;
     }
-    
+
     tcph = tcp_hdr(skb);
     if (!tcph){
         printk(KERN_ERR "@get_tcp_data Could not read TCP Header ");
@@ -636,10 +636,6 @@ static tcp_data_t* get_tcp_data(struct sk_buff *skb) {
     tcp_data->syn = (tcph->syn ? SYN_YES : SYN_NO);
     tcp_data->fin = (tcph->fin ? FIN_YES : FIN_NO);
     tcp_data->rst = (tcph->rst ? RST_YES : RST_NO);
-
-    printk(KERN_INFO "Returning a valid TCP Data");
-    printk(KERN_INFO "%d", !tcp_data);
-
     return tcp_data;
 }
 
@@ -1214,7 +1210,8 @@ static unsigned int module_hook_local_out(void *priv, struct sk_buff *skb, const
     tcp_data_t* tcp_data;
     packet_identifier_t packet_identifier;
 
-    printk(KERN_ERR "@LOCAL_OUT");
+    printk(KERN_ERR "\n\n********************\n\n");
+    printk(KERN_ERR "Packet @ LOCAL_OUT");
 
     ip_header = ip_hdr(skb);
     if (!ip_header || !ip_header->protocol == PROT_TCP)
@@ -1232,7 +1229,6 @@ static unsigned int module_hook_local_out(void *priv, struct sk_buff *skb, const
     packet_identifier.dst_port = tcp_data->dst_port;
 
     handle_mitm_local_out(skb, tcp_data);
-    printk(KERN_INFO "\n Packet @ LOCAL_OUT: \n");
     print_packet_identifier(&packet_identifier);
     return NF_ACCEPT;
 }
