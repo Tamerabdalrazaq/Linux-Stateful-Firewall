@@ -1153,6 +1153,7 @@ static int handle_mitm_local_out(struct sk_buff *skb, tcp_data_t* tcp_data, dire
     __be32 original_ip;
     __be16 original_port;
     
+    printk(KERN_INFO "Modifying packet @ local_out");
     // •	Client-to-server, outbound, local-out 
     if (dir == DIRECTION_OUT){
         original_ip = (in_aton("10.1.1.1"));
