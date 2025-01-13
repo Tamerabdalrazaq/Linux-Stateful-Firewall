@@ -1104,7 +1104,7 @@ static void handle_tcp(struct sk_buff *skb, const struct nf_hook_state *state,
         tcp_handle_syn(packet_identifier, pt_log_entry, pt_verdict, ack, direction);
         if (*pt_verdict)
             handle_new_connection(packet_identifier, pt_log_entry, pt_verdict);
-    else if (ack == ACK_YES) 
+    else 
         tcp_handle_ack(packet_identifier, pt_log_entry, pt_verdict, syn, rst, fin);
     
     if(*pt_verdict && packet_identifier.dst_port == HTTP_PORT)
