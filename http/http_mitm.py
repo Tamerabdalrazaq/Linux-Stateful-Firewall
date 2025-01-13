@@ -170,7 +170,8 @@ def start_mitm_server(listen_port):
                     print("Packet passed inspection.")
 
                     # Retrieve original destination from connection table (stub for now)
-                    original_dest = find_destination()  # This should query your sysfs device
+                    original_dest = find_destination(cli_ip, cli_port)  # This should query your sysfs device
+
 
                     if original_dest:
                         # Forward to the original destination
