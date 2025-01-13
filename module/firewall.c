@@ -628,6 +628,7 @@ static tcp_data_t* get_tcp_data(struct sk_buff *skb) {
     tcp_data->syn = (tcph->syn ? SYN_YES : SYN_NO);
     tcp_data->fin = (tcph->fin ? FIN_YES : FIN_NO);
     tcp_data->rst = (tcph->rst ? RST_YES : RST_NO);
+    printk(KERN_INFO "Returning a valid TCP Data");
 
     return tcp_data;
 }
