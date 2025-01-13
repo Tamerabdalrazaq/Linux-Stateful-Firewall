@@ -1300,7 +1300,7 @@ static unsigned int module_hook_local_out(void *priv, struct sk_buff *skb, const
     }
 
 
-    if(tcp_data->src_port == htons(800) || tcp_data->dest_port == HTTP_PORT){
+    if(tcp_data->src_port == htons(800) || tcp_data->dst_port == HTTP_PORT){
         // TESTING !!!
         printk(KERN_INFO "\n\n********************\n\n");
         printk(KERN_INFO "Packet @ LOCAL_OUT");
