@@ -623,7 +623,7 @@ void add_or_update_log_entry(log_row_t *new_entry) {
     }
 }
 
-static tcp_data_t get_tcp_data(struct sk_buff *skb) {
+static tcp_data_t* get_tcp_data(struct sk_buff *skb) {
     struct tcphdr *tcph;
     tcp_data_t* tcp_data;
     tcph = tcp_hdr(skb);
