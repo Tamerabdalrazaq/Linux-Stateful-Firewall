@@ -93,9 +93,9 @@ def find_destination(ip, port):
             parts = line.strip().split(",")
             src_ip, src_port, dst_ip, dst_port, state = parts
             if src_ip == ip and src_port == port:
-                return ((dst_ip, dst_port))
+                return ((dst_ip, int(dst_port)))
             if dst_ip == ip and dst_port == port:
-                return ((src_ip, src_port))
+                return ((src_ip, int(src_port)))
         print("ERROR - Connection not found")
 
     
