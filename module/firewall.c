@@ -1045,7 +1045,7 @@ static int handle_mitm_local_out(struct sk_buff *skb) {
     __be32 original_ip;
     __be16 original_port = htons(80); // Set local port to 800
 
-    __be32 original_ip = (in_aton("10.1.2.2"));
+    original_ip = (in_aton("10.1.2.2"));
     int ret = modify_packet(skb, NULL, NULL, original_ip, original_port );
     pr_info(KERN_CRIT "Packet source modified to local IP at port 80\n");
     return 0;
