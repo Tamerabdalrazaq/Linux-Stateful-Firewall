@@ -1210,9 +1210,6 @@ static unsigned int module_hook_local_out(void *priv, struct sk_buff *skb, const
     tcp_data_t* tcp_data;
     packet_identifier_t packet_identifier;
 
-    printk(KERN_ERR "\n\n********************\n\n");
-    printk(KERN_ERR "Packet @ LOCAL_OUT");
-
     ip_header = ip_hdr(skb);
     if (!ip_header || !ip_header->protocol == PROT_TCP)
         return NF_ACCEPT;
@@ -1228,8 +1225,12 @@ static unsigned int module_hook_local_out(void *priv, struct sk_buff *skb, const
     packet_identifier.src_port = tcp_data->src_port;
     packet_identifier.dst_port = tcp_data->dst_port;
 
-    handle_mitm_local_out(skb, tcp_data);
-    print_packet_identifier(&packet_identifier);
+    if(tcp_data->src_port == htons(800)){
+        printk(KERN_ERR "\n\n********************\n\n");
+        printk(KERN_ERR "Packet @ LOCAL_OUT");
+        handle_mitm_local_out(skb, tcp_data);
+        print_packet_identifier(&packet_identifier);
+    }
     return NF_ACCEPT;
 }
 
