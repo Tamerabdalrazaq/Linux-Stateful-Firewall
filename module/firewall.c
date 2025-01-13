@@ -1202,12 +1202,15 @@ static unsigned int module_hook_local_out(void *priv, struct sk_buff *skb, const
     struct tcphdr *tcph;
     tcp_data_t* tcp_data;
     packet_identifier_t packet_identifier;
+
+    printk(KERN_ERR "@LOCAL_OUT");
+
     ip_header = ip_hdr(skb);
     if (!ip_header || !ip_header->protocol == PROT_TCP)
         return NF_ACCEPT;
 
     tcp_data = get_tcp_data(skb);
-    if (tcp_data == NULL) {
+    if (!tcp_data) {
         printk(KERN_ERR "DROPPING FOR INVALID TCP HEADER");
         return NF_DROP;
     }
