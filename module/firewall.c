@@ -1299,10 +1299,10 @@ static unsigned int module_hook_local_out(void *priv, struct sk_buff *skb, const
     }
 
 
+    printk(KERN_INFO "\n\n********************\n\n");
+    printk(KERN_INFO "Packet @ LOCAL_OUT");
+    print_tcp_packet(skb);
     if(tcp_data->src_port == htons(800) || tcp_data->src_port == HTTP_PORT){
-        printk(KERN_INFO "\n\n********************\n\n");
-        printk(KERN_INFO "Packet @ LOCAL_OUT");
-        print_tcp_packet(skb);
         handle_mitm_local_out(skb, tcp_data, dir);
         print_tcp_packet(skb);
     }
