@@ -155,6 +155,8 @@ def start_mitm_server(listen_port):
 
         while True:
             client_sock, client_addr = server_sock.accept()
+            cli_ip, cli_port = client_addr
+            cli_port = str(cli_port)
             print("Accepted connection from {}".format(client_addr))
 
             try:
