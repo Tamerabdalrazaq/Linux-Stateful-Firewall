@@ -58,6 +58,9 @@ static struct nf_hook_ops netfilter_ops_fw_local_out;
 static int RULES_COUNT = 0;
 static rule_t* FW_RULES;
 
+static direction_t get_direction(const struct nf_hook_state *state) {
+    return strcmp(state->in->name, IN_NET_DEVICE_NAME) == 0 ? DIRECTION_IN : DIRECTION_OUT;
+}
 
 static void print_packet_identifier(const packet_identifier_t *pkt)
 {
@@ -989,39 +992,24 @@ static void handle_new_connection(packet_identifier_t packet_identifier, log_row
             } 
 }
 
-static int handle_mitm(struct sk_buff *skb) {
+static int modify_packet(struct sk_buff *skb, __be32 daddr, __be16 dport, __be32 saddr, __be16 sport){
+
     struct iphdr *iph;
     struct tcphdr *tcph;
     int tcplen;
-    __be32 local_ip;
-    __be16 local_port = htons(800); // Set local port to 800
-
-    __be32 FW_IN_IP = (in_aton("10.1.1.3"));
-    // __be32 FW_IN_IP = (htonl(0x7F000001));
-    
-    printk(KERN_CRIT "Re-Routing to local process 800");
-    skb->pkt_type = PACKET_HOST;
 
     iph = ip_hdr(skb);
     tcph = tcp_hdr(skb);
-    local_ip = (FW_IN_IP); // Set to 127.0.0.1 (loopback)
 
-    // Modify the destination IP and port
-    iph->daddr = local_ip;            // Set destination IP to local IP
-    tcph->dest = local_port;         // Set destination port to 800
+    // Modify the IP and port
+    daddr && iph->daddr = daddr;
+    dport && tcph->dest = dport;
+    saddr && iph->saddr = saddr;
+    sport && tcph->source = sport;
 
     /* Fix IP header checksum */
     iph->check = 0;
     iph->check = ip_fast_csum((u8 *)iph, iph->ihl);
-
-    /*
-    * From Linux doc here: https://elixir.bootlin.com/linux/v4.15/source/include/linux/skbuff.h#L90
-    * CHECKSUM_NONE:
-    *
-    *   Device did not checksum this packet e.g. due to lack of capabilities.
-    *   The packet contains full (though not verified) checksum in packet but
-    *   not in skb->csum. Thus, skb->csum is undefined in this case.
-    */
     skb->ip_summed = CHECKSUM_NONE;
     skb->csum_valid = 0;
 
@@ -1038,69 +1026,36 @@ static int handle_mitm(struct sk_buff *skb) {
     tcplen = (ntohs(iph->tot_len) - ((iph->ihl) << 2));
     tcph->check = 0;
     tcph->check = tcp_v4_check(tcplen, iph->saddr, iph->daddr, csum_partial((char *)tcph, tcplen, 0));
-
     pr_info(KERN_CRIT "Packet destination modified to local IP at port 800\n");
     return 0;
 }
 
-static int handle_mitm_local_out(struct sk_buff *skb) {
-    struct iphdr *iph;
-    struct tcphdr *tcph;
-    int tcplen;
+
+static int handle_mitm(struct sk_buff *skb, const struct nf_hook_state *state) {
     __be32 local_ip;
-    __be16 local_port = htons(80); // Set local port to 800
+    __be16 local_port = htons(800); // Set local port to 800
+    direction_t dir = get_direction(state);
+    local_ip = dir == DIRECTION_IN ? in_aton(FW_IN_IP) : in_aton(FW_OUT_IP); 
+    int ret = modify_packet(skb, local_ip, local_port, NULL, NULL);
+    printk(KERN_CRIT "Re-Routing to local process 800");
+    return 0;
+}
+
+static int handle_mitm_local_out(struct sk_buff *skb) {
+    __be32 original_ip;
+    __be16 original_port = htons(80); // Set local port to 800
 
     __be32 FW_IN_IP = (in_aton("10.1.2.2"));
-    // __be32 FW_IN_IP = (htonl(0x7F000001));
-    
-    printk(KERN_CRIT "Re-Routing to local process 800");
-    skb->pkt_type = PACKET_HOST;
-
-    iph = ip_hdr(skb);
-    tcph = tcp_hdr(skb);
-    local_ip = (FW_IN_IP); // Set to 127.0.0.1 (loopback)
-
-    // Modify the destination IP and port
-    iph->saddr = local_ip;            // Set destination IP to local IP
-    tcph->source = local_port;         // Set destination port to 800
-
-    /* Fix IP header checksum */
-    iph->check = 0;
-    iph->check = ip_fast_csum((u8 *)iph, iph->ihl);
-
-    /*
-    * From Linux doc here: https://elixir.bootlin.com/linux/v4.15/source/include/linux/skbuff.h#L90
-    * CHECKSUM_NONE:
-    *
-    *   Device did not checksum this packet e.g. due to lack of capabilities.
-    *   The packet contains full (though not verified) checksum in packet but
-    *   not in skb->csum. Thus, skb->csum is undefined in this case.
-    */
-    skb->ip_summed = CHECKSUM_NONE;
-    skb->csum_valid = 0;
-
-    /* Linearize the skb */
-    if (skb_linearize(skb) < 0) {
-        return -1;
-    }
-
-    /* Re-take headers. The linearize may change skb's pointers */
-    iph = ip_hdr(skb);
-    tcph = tcp_hdr(skb);
-
-    /* Fix TCP header checksum */
-    tcplen = (ntohs(iph->tot_len) - ((iph->ihl) << 2));
-    tcph->check = 0;
-    tcph->check = tcp_v4_check(tcplen, iph->saddr, iph->daddr, csum_partial((char *)tcph, tcplen, 0));
-
+    int ret = modify_packet(skb, NULL, NULL, original_ip, original_port );
     pr_info(KERN_CRIT "Packet source modified to local IP at port 80\n");
     return 0;
 }
 
 
 
-static void handle_tcp(struct sk_buff *skb, packet_identifier_t packet_identifier, log_row_t* pt_log_entry, int *pt_verdict,
-                           __u8 syn, __u8 ack, __u8 rst, __u8 fin, direction_t direction) {
+static void handle_tcp(struct sk_buff *skb, const struct nf_hook_state *state, 
+                       packet_identifier_t packet_identifier, log_row_t* pt_log_entry, int *pt_verdict,
+                        __u8 syn, __u8 ack, __u8 rst, __u8 fin, direction_t direction) {
     int ret = 0;
     if (ack == ACK_NO)
         tcp_handle_syn(packet_identifier, pt_log_entry, pt_verdict, ack, direction);
@@ -1110,7 +1065,7 @@ static void handle_tcp(struct sk_buff *skb, packet_identifier_t packet_identifie
         tcp_handle_ack(packet_identifier, pt_log_entry, pt_verdict, syn, rst, fin);
     
     if(*pt_verdict && packet_identifier.dst_port == HTTP_PORT)
-        ret = handle_mitm(skb);
+        ret = handle_mitm(skb, state);
     if(ret < 0) {
         printk(KERN_ERR "__ CHECKSUM ERROR. DROPPING __");
         *pt_verdict = NF_DROP;
@@ -1134,7 +1089,6 @@ static void hanlde_non_tcp(packet_identifier_t packet_identifier, log_row_t* log
         }
 }
 
-
 // Given a TCP/UDP/ICMP packet
 static int get_packet_verdict(struct sk_buff *skb, const struct nf_hook_state *state) {
     packet_identifier_t packet_identifier;
@@ -1149,7 +1103,7 @@ static int get_packet_verdict(struct sk_buff *skb, const struct nf_hook_state *s
     int verdict = NF_DROP;
 
     memset(&log_entry, 0, sizeof(log_row_t)); // Initialize to zero
-    direction = strcmp(state->in->name, IN_NET_DEVICE_NAME) == 0 ? DIRECTION_IN : DIRECTION_OUT;
+    direction = get_direction(state);
 
     ip_header = ip_hdr(skb);
     if (!ip_header){
@@ -1198,7 +1152,7 @@ static int get_packet_verdict(struct sk_buff *skb, const struct nf_hook_state *s
 
 
     if (protocol == PROT_TCP ) 
-        handle_tcp(skb, packet_identifier, &log_entry, &verdict, syn, ack, rst, fin, direction);
+        handle_tcp(skb, state, packet_identifier, &log_entry, &verdict, syn, ack, rst, fin, direction);
     else
         hanlde_non_tcp(packet_identifier, &log_entry, &verdict, protocol, direction);
     
