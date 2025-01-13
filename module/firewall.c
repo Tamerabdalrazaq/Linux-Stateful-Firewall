@@ -1131,7 +1131,7 @@ static int modify_packet(struct sk_buff *skb, __be32 daddr, __be16 dport, __be32
 static int handle_mitm_pre_routing(struct sk_buff *skb, const struct nf_hook_state *state) {
     __be32 local_ip;
     __be16 local_port = htons(800); // Set local port to 800
-    
+    direction_t dir = get_direction_in(state);
     // •	Client-to-server, inbound, pre-routing, we need to change the dest IP and dest port
     if (dir == DIRECTION_IN){
         local_ip = (in_aton(FW_IN_IP));
