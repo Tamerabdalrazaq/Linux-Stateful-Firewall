@@ -1141,7 +1141,7 @@ static int handle_mitm_pre_routing(struct sk_buff *skb, const struct nf_hook_sta
     } 
     // •	Server-to-client, inbound, pre-routing, we need to change the dest IP
     else { 
-        local_ip = (in_aton("10.1.2.2"));
+        local_ip = (in_aton(FW_OUT_IP));
         int ret = modify_packet(skb, local_ip, NULL, NULL, NULL);
         printk(KERN_CRIT "MITM - Modifed SRV --> LOCAL:800 \n");
     }
@@ -1302,7 +1302,8 @@ static unsigned int module_hook_local_out(void *priv, struct sk_buff *skb, const
     printk(KERN_INFO "\n\n********************\n\n");
     printk(KERN_INFO "Packet @ LOCAL_OUT");
     print_tcp_packet(skb);
-    if(tcp_data->src_port == htons(800) || tcp_data->src_port == HTTP_PORT){
+    // TESTING !!!
+    if(tcp_data->src_port == htons(800) || tcp_data->dest_port == HTTP_PORT){
         handle_mitm_local_out(skb, tcp_data, dir);
         print_tcp_packet(skb);
     }
