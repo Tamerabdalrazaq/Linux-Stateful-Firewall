@@ -58,6 +58,56 @@ static struct nf_hook_ops netfilter_ops_fw_local_out;
 static int RULES_COUNT = 0;
 static rule_t* FW_RULES;
 
+void print_tcp_packet(struct sk_buff *skb) {
+    struct iphdr *iph;
+    struct tcphdr *tcph;
+
+    // Ensure the skb is valid and contains an IP header
+    if (!skb)
+        return;
+
+    iph = ip_hdr(skb);
+    if (!iph || iph->protocol != IPPROTO_TCP) {
+        pr_info("Not a TCP packet\n");
+        return;
+    }
+
+    // Get the TCP header
+    tcph = tcp_hdr(skb);
+    if (!tcph) {
+        pr_info("TCP header is NULL\n");
+        return;
+    }
+
+    // Print source and destination IP addresses
+    pr_info("Source IP: %pI4\n", &iph->saddr);
+    pr_info("Destination IP: %pI4\n", &iph->daddr);
+
+    // Print source and destination ports
+    pr_info("Source Port: %u\n", ntohs(tcph->source));
+    pr_info("Destination Port: %u\n", ntohs(tcph->dest));
+
+    // Print TCP flags
+    pr_info("TCP Flags: [");
+    if (tcph->fin)
+        pr_cont("FIN ");
+    if (tcph->syn)
+        pr_cont("SYN ");
+    if (tcph->rst)
+        pr_cont("RST ");
+    if (tcph->psh)
+        pr_cont("PSH ");
+    if (tcph->ack)
+        pr_cont("ACK ");
+    if (tcph->urg)
+        pr_cont("URG ");
+    if (tcph->ece)
+        pr_cont("ECE ");
+    if (tcph->cwr)
+        pr_cont("CWR ");
+    pr_cont("]\n");
+}
+
 static direction_t get_direction(const struct nf_hook_state *state) {
     return strcmp(state->in->name, IN_NET_DEVICE_NAME) == 0 ? DIRECTION_IN : DIRECTION_OUT;
 }
@@ -1107,7 +1157,7 @@ static void handle_tcp(struct sk_buff *skb, const struct nf_hook_state *state,
     else 
         tcp_handle_ack(packet_identifier, pt_log_entry, pt_verdict, syn, rst, fin);
     
-    if(*pt_verdict && packet_identifier.dst_port == HTTP_PORT)
+    if(*pt_verdict && packet_identifier.dst_port == htons(HTTP_PORT))
         ret = handle_mitm(skb, state);
     if(ret < 0) {
         printk(KERN_ERR "__ CHECKSUM ERROR. DROPPING __");
@@ -1225,11 +1275,7 @@ static unsigned int module_hook_local_out(void *priv, struct sk_buff *skb, const
         printk(KERN_ERR "\n\n********************\n\n");
         printk(KERN_ERR "Packet @ LOCAL_OUT");
         handle_mitm_local_out(skb, tcp_data);
-        packet_identifier.src_ip = ip_header->saddr;
-        packet_identifier.dst_ip = ip_header->daddr;
-        packet_identifier.src_port = tcp_data->src_port;
-        packet_identifier.dst_port = tcp_data->dst_port;
-        print_packet_identifier(&packet_identifier);
+        print_tcp_packet(skb);
     }
     return NF_ACCEPT;
 }
@@ -1240,12 +1286,12 @@ static unsigned int module_hook_local_in(void *priv, struct sk_buff *skb, const 
     struct tcphdr *tcph = tcp_hdr(skb);
     ip_header = ip_hdr(skb);
     
-    if (tcph->dest == htons(800)){
-        printk(KERN_INFO "\nPacket @ LOCAL_IN: \n");
+    // if (tcph->dest == htons(800)){
+    //     printk(KERN_INFO "\nPacket @ LOCAL_IN: \n");
 
-        printk(KERN_CRIT " Src IP: %pI4, Src Port: %u, Dst IP: %pI4, Dst Port: %u\n\n",
-        &ip_header->saddr, ntohs(tcph->source), &ip_header->daddr, ntohs(tcph->dest));
-    }
+    //     printk(KERN_CRIT " Src IP: %pI4, Src Port: %u, Dst IP: %pI4, Dst Port: %u\n\n",
+    //     &ip_header->saddr, ntohs(tcph->source), &ip_header->daddr, ntohs(tcph->dest));
+    // }
     return NF_ACCEPT;
 }
 
