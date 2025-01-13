@@ -1001,11 +1001,14 @@ static int modify_packet(struct sk_buff *skb, __be32 daddr, __be16 dport, __be32
     iph = ip_hdr(skb);
     tcph = tcp_hdr(skb);
 
-    // Modify the IP and port
-    daddr && iph->daddr = daddr;
-    dport && tcph->dest = dport;
-    saddr && iph->saddr = saddr;
-    sport && tcph->source = sport;
+    if (daddr)
+        iph->daddr = daddr;
+    if (dport)
+        tcph->dest = dport;
+    if (saddr)
+        iph->saddr = saddr;
+    if (sport)
+        tcph->source = sport;
 
     /* Fix IP header checksum */
     iph->check = 0;
