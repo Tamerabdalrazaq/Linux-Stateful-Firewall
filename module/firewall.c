@@ -1215,7 +1215,7 @@ static unsigned int module_hook_local_out(void *priv, struct sk_buff *skb, const
         return NF_ACCEPT;
 
     tcp_data = get_tcp_data(skb);
-    if (!tcp_data) {
+    if (tcp_data == NULL) {
         printk(KERN_ERR "DROPPING FOR INVALID TCP HEADER");
         return NF_DROP;
     }
@@ -1227,7 +1227,7 @@ static unsigned int module_hook_local_out(void *priv, struct sk_buff *skb, const
 
     handle_mitm_local_out(skb, tcp_data);
     printk(KERN_INFO "\n Packet @ LOCAL_OUT: \n");
-    print_packet_identifier(packet_identifier)
+    print_packet_identifier(&packet_identifier);
     return NF_ACCEPT;
 }
 
