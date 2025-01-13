@@ -1010,8 +1010,8 @@ static void tcp_handle_ack(packet_identifier_t packet_identifier, log_row_t* pt_
     } else {
         printk (KERN_INFO "Connection found. Comparing agains TCP state machine.\n");
         // **** TESTING!!
-        // *pt_verdict = NF_ACCEPT;
-        *pt_verdict = handle_tcp_state_machine(packet_identifier, found_connection, syn, ACK_YES, rst, fin);
+        *pt_verdict = NF_ACCEPT;
+        // *pt_verdict = handle_tcp_state_machine(packet_identifier, found_connection, syn, ACK_YES, rst, fin);
         if (*pt_verdict)
             pt_log_entry->reason = REASON_VALID_CONNECTION;   
         else
