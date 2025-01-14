@@ -1493,7 +1493,7 @@ static unsigned int module_hook(void *priv, struct sk_buff *skb, const struct nf
 static DEVICE_ATTR(rules, S_IWUSR | S_IRUGO , display_rules, modify_rules);
 static DEVICE_ATTR(reset, S_IWUSR, NULL, reset_logs);
 static DEVICE_ATTR(conns, S_IRUSR, read_connections_table, NULL);
-static DEVICE_ATTR(mitm, S_IWUSR | S_IRUGO , NULL, modify_mitm_port);
+static DEVICE_ATTR(mitm, S_IWUSR, NULL, modify_mitm_port);
 
 static struct file_operations fops = {
     .owner = THIS_MODULE,
