@@ -37,11 +37,11 @@ struct packet_log {
 };
 
 // Define connection_row struct for connections_table
-struct connection_rule_row {
+typedef struct{
     connection_rule_t connection_rule_srv;       
     connection_rule_t connection_rule_cli;       
     struct klist_node node;
-};
+} connection_rule_row;
 
 // Define the static klist for packet logs
 static struct klist packet_logs = KLIST_INIT(packet_logs, NULL, NULL);
@@ -809,6 +809,27 @@ static packet_identifier_t* get_original_packet_identifier(packet_identifier_t p
     return original_packet;
 }
 
+
+static struct connection_rule_row *find_connection_row_by_mitm_port(__be16 mitm_proc_port) {
+    struct klist_iter iter;
+    struct connection_rule_row *row;
+
+    klist_iter_init(&connections_table, &iter);
+
+    while ((row = klist_next_entry(&iter, node)) != NULL) {
+        if (row->connection_rule_srv.mitm_proc_port == mitm_proc_port ||
+            row->connection_rule_cli.mitm_proc_port == mitm_proc_port) {
+            klist_iter_exit(&iter);
+            return row; // Match found
+        }
+    }
+
+    // Cleanup iterator
+    klist_iter_exit(&iter);
+
+    return NULL; // No match found
+}
+
 static void extract_transport_fields(struct sk_buff *skb, __u8 protocol, __be16 *src_port,
                                     __be16 *dst_port, __u8 *syn, __u8 *ack, __u8 *fin, __u8 *rst,
                                     int* is_christmas_packet) { 
@@ -1203,7 +1224,7 @@ static void handle_new_connection(packet_identifier_t packet_identifier, log_row
             } 
 }
 
-static int modify_packet(struct sk_buff *skb, __be32 daddr, __be16 dport, __be32 saddr, __be16 sport){
+static int modify_packet(struct sk_buff *skb, __be32 saddr, __be16 sport __be32 daddr, __be16 dport){
 
     struct iphdr *iph;
     struct tcphdr *tcph;
@@ -1251,13 +1272,13 @@ static int handle_mitm_pre_routing(struct sk_buff *skb, const struct nf_hook_sta
     // •	Client-to-server, inbound, pre-routing, we need to change the dest IP and dest port
     if (dir == DIRECTION_IN){
         local_ip = (in_aton(FW_IN_IP));
-        int ret = modify_packet(skb, local_ip, local_port, NULL, NULL);
+        int ret = modify_packet(skb, NULL, NULL, local_ip, local_port);
         printk(KERN_CRIT "MITM - Modifed CLI --> LOCAL:800 \n");
     } 
     // •	Server-to-client, inbound, pre-routing, we need to change the dest IP
     else { 
         local_ip = (in_aton(FW_OUT_IP));
-        int ret = modify_packet(skb, local_ip, NULL, NULL, NULL);
+        int ret = modify_packet(skb, NULL, NULL, local_ip, NULL);
         printk(KERN_CRIT "MITM - Modifed SRV --> LOCAL:800 \n");
     }
     print_tcp_packet(skb);
@@ -1267,18 +1288,24 @@ static int handle_mitm_pre_routing(struct sk_buff *skb, const struct nf_hook_sta
 static int handle_mitm_local_out(struct sk_buff *skb, tcp_data_t* tcp_data, direction_t dir) {
     __be32 original_ip;
     __be16 original_port;
+    __be16 mimt_proc_port;
+    connection_rule_row* conn;
     
     printk(KERN_INFO "Modifying packet @ local_out");
+    mimt_proc_port = tcp_data.src_port;
+    conn = find_connection_row_by_mitm_port(mimt_proc_port);
+    printk(KERN_INFO "INFO@MIMT_LO: Found connection:");
+    conn && print_connection(conn);
     // •	Client-to-server, outbound, local-out 
     if (dir == DIRECTION_IN){
         original_ip = (in_aton("10.1.1.1"));
-        int ret = modify_packet(skb, NULL, NULL, original_ip, NULL);
+        int ret = modify_packet(skb, original_ip, NULL, NULL, NULL);
     } 
     // •	Server-to-client, outbound, local-out,
     else { 
         original_port = htons(80);
         original_ip = (in_aton("10.1.2.2"));
-        int ret = modify_packet(skb, NULL, NULL, original_ip, original_port);
+        int ret = modify_packet(skb, original_ip, original_port, NULL, NULL);
     }
     return 0;
 }
