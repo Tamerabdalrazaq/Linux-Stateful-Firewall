@@ -724,7 +724,7 @@ static packet_identifier_t get_original_packet_identifier(packet_identifier_t pa
         if (dir == DIRECTION_IN) {
             // Check if the CLI packet matches
             if (row->connection_rule_cli.packet.src_ip == packet_identifier_local_out.dst_ip &&
-                row->connection_rule_cli.packet.src_port == packet_identifier_local_out.dst_port &&) {
+                row->connection_rule_cli.packet.src_port == packet_identifier_local_out.dst_port) {
 
                 original_packet = row->connection_rule_srv.packet;
                 break;
