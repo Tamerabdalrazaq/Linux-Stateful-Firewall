@@ -60,9 +60,9 @@ def update_mitm_process(client_address, mitm_port):
         data_to_write = "{},{},{}\n".format(client_ip, client_port, mitm_port)
         with open(SYSFS_PATH_MITM, "w") as sysfs_file:
             sysfs_file.write(data_to_write)
-        print(f"MITM process updated with: {data_to_write.strip()}")
+        print("MITM process updated with: {}".format(data_to_write.strip()))
     except Exception as e:
-        print(f"Error updating MITM process: {e}")
+        print("Error updating MITM process: {}".format(e))
 
 
 def forward_to_destination(client_address, original_dest, packet):
