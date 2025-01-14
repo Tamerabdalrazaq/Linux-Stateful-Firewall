@@ -1681,14 +1681,14 @@ static void __exit fw_exit(void)
 
     if (conns_device)
     {
-        device_remove_file(conns_device, (const struct device_attribute *)&dev_attr_reset.attr);
+        device_remove_file(conns_device, (const struct device_attribute *)&dev_attr_conns.attr);
         device_destroy(sysfs_class, MKDEV(major_number, 2));
     }
 
     if (mitm_device)
     {
-        device_remove_file(mitm_device, (const struct device_attribute *)&dev_attr_reset.attr);
-        device_destroy(sysfs_class, MKDEV(major_number, 2));
+        device_remove_file(mitm_device, (const struct device_attribute *)&dev_attr_mitm.attr);
+        device_destroy(sysfs_class, MKDEV(major_number, 3));
     }
 
     // Destroy the sysfs class (only after all devices are cleaned up)
