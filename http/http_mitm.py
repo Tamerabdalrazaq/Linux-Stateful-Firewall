@@ -16,7 +16,7 @@ def find_destination(ip, port):
         for line in lines:
             # Strip whitespace and split by commas
             parts = line.strip().split(",")
-            src_ip, src_port, dst_ip, dst_port, state = parts
+            src_ip, src_port, dst_ip, dst_port, MITM_proc, state = parts
             if src_ip == ip and src_port == port:
                 return ((dst_ip, int(dst_port)))
             if dst_ip == ip and dst_port == port:
