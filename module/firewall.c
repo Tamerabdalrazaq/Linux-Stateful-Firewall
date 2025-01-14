@@ -812,19 +812,21 @@ static packet_identifier_t* get_original_packet_identifier(packet_identifier_t p
 
 static  connection_rule_row *find_connection_row_by_mitm_port(__be16 mitm_proc_port) {
     struct klist_iter iter;
-     connection_rule_row *row;
+    struct klist_node *knode;
+    connection_rule_row *row;
 
     klist_iter_init(&connections_table, &iter);
 
-    while ((row = klist_next_entry(&iter, node)) != NULL) {
+    // Iterate over the klist to find a matching entry
+    while ((knode = klist_next(&iter))) {
+        row = container_of(knode,  connection_rule_row, node);
         if (row->connection_rule_srv.mitm_proc_port == mitm_proc_port ||
             row->connection_rule_cli.mitm_proc_port == mitm_proc_port) {
             klist_iter_exit(&iter);
-            return row; // Match found
+            return row; 
         }
     }
 
-    // Cleanup iterator
     klist_iter_exit(&iter);
 
     return NULL; // No match found
