@@ -1266,7 +1266,7 @@ static int handle_mitm_local_out(struct sk_buff *skb, tcp_data_t* tcp_data, dire
     
     printk(KERN_INFO "Modifying packet @ local_out");
     // •	Client-to-server, outbound, local-out 
-    if (dir == DIRECTION_OUT){
+    if (dir == DIRECTION_IN){
         original_ip = (in_aton("10.1.1.1"));
         int ret = modify_packet(skb, NULL, NULL, original_ip, NULL);
     } 
