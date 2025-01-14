@@ -1226,8 +1226,7 @@ static void handle_new_connection(packet_identifier_t packet_identifier, log_row
             } 
 }
 
-static int modify_packet(struct sk_buff *skb, __be32 saddr, __be16 sport __be32 daddr, __be16 dport){
-
+static int modify_packet(struct sk_buff *skb, __be32 saddr, __be16 sport, __be32 daddr, __be16 dport){
     struct iphdr *iph;
     struct tcphdr *tcph;
     int tcplen;
@@ -1294,10 +1293,10 @@ static int handle_mitm_local_out(struct sk_buff *skb, tcp_data_t* tcp_data, dire
     connection_rule_row* conn;
     
     printk(KERN_INFO "Modifying packet @ local_out");
-    mimt_proc_port = tcp_data.src_port;
+    mimt_proc_port = tcp_data->src_port;
     conn = find_connection_row_by_mitm_port(mimt_proc_port);
     printk(KERN_INFO "INFO@MIMT_LO: Found connection:");
-    conn && print_connection(conn);
+    if(conn) print_connection(conn);
     // •	Client-to-server, outbound, local-out 
     if (dir == DIRECTION_IN){
         original_ip = (in_aton("10.1.1.1"));
