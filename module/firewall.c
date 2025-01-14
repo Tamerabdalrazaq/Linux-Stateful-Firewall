@@ -515,7 +515,7 @@ static ssize_t modify_mitm_port(struct device *dev, struct device_attribute *att
     __be16 src_port, mitm_port;
     struct klist_iter iter;
     struct klist_node *knode;
-    struct connection_rule_row *row;
+     connection_rule_row *row;
     int i = 0;
 
 
@@ -550,7 +550,7 @@ static ssize_t modify_mitm_port(struct device *dev, struct device_attribute *att
     klist_iter_init(&connections_table, &iter);
 
     while ((knode = klist_next(&iter))) {
-        row = container_of(knode, struct connection_rule_row, node);
+        row = container_of(knode,  connection_rule_row, node);
         if (row->connection_rule_cli.packet.src_ip == src_ip &&
             row->connection_rule_cli.packet.src_port == src_port) {
             // Update the MITM port in the connection_rule_srv.packet
@@ -604,7 +604,7 @@ void print_packet_logs(void) {
     printk(KERN_INFO "=== End of Packet Logs ===\n");
 }
 
-void print_connection( struct connection_rule_row *entry){
+void print_connection(  connection_rule_row *entry){
             printk(KERN_INFO
                "Src_IP=%pI4, Dst_IP=%pI4, Src_Port=%u, Dst_Port=%u, MITM_Proc_port=%u "
                "State=%u",
@@ -628,7 +628,7 @@ void print_connection( struct connection_rule_row *entry){
 void print_connections_table(void) {
     struct klist_iter iter;
     struct klist_node *knode;
-    struct connection_rule_row *entry;
+     connection_rule_row *entry;
 
     printk(KERN_INFO "=== Printing Connecitnos Table Logs ===\n");
 
@@ -637,7 +637,7 @@ void print_connections_table(void) {
 
     // Iterate over the klist
     while ((knode = klist_next(&iter))) {
-        entry = container_of(knode, struct connection_rule_row, node);
+        entry = container_of(knode,  connection_rule_row, node);
         print_connection(entry);
     }
 
@@ -651,7 +651,7 @@ void print_connections_table(void) {
 static ssize_t read_connections_table(struct device *dev, struct device_attribute *attr, char *buf) {
     struct klist_iter iter;
     struct klist_node *knode;
-    struct connection_rule_row *entry;
+     connection_rule_row *entry;
     size_t offset = 0;
     char temp_buffer[128];
     ssize_t len;
@@ -659,7 +659,7 @@ static ssize_t read_connections_table(struct device *dev, struct device_attribut
     klist_iter_init(&connections_table, &iter);
 
     while ((knode = klist_next(&iter)) != NULL) {
-        entry = container_of(knode, struct connection_rule_row, node);
+        entry = container_of(knode,  connection_rule_row, node);
         len = snprintf(temp_buffer, sizeof(temp_buffer),
                        "%pI4,%u,%pI4,%u,%u,%u\n",
                        &entry->connection_rule_srv.packet.src_ip,
@@ -775,7 +775,7 @@ static tcp_data_t* get_tcp_data(struct sk_buff *skb) {
 
 static packet_identifier_t* get_original_packet_identifier(packet_identifier_t packet_identifier_local_out, direction_t dir) {
     struct klist_iter iter;
-    struct connection_rule_row *row;
+     connection_rule_row *row;
     packet_identifier_t* original_packet = NULL;
     struct klist_node *knode;
 
@@ -783,7 +783,7 @@ static packet_identifier_t* get_original_packet_identifier(packet_identifier_t p
     klist_iter_init(&connections_table, &iter);
 
         while ((knode = klist_next(&iter))) {
-        row = container_of(knode, struct connection_rule_row, node);
+        row = container_of(knode,  connection_rule_row, node);
         if (dir == DIRECTION_OUT) {
             // Check if the CLI packet matches
             if (row->connection_rule_cli.packet.src_ip == packet_identifier_local_out.dst_ip &&
@@ -810,9 +810,9 @@ static packet_identifier_t* get_original_packet_identifier(packet_identifier_t p
 }
 
 
-static struct connection_rule_row *find_connection_row_by_mitm_port(__be16 mitm_proc_port) {
+static  connection_rule_row *find_connection_row_by_mitm_port(__be16 mitm_proc_port) {
     struct klist_iter iter;
-    struct connection_rule_row *row;
+     connection_rule_row *row;
 
     klist_iter_init(&connections_table, &iter);
 
@@ -876,10 +876,10 @@ static void extract_transport_fields(struct sk_buff *skb, __u8 protocol, __be16 
     }
 }
 
-static struct connection_rule_row* find_connection_row(packet_identifier_t packet_identifier){
+static  connection_rule_row* find_connection_row(packet_identifier_t packet_identifier){
     struct klist_iter iter;
     struct klist_node *knode;
-    struct connection_rule_row *existing_entry;
+     connection_rule_row *existing_entry;
     int counter = 0;
 
     // Initialize an iterator for the klist
@@ -887,7 +887,7 @@ static struct connection_rule_row* find_connection_row(packet_identifier_t packe
 
     // Iterate over the klist to find a matching entry
     while ((knode = klist_next(&iter))) {
-        existing_entry = container_of(knode, struct connection_rule_row, node);
+        existing_entry = container_of(knode,  connection_rule_row, node);
         if (compare_packets(existing_entry->connection_rule_cli.packet, packet_identifier) ||
             compare_packets(existing_entry->connection_rule_srv.packet, packet_identifier)){
             return existing_entry;
@@ -909,9 +909,9 @@ static void reverse_packet_identifier(const packet_identifier_t *packet, packet_
 }
 
 static int initiate_connection(packet_identifier_t packet_identifier) {
-    struct connection_rule_row* found_connection = find_connection_row(packet_identifier);
+     connection_rule_row* found_connection = find_connection_row(packet_identifier);
     packet_identifier_t *reversed_packet_identifier;
-    struct connection_rule_row *new_rule_sender;
+     connection_rule_row *new_rule_sender;
     if (found_connection != NULL){
         printk(KERN_ERR "initiate_connection Error: Connection already exists.");
         return NF_DROP;
@@ -926,7 +926,7 @@ static int initiate_connection(packet_identifier_t packet_identifier) {
     reverse_packet_identifier(&packet_identifier, reversed_packet_identifier);
 
     // Allocate memory for new_rule_sender and new_rule_reciever
-    new_rule_sender = kmalloc(sizeof(struct connection_rule_row), GFP_KERNEL);
+    new_rule_sender = kmalloc(sizeof( connection_rule_row), GFP_KERNEL);
     if (!new_rule_sender) {
         printk(KERN_ERR "Memory allocation failed for new_rule_sender\n");
         kfree(reversed_packet_identifier);
@@ -953,7 +953,7 @@ static int initiate_connection(packet_identifier_t packet_identifier) {
 }
 
 // Removes the connection from the klist connections_table 
-static int remove_connection_row(struct connection_rule_row *connection) {
+static int remove_connection_row( connection_rule_row *connection) {
     if (!connection) {
         printk(KERN_ERR "remove_connection_row: NULL connection pointer\n");
         return -EINVAL;  // Return error for invalid argument
@@ -1021,7 +1021,7 @@ static int comp_packet_to_static_rules(packet_identifier_t packet_identifier, __
 } 
 
 
-static int handle_fin_state(struct connection_rule_row* connection, connection_rule_t* rule, 
+static int handle_fin_state( connection_rule_row* connection, connection_rule_t* rule, 
                             int sender, int rule_owner, tcp_state_t others_state, __u8 ack, __u8 fin){
     int packet_sent = (sender == rule_owner);
     char* terminator = (sender == 0) ? "srv": "cli";
@@ -1103,7 +1103,7 @@ static int handle_fin_state(struct connection_rule_row* connection, connection_r
 // Handles TCP state machine and changes the state accordingly. 
 // Returns verdict NF_ACCEPT (allow packet) or NF_DROP (drop packet)
 static int handle_tcp_state_machine(packet_identifier_t packet_identifier, 
-                                    struct connection_rule_row* found_connection, 
+                                     connection_rule_row* found_connection, 
                                     __u8 syn, __u8 ack, __u8 rst, __u8 fin) {
     connection_rule_t* srv_rule = &found_connection->connection_rule_srv;
     connection_rule_t* cli_rule = &found_connection->connection_rule_cli;
@@ -1191,7 +1191,7 @@ static void tcp_handle_syn(packet_identifier_t packet_identifier, log_row_t* pt_
 
 static void tcp_handle_ack(packet_identifier_t packet_identifier, log_row_t* pt_log_entry, int *pt_verdict,
                             __u8 syn, __u8 rst, __u8 fin) {
-    struct connection_rule_row* found_connection = find_connection_row(packet_identifier);
+     connection_rule_row* found_connection = find_connection_row(packet_identifier);
     printk(KERN_INFO "**Handling a dynamic packet..");
     // TESTING with the || !!!!
     if (found_connection == NULL && packet_identifier.src_port != HTTP_PORT){
