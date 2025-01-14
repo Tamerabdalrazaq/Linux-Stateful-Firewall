@@ -74,6 +74,7 @@ def forward_to_destination(client_address, original_dest, packet):
     """
     try:
         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as forward_sock:
+            forward_sock.bind(('0.0.0.0', 0))
             _, port = forward_sock.getsockname()
             update_mitm_process(client_address, port)
             print("local socket is at port ", port)
