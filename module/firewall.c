@@ -1367,7 +1367,7 @@ static unsigned int module_hook_local_out(void *priv, struct sk_buff *skb, const
 
         }
         handle_mitm_local_out(skb, tcp_data, dir);
-        printk(KERN_NOTICE "\n\nPacket Modified to: \n");
+        printk(KERN_CRIT "\nMITM - Modifed @ local out to:\n");
         print_tcp_packet(skb);
     }
     return NF_ACCEPT;
