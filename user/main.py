@@ -140,16 +140,16 @@ def show_connections_table():
             lines = file.readlines()
         
         # Print the header for the connections table
-        print("{:<15} {:<15} {:<15} {:<15} {:<15}".format("Source IP", "Source Port", "Destination IP", "Destination Port", "State"))
+        print("{:<15} {:<15} {:<15} {:<15} {:<18} {:<15}".format("Source IP", "Source Port", "Destination IP", "Destination Port", "MITM Process Port", "State"))
         print("=" * 75)
         
         # Process each line and print the formatted table
         for line in lines:
             # Strip whitespace and split by commas
             parts = line.strip().split(",")
-            if len(parts) == 5:
-                src_ip, src_port, dst_ip, dst_port, state = parts
-                print("{:<15} {:<15} {:<15} {:<15} {:<15}".format(src_ip, src_port, dst_ip, dst_port, get_tcp_state_name(state)))
+            if len(parts) == 6:
+                src_ip, src_port, dst_ip, dst_port, MITM_port, state = parts
+                print("{:<15} {:<15} {:<15} {:<15} {:<18} {:<15}".format(src_ip, src_port, dst_ip, MITM_port, dst_port, get_tcp_state_name(state)))
             else:
                 print("Invalid line format:", line.strip())
     

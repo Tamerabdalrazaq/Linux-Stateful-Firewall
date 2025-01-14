@@ -606,20 +606,22 @@ void print_packet_logs(void) {
 
 void print_connection( struct connection_rule_row *entry){
             printk(KERN_INFO
-               "Src_IP=%pI4, Dst_IP=%pI4, Src_Port=%u, Dst_Port=%u, "
+               "Src_IP=%pI4, Dst_IP=%pI4, Src_Port=%u, Dst_Port=%u, MITM_Proc_port=%u "
                "State=%u",
                &entry->connection_rule_srv.packet.src_ip,
                &entry->connection_rule_srv.packet.dst_ip,
                ntohs(entry->connection_rule_srv.packet.src_port),
                ntohs(entry->connection_rule_srv.packet.dst_port),
+               ntohs(entry->connection_rule_srv.mitm_proc_port),
                entry->connection_rule_srv.state);
             printk(KERN_INFO
-               "Src_IP=%pI4, Dst_IP=%pI4, Src_Port=%u, Dst_Port=%u, "
+               "Src_IP=%pI4, Dst_IP=%pI4, Src_Port=%u, Dst_Port=%u, MITM_Proc_port=%u"
                "State=%u",
                &entry->connection_rule_cli.packet.src_ip,
                &entry->connection_rule_cli.packet.dst_ip,
                ntohs(entry->connection_rule_cli.packet.src_port),
                ntohs(entry->connection_rule_cli.packet.dst_port),
+               ntohs(entry->connection_rule_cli.mitm_proc_port),
                entry->connection_rule_cli.state);
 }
 
@@ -659,11 +661,12 @@ static ssize_t read_connections_table(struct device *dev, struct device_attribut
     while ((knode = klist_next(&iter)) != NULL) {
         entry = container_of(knode, struct connection_rule_row, node);
         len = snprintf(temp_buffer, sizeof(temp_buffer),
-                       "%pI4,%u,%pI4,%u,%u\n",
+                       "%pI4,%u,%pI4,%u,%u,%u\n",
                        &entry->connection_rule_srv.packet.src_ip,
                        ntohs(entry->connection_rule_srv.packet.src_port),
                        &entry->connection_rule_srv.packet.dst_ip,
                        ntohs(entry->connection_rule_srv.packet.dst_port),
+                       ntohs(entry->connection_rule_srv.mitm_proc_port),
                        entry->connection_rule_srv.state);
 
         if (len < 0 || offset + len >= PAGE_SIZE) {
@@ -674,11 +677,12 @@ static ssize_t read_connections_table(struct device *dev, struct device_attribut
         offset += len;
 
         len = snprintf(temp_buffer, sizeof(temp_buffer),
-                       "%pI4,%u,%pI4,%u,%u\n",
+                       "%pI4,%u,%pI4,%u,%u,%u\n",
                        &entry->connection_rule_cli.packet.src_ip,
                        ntohs(entry->connection_rule_cli.packet.src_port),
                        &entry->connection_rule_cli.packet.dst_ip,
                        ntohs(entry->connection_rule_cli.packet.dst_port),
+                       ntohs(entry->connection_rule_cli.mitm_proc_port),
                        entry->connection_rule_cli.state);
 
         if (len < 0 || offset + len >= PAGE_SIZE) {
@@ -780,7 +784,7 @@ static packet_identifier_t* get_original_packet_identifier(packet_identifier_t p
 
         while ((knode = klist_next(&iter))) {
         row = container_of(knode, struct connection_rule_row, node);
-        if (dir == DIRECTION_IN) {
+        if (dir == DIRECTION_OUT) {
             // Check if the CLI packet matches
             if (row->connection_rule_cli.packet.src_ip == packet_identifier_local_out.dst_ip &&
                 row->connection_rule_cli.packet.src_port == packet_identifier_local_out.dst_port) {
@@ -788,7 +792,7 @@ static packet_identifier_t* get_original_packet_identifier(packet_identifier_t p
                 original_packet = &row->connection_rule_srv.packet;
                 break;
             }
-        } else if (dir == DIRECTION_OUT) {
+        } else if (dir == DIRECTION_IN) {
             // Check if the SRV packet matches
             if (row->connection_rule_srv.packet.src_ip == packet_identifier_local_out.dst_ip &&
                 row->connection_rule_srv.packet.src_port == packet_identifier_local_out.dst_port) {
