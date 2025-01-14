@@ -710,10 +710,10 @@ static tcp_data_t* get_tcp_data(struct sk_buff *skb) {
     return tcp_data;
 }
 
-static packet_identifier_t get_original_packet_identifier(packet_identifier_t packet_identifier_local_out, direction_t dir) {
+static packet_identifier_t* get_original_packet_identifier(packet_identifier_t packet_identifier_local_out, direction_t dir) {
     struct klist_iter iter;
     struct connection_rule_row *row;
-    packet_identifier_t original_packet = NULL;
+    packet_identifier_t* original_packet = NULL;
     struct klist_node *knode;
 
     // Initialize iterator
@@ -726,14 +726,14 @@ static packet_identifier_t get_original_packet_identifier(packet_identifier_t pa
             if (row->connection_rule_cli.packet.src_ip == packet_identifier_local_out.dst_ip &&
                 row->connection_rule_cli.packet.src_port == packet_identifier_local_out.dst_port) {
 
-                original_packet = row->connection_rule_srv.packet;
+                original_packet = &row->connection_rule_srv.packet;
                 break;
             }
         } else if (dir == DIRECTION_OUT) {
             // Check if the SRV packet matches
             if (row->connection_rule_srv.packet.src_ip == packet_identifier_local_out.dst_ip &&
                 row->connection_rule_srv.packet.src_port == packet_identifier_local_out.dst_port) {
-                original_packet = row->connection_rule_cli.packet;
+                original_packet = &row->connection_rule_cli.packet;
                 break;
             }
         }
@@ -741,7 +741,8 @@ static packet_identifier_t get_original_packet_identifier(packet_identifier_t pa
 
     // Cleanup iterator
     klist_iter_exit(&iter);
-
+    if (!original_packet) 
+        printk(KERN_ERR "Original packet not found");
     return original_packet;
 }
 
@@ -1331,7 +1332,8 @@ static unsigned int module_hook_local_out(void *priv, struct sk_buff *skb, const
     struct tcphdr *tcph;
     tcp_data_t* tcp_data;
     direction_t dir = get_direction_out(state);
-    packet_identifier_t packet_identifier, original_packet_identifier;
+    packet_identifier_t packet_identifier;
+    packet_identifier_t* original_packet_identifier;
     log_row_t log_entry;
 
     ip_header = ip_hdr(skb);
@@ -1359,8 +1361,11 @@ static unsigned int module_hook_local_out(void *priv, struct sk_buff *skb, const
         printk(KERN_INFO "\n");
         printk(KERN_INFO "packet identifier:\n");
         print_tcp_packet(skb);
-        printk(KERN_INFO "Original packet is:\n");
-        print_packet_identifier(&original_packet_identifier);
+        if(original_packet_identifier){
+            printk(KERN_INFO "Original packet is:\n");
+            print_packet_identifier(original_packet_identifier);
+
+        }
         handle_mitm_local_out(skb, tcp_data, dir);
         printk(KERN_NOTICE "\n\nPacket Modified to: \n");
         print_tcp_packet(skb);
