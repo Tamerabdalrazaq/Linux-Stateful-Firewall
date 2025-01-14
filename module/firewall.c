@@ -1345,8 +1345,8 @@ static unsigned int module_hook_local_out(void *priv, struct sk_buff *skb, const
     }
     packet_identifier.src_ip = ip_header->saddr;
     packet_identifier.dst_ip = ip_header->daddr;
-    packet_identifier.src_port = tcp_data.src_port;
-    packet_identifier.dst_port = tcp_data.drc_port;
+    packet_identifier.src_port = tcp_data->src_port;
+    packet_identifier.dst_port = tcp_data->drc_port;
 
     log_entry = init_log_entry(packet_identifier, PROT_TCP);
     original_packet_identifier = get_original_packet_identifier(packet_identifier, dir);
@@ -1360,7 +1360,7 @@ static unsigned int module_hook_local_out(void *priv, struct sk_buff *skb, const
         printk(KERN_INFO "packet identifier:\n");
         print_tcp_packet(skb);
         printk(KERN_INFO "Original packet is:\n");
-        print_packet_identifier(original_packet_identifier);
+        print_packet_identifier(&original_packet_identifier);
         handle_mitm_local_out(skb, tcp_data, dir);
         printk(KERN_NOTICE "\n\nPacket Modified to: \n");
         print_tcp_packet(skb);
