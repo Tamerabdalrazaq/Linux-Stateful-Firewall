@@ -150,6 +150,23 @@ static void print_packet_identifier(const packet_identifier_t *pkt)
 }
 
 
+static log_row_t init_log_entry(packet_identifier_t packet_identifier, __u8 protocol) {
+	log_row_t log_entry;
+
+	// Initialize the log entry fields
+	log_entry.timestamp = jiffies;            // Use jiffies as the timestamp
+	log_entry.protocol = protocol;           // Protocol passed to the function
+	log_entry.src_ip = packet_identifier.src_ip; // Source IP from the packet identifier
+	log_entry.dst_ip = packet_identifier.dst_ip; // Destination IP from the packet identifier
+	log_entry.src_port = packet_identifier.src_port; // Source port
+	log_entry.dst_port = packet_identifier.dst_port; // Destination port
+	log_entry.action = 0;                    // Default action (can be updated later)
+	log_entry.reason = 0;                    // Default reason (can be updated later)
+	log_entry.count = 1;                     // Initialize count to 1
+
+	return log_entry;                        // Return the initialized log entry
+}
+
 
 int compare_packets(packet_identifier_t p1, packet_identifier_t p2){
     return (p1.src_ip == p2.src_ip && 
@@ -693,6 +710,41 @@ static tcp_data_t* get_tcp_data(struct sk_buff *skb) {
     return tcp_data;
 }
 
+static packet_identifier_t get_original_packet_identifier(packet_identifier_t packet_identifier_local_out, direction_t dir) {
+    struct klist_iter iter;
+    struct connection_rule_row *row;
+    packet_identifier_t original_packet = NULL;
+    struct klist_node *knode;
+
+    // Initialize iterator
+    klist_iter_init(&connections_table, &iter);
+
+        while ((knode = klist_next(&iter))) {
+        row = container_of(knode, struct connection_rule_row, node);
+        if (dir == DIRECTION_IN) {
+            // Check if the CLI packet matches
+            if (row->connection_rule_cli.packet.src_ip == packet_identifier_local_out.dst_ip &&
+                row->connection_rule_cli.packet.src_port == packet_identifier_local_out.dst_port &&) {
+
+                original_packet = row->connection_rule_srv.packet;
+                break;
+            }
+        } else if (dir == DIRECTION_OUT) {
+            // Check if the SRV packet matches
+            if (row->connection_rule_srv.packet.src_ip == packet_identifier_local_out.dst_ip &&
+                row->connection_rule_srv.packet.src_port == packet_identifier_local_out.dst_port) {
+                original_packet = row->connection_rule_cli.packet;
+                break;
+            }
+        }
+    }
+
+    // Cleanup iterator
+    klist_iter_exit(&iter);
+
+    return original_packet;
+}
+
 static void extract_transport_fields(struct sk_buff *skb, __u8 protocol, __be16 *src_port,
                                     __be16 *dst_port, __u8 *syn, __u8 *ack, __u8 *fin, __u8 *rst,
                                     int* is_christmas_packet) { 
@@ -1169,7 +1221,7 @@ static int handle_mitm_local_out(struct sk_buff *skb, tcp_data_t* tcp_data, dire
 
 
 
-static void handle_tcp(struct sk_buff *skb, const struct nf_hook_state *state, 
+static void handle_tcp_pre_routing(struct sk_buff *skb, const struct nf_hook_state *state, 
                        packet_identifier_t packet_identifier, log_row_t* pt_log_entry, int *pt_verdict,
                         __u8 syn, __u8 ack, __u8 rst, __u8 fin, direction_t direction) {
     int ret = 0;
@@ -1193,7 +1245,7 @@ static void handle_tcp(struct sk_buff *skb, const struct nf_hook_state *state,
     }
 }
 
-static void hanlde_non_tcp(packet_identifier_t packet_identifier, log_row_t* log_entry, int *verdict,
+static void hanlde_non_tcp_pre_routing(packet_identifier_t packet_identifier, log_row_t* log_entry, int *verdict,
                            __u8 protocol, __u8 direction) {
         int found_rule_index = comp_packet_to_static_rules(packet_identifier, protocol, ACK_NO, direction);
         if (found_rule_index >= 0) {
@@ -1209,7 +1261,7 @@ static void hanlde_non_tcp(packet_identifier_t packet_identifier, log_row_t* log
 }
 
 // Given a TCP/UDP/ICMP packet
-static int get_packet_verdict(struct sk_buff *skb, const struct nf_hook_state *state) {
+static int get_packet_verdict_pre_routing(struct sk_buff *skb, const struct nf_hook_state *state) {
     packet_identifier_t packet_identifier;
     log_row_t log_entry;
     __u8 ack, syn, fin, rst;
@@ -1254,13 +1306,7 @@ static int get_packet_verdict(struct sk_buff *skb, const struct nf_hook_state *s
     printk(KERN_INFO "Processing this packet:");
     print_packet_identifier(&packet_identifier);
 
-    log_entry.timestamp = jiffies;           // Use jiffies as the timestamp
-    log_entry.protocol = protocol;          // Protocol extracted from the IP header
-    log_entry.src_ip = src_ip;              // Source IP from the packet
-    log_entry.dst_ip = dst_ip;              // Destination IP from the packet
-    log_entry.src_port = src_port;          // Source port from transport fields
-    log_entry.dst_port = dst_port;          // Destination port from transport fields
-    log_entry.count = 1;                    // Initial hit count       
+    log_entry = init_log_entry(packet_identifier, protocol);  
 
     if (is_christmas_packet) {
         log_entry.reason = REASON_XMAS_PACKET;
@@ -1271,9 +1317,9 @@ static int get_packet_verdict(struct sk_buff *skb, const struct nf_hook_state *s
 
 
     if (protocol == PROT_TCP ) 
-        handle_tcp(skb, state, packet_identifier, &log_entry, &verdict, syn, ack, rst, fin, direction);
+        handle_tcp_pre_routing(skb, state, packet_identifier, &log_entry, &verdict, syn, ack, rst, fin, direction);
     else
-        hanlde_non_tcp(packet_identifier, &log_entry, &verdict, protocol, direction);
+        hanlde_non_tcp_pre_routing(packet_identifier, &log_entry, &verdict, protocol, direction);
     
     add_or_update_log_entry(&log_entry);
     return verdict;
@@ -1285,6 +1331,8 @@ static unsigned int module_hook_local_out(void *priv, struct sk_buff *skb, const
     struct tcphdr *tcph;
     tcp_data_t* tcp_data;
     direction_t dir = get_direction_out(state);
+    packet_identifier_t packet_identifier, original_packet_identifier;
+    log_row_t log_entry;
 
     ip_header = ip_hdr(skb);
     if (!ip_header || !ip_header->protocol == PROT_TCP)
@@ -1292,16 +1340,27 @@ static unsigned int module_hook_local_out(void *priv, struct sk_buff *skb, const
 
     tcp_data = get_tcp_data(skb);
     if (!tcp_data) {
-        printk(KERN_ERR "DROPPING FOR INVALID TCP HEADER");
-        return NF_DROP;
+        printk(KERN_ERR "Accepting non-TCP packets");
+        return NF_ACCEPT;
     }
+    packet_identifier.src_ip = ip_header->saddr;
+    packet_identifier.dst_ip = ip_header->daddr;
+    packet_identifier.src_port = tcp_data.src_port;
+    packet_identifier.dst_port = tcp_data.drc_port;
+
+    log_entry = init_log_entry(packet_identifier, PROT_TCP);
+    original_packet_identifier = get_original_packet_identifier(packet_identifier, dir);
 
 
     if(tcp_data->src_port == htons(800) || tcp_data->dst_port == HTTP_PORT){
         // TESTING !!!
         printk(KERN_INFO "\n\n********************\n\n");
         printk(KERN_INFO "Packet @ LOCAL_OUT");
+        printk(KERN_INFO "\n");
+        printk(KERN_INFO "packet identifier:\n");
         print_tcp_packet(skb);
+        printk(KERN_INFO "Original packet is:\n");
+        print_packet_identifier(original_packet_identifier);
         handle_mitm_local_out(skb, tcp_data, dir);
         printk(KERN_NOTICE "\n\nPacket Modified to: \n");
         print_tcp_packet(skb);
@@ -1323,7 +1382,6 @@ static unsigned int module_hook_local_in(void *priv, struct sk_buff *skb, const 
     // }
     return NF_ACCEPT;
 }
-
 
 
 static unsigned int module_hook(void *priv, struct sk_buff *skb, const struct nf_hook_state *state) {
@@ -1361,7 +1419,7 @@ static unsigned int module_hook(void *priv, struct sk_buff *skb, const struct nf
 
     printk(KERN_INFO "\n\n************\nRecieved a new packet \n\n\n");
 
-    verdict = get_packet_verdict(skb, state);
+    verdict = get_packet_verdict_pre_routing(skb, state);
     printk(KERN_INFO "\n\n\nEnd packet <- %s \n************\n\n", verdict ? "Accept": "Drop");
     return verdict;
 }

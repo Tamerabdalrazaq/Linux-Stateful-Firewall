@@ -13,3 +13,4 @@ echo ""
 echo ""
 echo "Connections Table .."
 sudo python3 ./user/main.py show_conns
+sudo python3 ./http/http_mitm.py
