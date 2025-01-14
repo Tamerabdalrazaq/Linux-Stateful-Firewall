@@ -4,6 +4,7 @@ import struct
 import sys
 
 SYSFS_PATH_CONNS = "/sys/class/fw/conns/conns"
+SYSFS_PATH_MITM = "/sys/class/fw/mitm/mitm"
 
 def find_destination(ip, port):
     try:
@@ -46,7 +47,25 @@ def inspect_packet(http_packet):
         print("Failed to decode HTTP request: {}".format(e))
     return True
 
-def forward_to_destination(original_dest, packet):
+
+def update_mitm_process(client_address, mitm_port):
+    """
+    Updates the MITM process by writing the relevant data to the sysfs device.
+
+    :param client_address: Tuple (client_ip, client_port) from the accepted client socket
+    :param mitm_port: The port of the current MITM process
+    """
+    try:
+        client_ip, client_port = client_address
+        data_to_write = "{},{},{}\n".format(client_ip, client_port, mitm_port)
+        with open(SYSFS_PATH_MITM, "w") as sysfs_file:
+            sysfs_file.write(data_to_write)
+        print(f"MITM process updated with: {data_to_write.strip()}")
+    except Exception as e:
+        print(f"Error updating MITM process: {e}")
+
+
+def forward_to_destination(client_address, original_dest, packet):
     """
     Forwards the inspected HTTP packet to the original destination.
 
@@ -55,6 +74,9 @@ def forward_to_destination(original_dest, packet):
     """
     try:
         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as forward_sock:
+            _, port = forward_sock.getsockname()
+            update_mitm_process(client_address, port)
+            print("local socket is at port ", port)
             forward_sock.connect(original_dest)
             forward_sock.sendall(packet)
             response = forward_sock.recv(4096)
@@ -100,7 +122,7 @@ def start_mitm_server(listen_port):
                     if original_dest:
                         # Forward to the original destination
                         print("forwarding to: {}", original_dest)
-                        response = forward_to_destination(original_dest, data)
+                        response = forward_to_destination(client_addr, original_dest, data)
 
                         if response:
                             # Send the response back to the client

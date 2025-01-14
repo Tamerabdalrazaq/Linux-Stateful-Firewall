@@ -28,6 +28,7 @@ static struct class* sysfs_class = NULL;
 static struct device* sysfs_device = NULL;
 struct device *log_device;
 struct device *conns_device;
+struct device *mitm_device;
 
 // Define packet_log struct
 struct packet_log {
@@ -113,7 +114,7 @@ static direction_t get_direction_in(const struct nf_hook_state *state) {
 }
 
 static direction_t get_direction_out(const struct nf_hook_state *state) {
-    return strcmp(state->out->name, IN_NET_DEVICE_NAME) == 0 ? DIRECTION_IN : DIRECTION_OUT;
+    return strcmp(state->out->name, IN_NET_DEVICE_NAME) == 0 ? DIRECTION_OUT : DIRECTION_IN;
 }
 
 void print_tcp_data(const tcp_data_t *data) {
@@ -507,6 +508,64 @@ ssize_t read_logs(struct file *filp, char __user *user_buf, size_t count, loff_t
     return written;
 }
 
+static ssize_t modify_mitm_port(struct device *dev, struct device_attribute *attr, const char *buf, size_t count) {
+    char input[64]; // Buffer for user input
+    char *token, *cur;
+    __be32 src_ip;
+    __be16 src_port, mitm_port;
+    struct klist_iter iter;
+    struct klist_node *knode;
+    struct connection_rule_row *row;
+    int i = 0;
+
+
+    // Copy input for parsing
+    if (count >= sizeof(input)) {
+        pr_err("Input too long\n");
+        return -EINVAL;
+    }
+    strncpy(input, buf, count);
+    input[count] = '\0';
+
+    // Parse user input
+    cur = input;
+    while ((token = strsep(&cur, ",")) != NULL) {
+        if (i == 0)
+            src_ip = in_aton(token); // Convert IP string to __be32
+        else if (i == 1)
+            src_port = htons(simple_strtoul(token, NULL, 10)); // Convert to __be16
+        else if (i == 2)
+            mitm_port = htons(simple_strtoul(token, NULL, 10)); // Convert to __be16
+        else
+            break;
+        i++;
+    }
+
+    if (i != 3) {
+        pr_err("Invalid input format. Expected: <src_ip>,<src_port>,<mitm_port>\n");
+        return -EINVAL;
+    }
+
+    // Search for the matching rule in the connection table
+    klist_iter_init(&connections_table, &iter);
+
+    while ((knode = klist_next(&iter))) {
+        row = container_of(knode, struct connection_rule_row, node);
+        if (row->connection_rule_cli.packet.src_ip == src_ip &&
+            row->connection_rule_cli.packet.src_port == src_port) {
+            // Update the MITM port in the connection_rule_srv.packet
+            row->connection_rule_srv.mitm_proc_port = mitm_port;
+            pr_info("MITM port updated successfully: %pI4:%d -> %d\n",
+                    &src_ip, ntohs(src_port), ntohs(mitm_port));
+            klist_iter_exit(&iter);
+            return count; // Indicate success
+        }
+    }
+
+    klist_iter_exit(&iter);
+    pr_err("No matching connection rule found for: %pI4:%d\n", &src_ip, ntohs(src_port));
+    return -ENOENT; // No entry found
+}
 
 void print_packet_logs(void) {
     struct klist_iter iter;
@@ -1434,6 +1493,7 @@ static unsigned int module_hook(void *priv, struct sk_buff *skb, const struct nf
 static DEVICE_ATTR(rules, S_IWUSR | S_IRUGO , display_rules, modify_rules);
 static DEVICE_ATTR(reset, S_IWUSR, NULL, reset_logs);
 static DEVICE_ATTR(conns, S_IRUSR, read_connections_table, NULL);
+static DEVICE_ATTR(mitm, S_IWUSR | S_IRUGO , NULL, modify_mitm_port);
 
 static struct file_operations fops = {
     .owner = THIS_MODULE,
@@ -1522,6 +1582,29 @@ static int __init fw_init(void) {
         return -1;
     }
 
+    mitm_device = device_create(sysfs_class, NULL, MKDEV(major_number, 3), NULL, "mitm");
+    if (IS_ERR(mitm_device))
+    {
+        device_destroy(sysfs_class, MKDEV(major_number, 0));
+        device_destroy(sysfs_class, MKDEV(major_number, 1));
+        device_destroy(sysfs_class, MKDEV(major_number, 2));
+        class_destroy(sysfs_class);
+        unregister_chrdev(major_number, "fw_log");
+        return -1;
+    }
+
+    // Create the "mitm" sysfs attribute for the "mitm" device
+    if (device_create_file(mitm_device, (const struct device_attribute *)&dev_attr_mitm.attr))
+    {
+        device_destroy(sysfs_class, MKDEV(major_number, 3));
+        device_destroy(sysfs_class, MKDEV(major_number, 2));
+        device_destroy(sysfs_class, MKDEV(major_number, 1));
+        device_destroy(sysfs_class, MKDEV(major_number, 0));
+        class_destroy(sysfs_class);
+        unregister_chrdev(major_number, "fw_log");
+        return -1;
+    }
+
     // ******
     // Netfilter Hooks
     // ******
@@ -1599,6 +1682,12 @@ static void __exit fw_exit(void)
     if (conns_device)
     {
         device_remove_file(conns_device, (const struct device_attribute *)&dev_attr_reset.attr);
+        device_destroy(sysfs_class, MKDEV(major_number, 2));
+    }
+
+    if (mitm_device)
+    {
+        device_remove_file(mitm_device, (const struct device_attribute *)&dev_attr_reset.attr);
         device_destroy(sysfs_class, MKDEV(major_number, 2));
     }
 

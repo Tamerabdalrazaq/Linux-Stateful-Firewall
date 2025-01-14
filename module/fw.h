@@ -157,7 +157,8 @@ typedef struct {
 
 typedef struct {
 	packet_identifier_t packet;
-	tcp_state_t	state;   			
+	tcp_state_t	state;
+	__be16 mitm_proc_port;
 } connection_rule_t;
 
 // logging
