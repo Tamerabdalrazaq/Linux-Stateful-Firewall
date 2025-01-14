@@ -1308,7 +1308,7 @@ static int handle_mitm_local_out(struct sk_buff *skb, packet_identifier_t* origi
     // •	Server-to-client, outbound, local-out,
     else { 
         original_port = htons(80);
-        original_ip = (original_packet_identifier.dst_ip);
+        original_ip = (original_packet_identifier->dst_ip);
         int ret = modify_packet(skb, original_ip, original_port, NULL, NULL);
     }
     return 0;
