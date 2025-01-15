@@ -15,7 +15,7 @@ def handle_server_connection(client_socket, server_socket):
                 break
             client_socket.sendall(data)
     except Exception as e:
-        print(f"Error handling server connection: {e}")
+        print("Error handling server connection: ", e)
     finally:
         server_socket.close()
         client_socket.close()
@@ -36,7 +36,7 @@ def handle_client(client_socket):
             if not client_data:
                 break
 
-            print(f"Received from client: {client_data.decode().strip()}")
+            print("Received from client: ", client_data.decode().strip())
 
             # Intercept the PORT command
             if client_data.decode().strip().upper().startswith('PORT'):
@@ -58,7 +58,7 @@ def handle_client(client_socket):
                 server_response = server_socket.recv(4096)
                 client_socket.sendall(server_response)
     except Exception as e:
-        print(f"Error handling client: {e}")
+        print("Error handling client: ", e)
     finally:
         client_socket.close()
 
@@ -71,11 +71,11 @@ def main():
         listener.bind(('0.0.0.0', LISTEN_PORT))
         listener.listen(5)
 
-        print(f"MITM FTP Server listening on port {LISTEN_PORT}")
+        print("MITM FTP Server listening on port ", LISTEN_PORT)
 
         while True:
             client_socket, client_address = listener.accept()
-            print(f"Connection accepted from {client_address}")
+            print("Connection accepted from ", client_address)
 
             # Handle the client in a new thread
             client_thread = threading.Thread(target=handle_client, args=(client_socket,))
@@ -83,7 +83,7 @@ def main():
     except KeyboardInterrupt:
         print("Shutting down MITM FTP server")
     except Exception as e:
-        print(f"Error in main server: {e}")
+        print("Error in main server: ", e)
     finally:
         listener.close()
 

@@ -14,4 +14,4 @@ echo ""
 echo "Connections Table .."
 sudo python3 ./user/main.py show_conns
 # sudo python3 ./http/http_mitm.py
-sudo python3 ./ftp/mitm_ftp_srv.py
+sudo python3 ./ftp/ftp_mitm.py
