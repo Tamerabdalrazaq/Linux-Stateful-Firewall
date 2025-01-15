@@ -1330,10 +1330,10 @@ static void handle_tcp_pre_routing(struct sk_buff *skb, const struct nf_hook_sta
     if(*pt_verdict && (packet_identifier.dst_port == (HTTP_PORT) || 
                       (packet_identifier.src_port == (HTTP_PORT) ))){
         printk(KERN_INFO "Handling an HTTP Packet ...");
-        ret = handle_mitm_pre_routing(skb, packet_identifier, state, HTTP_PORT);
+        ret = handle_mitm_pre_routing(skb, packet_identifier, state, PROT_HTTP);
     } else if(*pt_verdict && (packet_identifier.dst_port == (FTP_PORT))){
-        printk(KERN_INFO "Handling an HTTP Packet ...");
-        ret = handle_mitm_pre_routing(skb, packet_identifier, state, FTP_PORT);
+        printk(KERN_INFO "Handling an FTP Packet ...");
+        ret = handle_mitm_pre_routing(skb, packet_identifier, state, PROT_FTP);
     }
 
     if(ret < 0) {
