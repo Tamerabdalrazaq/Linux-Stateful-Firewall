@@ -7,7 +7,7 @@ FTP_SERVER_HOST = '10.1.2.2'  # Replace with the actual FTP server IP or hostnam
 FTP_SERVER_PORT = 21
 SYSFS_PATH_MITM = "/sys/class/fw/mitm/mitm"
 
-def update_mitm_process(client_address, mitm_port="0"):
+def update_mitm_process(client_address, mitm_port):
     """
     Updates the MITM process by writing the relevant data to the sysfs device.
 
@@ -43,6 +43,7 @@ def handle_client(client_socket, client_address):
     try:
         # Connect to the actual FTP server
         server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        server_socket.bind(('0.0.0.0', 0))
         _, port = server_socket.getsockname()
         update_mitm_process(client_address, port)
         server_socket.connect((FTP_SERVER_HOST, FTP_SERVER_PORT))
