@@ -37,7 +37,7 @@ typedef enum {
 // the protocols we will work with
 typedef enum {
 	PROT_HTTP   = 1,
-	PROT_FTP   = 1,
+	PROT_FTP   = 2,
 } app_prot_t;
 
 
