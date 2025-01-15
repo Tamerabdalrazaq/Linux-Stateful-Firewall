@@ -3,7 +3,7 @@ import threading
 
 # Configuration
 LISTEN_PORT = 210
-FTP_SERVER_HOST = 'real.ftp.server'  # Replace with the actual FTP server IP or hostname
+FTP_SERVER_HOST = '10.1.2.2'  # Replace with the actual FTP server IP or hostname
 FTP_SERVER_PORT = 21
 
 # Function to handle communication with the actual FTP server
@@ -22,6 +22,7 @@ def handle_server_connection(client_socket, server_socket):
 
 # Function to handle client connections
 def handle_client(client_socket):
+    server_socket = None
     try:
         # Connect to the actual FTP server
         server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -38,28 +39,17 @@ def handle_client(client_socket):
 
             print("Received from client: ", client_data.decode().strip())
 
-            # Intercept the PORT command
-            if client_data.decode().strip().upper().startswith('PORT'):
-                print("Intercepted PORT command")
-                
-                # Forward the command to the real FTP server
-                server_socket.sendall(client_data)
+            # Forward all commands to the real server
+            server_socket.sendall(client_data)
 
-                # Wait for the server's response
-                server_response = server_socket.recv(4096)
-
-                # Send the server's response back to the client
-                client_socket.sendall(server_response)
-            else:
-                # Forward all other commands to the server
-                server_socket.sendall(client_data)
-
-                # Wait for the server's response and forward it to the client
-                server_response = server_socket.recv(4096)
-                client_socket.sendall(server_response)
+            # Wait for the server's response and forward it to the client
+            server_response = server_socket.recv(4096)
+            client_socket.sendall(server_response)
     except Exception as e:
         print("Error handling client: ", e)
     finally:
+        if server_socket:
+            server_socket.close()
         client_socket.close()
 
 # Main function to set up the MITM server
