@@ -1274,14 +1274,13 @@ static int handle_mitm_pre_routing(struct sk_buff *skb, packet_identifier_t pack
     if (dir == DIRECTION_IN){
         local_ip = (in_aton(FW_IN_IP));
         int ret = modify_packet(skb, NULL, NULL, local_ip, local_port);
-        printk(KERN_CRIT "MITM - Modifed CLI --> LOCAL:%d\n", local_port == PROT_HTTP ? 800: 210);
     } 
     // •	Server-to-client, inbound, pre-routing, we need to change the dest IP
     else { 
         local_ip = (in_aton(FW_OUT_IP));
         int ret = modify_packet(skb, NULL, NULL, local_ip, NULL);
-        printk(KERN_CRIT "MITM - Modifed CLI --> LOCAL:%d\n", local_port == PROT_HTTP ? 800: 210);
     }
+    printk(KERN_CRIT "MITM - Modifed CLI --> LOCAL:%d\n", ntohs(local_port));
     print_tcp_packet(skb);
     return 0;
 }
