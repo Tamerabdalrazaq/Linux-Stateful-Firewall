@@ -1453,7 +1453,8 @@ static unsigned int module_hook_local_out(void *priv, struct sk_buff *skb, const
     original_packet_identifier = get_original_packet_identifier(packet_identifier, dir);
 
 
-    if(tcp_data->src_port == htons(800) || tcp_data->dst_port == HTTP_PORT){
+    if(tcp_data->src_port == LOC_HTTP_PORT || tcp_data->dst_port == HTTP_PORT || 
+        tcp_data->src_port == LOC_FTP_PORT){
         // TESTING !!!
         printk(KERN_INFO "\n\n********************\n\n");
         printk(KERN_INFO "Packet @ LOCAL_OUT");
