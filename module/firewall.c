@@ -1341,7 +1341,6 @@ static void handle_tcp_pre_routing(struct sk_buff *skb, const struct nf_hook_sta
         pt_log_entry->action = NF_DROP;
         pt_log_entry->reason = REASON_MITM_ERR;
     }
-    print_connections_table();
 }
 
 static void hanlde_non_tcp_pre_routing(packet_identifier_t packet_identifier, log_row_t* log_entry, int *verdict,
@@ -1469,7 +1468,6 @@ static unsigned int module_hook_local_out(void *priv, struct sk_buff *skb, const
         handle_mitm_local_out(skb, original_packet_identifier, tcp_data, dir);
         printk(KERN_CRIT "\nMITM - Modifed @ local out to:\n");
         print_tcp_packet(skb);
-        print_connections_table();
     }
     return NF_ACCEPT;
 }
