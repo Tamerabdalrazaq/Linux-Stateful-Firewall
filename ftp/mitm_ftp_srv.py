@@ -3,7 +3,7 @@ import threading
 
 # Placeholder function to communicate with kernel drivers
 def communicate_with_kernel(port_command):
-    print(f"[Kernel Driver] Received PORT command: {port_command}")
+    print("[Kernel Driver] Received PORT command: ",port_command)
 
 # Handle client commands
 def handle_client(client_socket):
@@ -37,11 +37,11 @@ def start_ftp_server(host='0.0.0.0', port=21):
     server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     server.bind((host, port))
     server.listen(5)
-    print(f"[INFO] FTP Server running on {host}:{port}")
+    print("[INFO] FTP Server running on {}:{}".format(host, port))
 
     while True:
         client_socket, client_address = server.accept()
-        print(f"[INFO] New connection from {client_address}")
+        print("[INFO] New connection from {}".format(client_address))
 
         # Handle client in a separate thread
         client_handler = threading.Thread(target=handle_client, args=(client_socket,))
