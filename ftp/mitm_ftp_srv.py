@@ -33,7 +33,7 @@ def handle_client(client_socket):
     client_socket.close()
 
 # Main FTP server
-def start_ftp_server(host='0.0.0.0', port=21):
+def start_ftp_server(host='0.0.0.0', port=210):
     server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     server.bind((host, port))
     server.listen(5)
