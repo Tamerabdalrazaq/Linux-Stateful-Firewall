@@ -34,6 +34,12 @@ typedef enum {
 	PROT_ANY	= 143,
 } prot_t;
 
+// the protocols we will work with
+typedef enum {
+	PROT_HTTP   = 1;
+	PROT_FTP   = 1;
+} app_prot_t;
+
 
 // various reasons to be registered in each log entry
 typedef enum {
@@ -68,7 +74,9 @@ typedef enum {
 #define RULE_NUM_FIELDS	(9)
 #define IP_ANY 		    (htonl(0x00000000))
 #define HTTP_PORT 		    (htons(80))
+#define LOC_HTTP_PORT 		    (htons(800))
 #define FTP_PORT 		    (htons(21))
+#define LOC_FTP_PORT 		    (htons(210))
 
 // device minor numbers, for your convenience
 typedef enum {

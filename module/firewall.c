@@ -1266,9 +1266,9 @@ static int modify_packet(struct sk_buff *skb, __be32 saddr, __be16 sport, __be32
 }
 
 
-static int handle_mitm_pre_routing(struct sk_buff *skb, const struct nf_hook_state *state) {
+static int handle_mitm_pre_routing(struct sk_buff *skb, packet_identifier_t packet_identifier, const struct nf_hook_state *state, app_prot_t app_prot) {
     __be32 local_ip;
-    __be16 local_port = htons(800); // Set local port to 800
+    __be16 local_port = (app_prot == PROT_HTTP ? LOC_HTTP_PORT: LOC_FTP_PORT); 
     direction_t dir = get_direction_in(state);
     // •	Client-to-server, inbound, pre-routing, we need to change the dest IP and dest port
     if (dir == DIRECTION_IN){
@@ -1330,8 +1330,12 @@ static void handle_tcp_pre_routing(struct sk_buff *skb, const struct nf_hook_sta
     if(*pt_verdict && (packet_identifier.dst_port == (HTTP_PORT) || 
                       (packet_identifier.src_port == (HTTP_PORT) ))){
         printk(KERN_INFO "Handling an HTTP Packet ...");
-        ret = handle_mitm_pre_routing(skb, state);
+        ret = handle_mitm_pre_routing(skb, packet_identifier, state, HTTP_PORT);
+    } else if(*pt_verdict && (packet_identifier.dst_port == (FTP_PORT))){
+        printk(KERN_INFO "Handling an HTTP Packet ...");
+        ret = handle_mitm_pre_routing(skb, packet_identifier, state, FTP_PORT);
     }
+
     if(ret < 0) {
         printk(KERN_ERR "__ CHECKSUM ERROR. DROPPING __");
         *pt_verdict = NF_DROP;
@@ -1425,10 +1429,10 @@ static unsigned int module_hook_local_out(void *priv, struct sk_buff *skb, const
     struct iphdr *ip_header;
     struct tcphdr *tcph;
     tcp_data_t* tcp_data;
-    direction_t dir = get_direction_out(state);
     packet_identifier_t packet_identifier;
     packet_identifier_t* original_packet_identifier;
     log_row_t log_entry;
+    direction_t dir = get_direction_out(state);
 
     ip_header = ip_hdr(skb);
     if (!ip_header || !ip_header->protocol == PROT_TCP)
@@ -1503,11 +1507,6 @@ static unsigned int module_hook(void *priv, struct sk_buff *skb, const struct nf
 
     // Check for loopback packets (127.0.0.1/8)
     if ((ntohl(ip_header->saddr) & 0xFF000000) == 0x7F000000) {
-        printk(KERN_INFO "\nAccepting for 127.0.0.1\n");
-        return NF_ACCEPT; // Accept loopback packets without logging
-    }
-    // Check for loopback packets (127.0.0.1/8)
-    if ((ntohl(ip_header->daddr) & 0xFF000000) == 0x7F000000) {
         printk(KERN_INFO "\nAccepting for 127.0.0.1\n");
         return NF_ACCEPT; // Accept loopback packets without logging
     }
