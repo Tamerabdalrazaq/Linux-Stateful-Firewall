@@ -33,19 +33,43 @@ def find_destination(ip, port):
 
 
 
-
-# Placeholder for inspecting HTTP packets
+#block any HTTP response with content length greater than 100KB (102400 bytes) OR when content is encoded with GZIP
 def inspect_packet(http_packet):
     try:
-    # Decode the received data to a readable format
+        # Decode the received data to a readable format
         http_request = http_packet.decode('utf-8')
         
         # Print the GET request with all headers
         print("Received HTTP Request:")
         print(http_request)
-    except UnicodeDecodeError as e:
+        
+        # Check headers for content length and encoding
+        headers = http_request.split("\r\n")
+        
+        content_length = None
+        content_encoding = None
+
+        for header in headers:
+            if header.lower().startswith("content-length:"):
+                content_length = int(header.split(":")[1].strip())
+            elif header.lower().startswith("content-encoding:"):
+                content_encoding = header.split(":")[1].strip().lower()
+
+        # Block response based on criteria
+        if (content_length is not None and content_length > 102400):
+            reason = ("Blocking HTTP response: Content-Length is greater than 100KB or Content-Encoding is GZIP.")
+            return (False, reason)  # Block the packet
+        if (content_encoding == "gzip"):
+            reason = ("Blocking HTTP response: Content-Length is greater than 100KB or Content-Encoding is GZIP.")
+            return (False, reason)  # Block the packet
+
+
+        return (True, "")
+    except Exception as e:
         print("Failed to decode HTTP request: {}".format(e))
-    return True
+        return (False, e)
+
+    # Allow the packet if it doesn't meet the block criteria
 
 
 def update_mitm_process(client_address, mitm_port):
@@ -111,30 +135,26 @@ def start_mitm_server(listen_port):
 
                 if not data:
                     continue
-
-                # Inspect the HTTP packet
-                if inspect_packet(data):
-                    print("Packet passed inspection.")
-
                     # Retrieve original destination from connection table (stub for now)
-                    original_dest = find_destination(cli_ip, cli_port)  # This should query your sysfs device
+                original_dest = find_destination(cli_ip, cli_port)  # This should query your sysfs device
 
 
-                    if original_dest:
-                        # Forward to the original destination
-                        print("forwarding to: {}", original_dest)
-                        response = forward_to_destination(client_addr, original_dest, data)
+                if original_dest:
+                    # Forward to the original destination
+                    print("forwarding to: {}", original_dest)
+                    response = forward_to_destination(client_addr, original_dest, data)
 
-                        if response:
-                            # Send the response back to the client
+                    if response:
+                        verdict, reason = inspect_packet(response)
+                        # Send the response back to the client
+                        if verdict:
                             client_sock.sendall(response)
                         else:
-                            print("Failed to receive response from the original destination.")
+                            print("HTTP Response Did Not Pass Inspection: \n", reason)
                     else:
-                        print("Original destination not found.")
+                        print("Failed to receive response from the original destination.")
                 else:
-                    print("Packet failed inspection. Dropping.")
-
+                    print("Original destination not found.")
             except Exception as e:
                 print("Error handling connection: {}".format(e))
             finally:
