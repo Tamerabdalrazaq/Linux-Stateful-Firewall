@@ -524,7 +524,7 @@ static ssize_t modify_mitm_port(struct device *dev, struct device_attribute *att
 
     // Check if the input starts with '#'
     if (buf[0] == '#') {
-        printk(KERN_INFO "\n -- PORT COMMAND --\n")
+        printk(KERN_INFO "\n -- PORT COMMAND --\n");
         // Parse the input string according to the given format
         ret = sscanf(buf, "#%15[^,],%d,%15[^,],%d\n", cli_ip, &cli_port, srv_ip, &srv_port);
         if (ret != 4) { // Ensure all four values are parsed successfully
