@@ -994,7 +994,7 @@ static ssize_t modify_mitm_port(struct device *dev, struct device_attribute *att
     packet_identifier_t packet_identifier;
 
     char cli_ip[16], srv_ip[16]; // Buffers for IP addresses
-    int cli_port, srv_port;     // Variables for ports
+    int cli_port, srv_port, mitm_port;     // Variables for ports
     int ret;
 
     // Check if the input starts with '#'
@@ -1008,8 +1008,8 @@ static ssize_t modify_mitm_port(struct device *dev, struct device_attribute *att
         }
         packet_identifier.src_ip = ip_string_to_be32(cli_ip);
         packet_identifier.dst_ip = ip_string_to_be32(srv_ip);
-        packet_identifier.src_port = ip_string_to_be32(cli_port);
-        packet_identifier.dst_port = ip_string_to_be32(srv_port);
+        packet_identifier.src_port = htons(cli_port);
+        packet_identifier.dst_port = htons(srv_port);
         if(!initiate_connection(packet_identifier)){
                 printk(KERN_ERR "Connection could not be intiated");
                 return -EINVAL;
@@ -1034,9 +1034,9 @@ static ssize_t modify_mitm_port(struct device *dev, struct device_attribute *att
     cur = input;
     while ((token = strsep(&cur, ",")) != NULL) {
         if (i == 0)
-            src_ip = in_aton(token); // Convert IP string to __be32
+            cli_ip = ip_string_to_be32(token); // Convert IP string to __be32
         else if (i == 1)
-            src_port = htons(simple_strtoul(token, NULL, 10)); // Convert to __be16
+            cli_port = htons(simple_strtoul(token, NULL, 10)); // Convert to __be16
         else if (i == 2)
             mitm_port = htons(simple_strtoul(token, NULL, 10)); // Convert to __be16
         else
@@ -1054,12 +1054,12 @@ static ssize_t modify_mitm_port(struct device *dev, struct device_attribute *att
 
     while ((knode = klist_next(&iter))) {
         row = container_of(knode,  connection_rule_row, node);
-        if (row->connection_rule_cli.packet.src_ip == src_ip &&
-            row->connection_rule_cli.packet.src_port == src_port) {
+        if (row->connection_rule_cli.packet.src_ip == cli_ip &&
+            row->connection_rule_cli.packet.src_port == cli_port) {
             // Update the MITM port in the connection_rule_srv.packet
             row->connection_rule_srv.mitm_proc_port = mitm_port;
             pr_info("MITM port updated successfully: %pI4:%d -> %d\n",
-                    &src_ip, ntohs(src_port), ntohs(mitm_port));
+                    &cli_ip, ntohs(cli_port), ntohs(mitm_port));
             klist_iter_exit(&iter);
             return count; // Indicate success
         }
