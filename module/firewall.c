@@ -518,6 +518,29 @@ static ssize_t modify_mitm_port(struct device *dev, struct device_attribute *att
      connection_rule_row *row;
     int i = 0;
 
+        char cli_ip[16], srv_ip[16]; // Buffers for IP addresses
+    int cli_port, srv_port;     // Variables for ports
+    int ret;
+
+    // Check if the input starts with '#'
+    if (buf[0] == '#') {
+        printk(KERN_INFO "\n -- PORT COMMAND --\n")
+        // Parse the input string according to the given format
+        ret = sscanf(buf, "#%15[^,],%d,%15[^,],%d\n", cli_ip, &cli_port, srv_ip, &srv_port);
+        if (ret != 4) { // Ensure all four values are parsed successfully
+            pr_err("Invalid input format. Expected format: \"#{},{},{},{}\\n\"\n");
+            return -EINVAL; // Return error if parsing fails
+        }
+
+        // Log the parsed values to the kernel log
+        pr_info("Input starts with '#'. Parsed values:\n");
+        pr_info("Client IP: %s\n", cli_ip);
+        pr_info("Client Port: %d\n", cli_port);
+        pr_info("Server IP: %s\n", srv_ip);
+        pr_info("Server Port: %d\n", srv_port);
+        return count; // Indicate success
+    }
+
 
     // Copy input for parsing
     if (count >= sizeof(input)) {

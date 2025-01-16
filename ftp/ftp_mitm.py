@@ -5,9 +5,23 @@ import threading
 LISTEN_PORT = 210
 FTP_SERVER_HOST = '10.1.2.2'  # Replace with the actual FTP server IP or hostname
 FTP_SERVER_PORT = 21
+FTP_SERVER_PORT_ACTIVE = 20
 SYSFS_PATH_MITM = "/sys/class/fw/mitm/mitm"
 
-def update_mitm_process(client_address, mitm_port):
+def format_mitm_port_for_kernel(client_address, mitm_port):
+        client_ip, client_port = client_address
+        data_to_write = "{},{},{}\n".format(client_ip, client_port, mitm_port)
+        return data_to_write
+
+def format_new_conn_for_kernel(cli_addr, srv_addr):
+        cli_ip, cli_port = cli_addr
+        srv_ip, srv_port = srv_addr
+        data_to_write = "#{},{},{},{}\n".format(cli_ip, cli_port, srv_ip, srv_port)
+        return data_to_write
+
+
+
+def write_to_kernel(data_to_write,):
     """
     Updates the MITM process by writing the relevant data to the sysfs device.
 
@@ -15,8 +29,6 @@ def update_mitm_process(client_address, mitm_port):
     :param mitm_port: The port of the current MITM process
     """
     try:
-        client_ip, client_port = client_address
-        data_to_write = "{},{},{}\n".format(client_ip, client_port, mitm_port)
         with open(SYSFS_PATH_MITM, "w") as sysfs_file:
             sysfs_file.write(data_to_write)
         print("MITM process updated with: {}".format(data_to_write.strip()))
@@ -37,6 +49,31 @@ def handle_server_connection(client_socket, server_socket):
         server_socket.close()
         client_socket.close()
 
+def get_port_command(client_data):
+    if client_data.upper().startswith("PORT"):
+        try:
+            # Extract the arguments after the "PORT" command
+            args = client_data[5:].strip().split(",")
+            if len(args) == 6:
+                # Parse the IP address and port numbers
+                ip_address = ".".join(args[:4])
+                p1, p2 = int(args[4]), int(args[5])
+                port = (p1 * 256) + p2
+
+                # Print the extracted IP and port
+                print("PORT command received. IP: {}, Port: {}".format(ip_address, port))
+                return port
+            else:
+                print("Invalid PORT command format.")
+                return None
+        except ValueError:
+            print("Error parsing PORT command.")
+            return None
+
+
+def open_active_connection(srv_addr, cli_addr):
+    write_to_kernel(format_new_conn_for_kernel(cli_addr, srv_addr))
+
 # Function to handle client connections
 def handle_client(client_socket, client_address):
     server_socket = None
@@ -45,7 +82,7 @@ def handle_client(client_socket, client_address):
         server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         server_socket.bind(('0.0.0.0', 0))
         _, port = server_socket.getsockname()
-        update_mitm_process(client_address, port)
+        write_to_kernel(format_mitm_port_for_kernel(client_address, port))
         server_socket.connect((FTP_SERVER_HOST, FTP_SERVER_PORT))
 
         # Forward server's welcome message to the client
@@ -58,7 +95,10 @@ def handle_client(client_socket, client_address):
                 break
 
             print("Received from client: ", client_data.decode().strip())
-
+                # Check if the command is a PORT command
+            port = get_port_command(client_data)
+            if(port):
+                open_active_connection((FTP_SERVER_HOST, FTP_SERVER_PORT_ACTIVE), (client_address[0], port))
             # Forward all commands to the real server
             server_socket.sendall(client_data)
 
