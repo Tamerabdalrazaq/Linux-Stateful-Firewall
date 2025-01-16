@@ -827,8 +827,11 @@ static packet_identifier_t* get_original_packet_identifier(packet_identifier_t p
 
     // Cleanup iterator
     klist_iter_exit(&iter);
-    if (!original_packet) 
+    if (!original_packet) {
         printk(KERN_ERR "Original packet not found");
+        print_connections_table();
+        print_packet_identifier(&packet_identifier_local_out);
+    }
     return original_packet;
 }
 
