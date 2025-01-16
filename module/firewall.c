@@ -1254,17 +1254,25 @@ static void tcp_handle_ack(packet_identifier_t packet_identifier, log_row_t* pt_
         pt_log_entry->action = NF_DROP;
         pt_log_entry->reason = REASON_NO_CONNECTION;   
         *pt_verdict = NF_DROP;
-    } else {
-        printk (KERN_INFO "Connection found. Comparing agains TCP state machine.\n");
-        // **** TESTING!!
+        return;
+    } 
+
+    // Skipping the FTP active connetion syn packet
+    if (syn == SYN_YES && ack == ACK_NO){
         *pt_verdict = NF_ACCEPT;
-        // *pt_verdict = handle_tcp_state_machine(packet_identifier, found_connection, syn, ACK_YES, rst, fin);
-        if (*pt_verdict)
-            pt_log_entry->reason = REASON_VALID_CONNECTION;   
-        else
-            pt_log_entry->reason = REASON_INVALID_CONNECTION;   
-        pt_log_entry->action = *pt_verdict;
+        return;
     }
+
+
+    printk (KERN_INFO "Connection found. Comparing agains TCP state machine.\n");
+    // **** TESTING!!
+    *pt_verdict = handle_tcp_state_machine(packet_identifier, found_connection, syn, ack, rst, fin);
+    *pt_verdict = NF_ACCEPT;
+    if (*pt_verdict)
+        pt_log_entry->reason = REASON_VALID_CONNECTION;   
+    else
+        pt_log_entry->reason = REASON_INVALID_CONNECTION;   
+    pt_log_entry->action = *pt_verdict;
 }
 
 static void handle_new_connection(packet_identifier_t packet_identifier, log_row_t* pt_log_entry, 
