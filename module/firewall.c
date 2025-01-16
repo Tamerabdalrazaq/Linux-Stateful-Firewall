@@ -550,7 +550,7 @@ static ssize_t modify_mitm_port(struct device *dev, struct device_attribute *att
         packet_identifier.src_ip = ip_string_to_be32(cli_ip);
         packet_identifier.dst_ip = ip_string_to_be32(srv_ip);
         packet_identifier.src_port = ip_string_to_be32(cli_port);
-        packet_identifier.dst_port = ip_string_to_be32(dst_port);
+        packet_identifier.dst_port = ip_string_to_be32(srv_port);
         initiate_connection(packet_identifier);
         pr_info("Client IP: %s\n", cli_ip);
         pr_info("Client Port: %d\n", cli_port);
