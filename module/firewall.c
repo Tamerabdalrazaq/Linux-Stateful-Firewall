@@ -1319,7 +1319,7 @@ static void handle_tcp_pre_routing(struct sk_buff *skb, const struct nf_hook_sta
                        packet_identifier_t packet_identifier, log_row_t* pt_log_entry, int *pt_verdict,
                         __u8 syn, __u8 ack, __u8 rst, __u8 fin, direction_t direction) {
     int ret = 0;
-    if (ack == ACK_NO)
+    if (syn == SYN_YES && ack == ACK_NO)
         tcp_handle_syn(packet_identifier, pt_log_entry, pt_verdict, ack, direction);
         if (*pt_verdict)
             handle_new_connection(packet_identifier, pt_log_entry, pt_verdict);
@@ -1330,7 +1330,8 @@ static void handle_tcp_pre_routing(struct sk_buff *skb, const struct nf_hook_sta
                       (packet_identifier.src_port == (HTTP_PORT) ))){
         printk(KERN_INFO "Handling an HTTP Packet ...");
         ret = handle_mitm_pre_routing(skb, packet_identifier, state, PROT_HTTP);
-    } else if(*pt_verdict && (packet_identifier.dst_port == (FTP_PORT))){
+    } else if(*pt_verdict && (packet_identifier.dst_port == (FTP_PORT)) || 
+                      (packet_identifier.src_port == (FTP_PORT) ) ){
         printk(KERN_INFO "Handling an FTP Packet ...");
         ret = handle_mitm_pre_routing(skb, packet_identifier, state, PROT_FTP);
     }
