@@ -77,6 +77,7 @@ typedef enum {
 #define LOC_HTTP_PORT 		    (htons(800))
 #define FTP_PORT 		    (htons(21))
 #define LOC_FTP_PORT 		    (htons(210))
+#define CONN_FTP_PORT 		    (htons(20))
 
 // device minor numbers, for your convenience
 typedef enum {
