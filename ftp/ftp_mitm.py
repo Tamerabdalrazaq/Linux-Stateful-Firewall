@@ -50,7 +50,7 @@ def handle_server_connection(client_socket, server_socket):
         client_socket.close()
 
 def get_port_command(client_data):
-    if client_data.upper().startswith(b"PORT"):
+    if client_data.decode('utf-8').upper().startswith("PORT"):
         try:
             # Extract the arguments after the "PORT" command
             args = client_data[5:].strip().split(",")
