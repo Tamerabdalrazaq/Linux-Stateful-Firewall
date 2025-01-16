@@ -109,13 +109,6 @@ void print_tcp_packet(struct sk_buff *skb) {
     pr_cont("]\n");
 }
 
-static direction_t get_direction_incoming(const struct nf_hook_state *state) {
-    return strcmp(state->in->name, IN_NET_DEVICE_NAME) == 0 ? DIRECTION_IN : DIRECTION_OUT;
-}
-
-static direction_t get_direction_outgoing(const struct nf_hook_state *state) {
-    return strcmp(state->out->name, IN_NET_DEVICE_NAME) == 0 ? DIRECTION_OUT : DIRECTION_IN;
-}
 
 void print_tcp_data(const tcp_data_t *data) {
     if (!data) {
@@ -150,6 +143,30 @@ static void print_packet_identifier(const packet_identifier_t *pkt)
     printk(KERN_INFO "  Destination Port: %u\n", ntohs(pkt->dst_port));
 }
 
+static direction_t get_direction_incoming(const struct nf_hook_state *state) {
+    return strcmp(state->in->name, IN_NET_DEVICE_NAME) == 0 ? DIRECTION_IN : DIRECTION_OUT;
+}
+
+static direction_t get_direction_outgoing(const struct nf_hook_state *state) {
+    return strcmp(state->out->name, IN_NET_DEVICE_NAME) == 0 ? DIRECTION_OUT : DIRECTION_IN;
+}
+
+static __be32 ip_string_to_be32(const char *ip_string)
+{
+    __be32 ip_32be = 0; // Initialize to 0 (error indicator)
+
+    if (!ip_string || ip_string[0] == '\0') {
+        pr_err("ip_string_to_be32: Invalid input (NULL or empty string).\n");
+        return 0; // Return 0 to indicate an error
+    }
+
+    if (!in4_pton(ip_string, -1, (u8 *)&ip_32be, '\0', NULL)) {
+        pr_err("ip_string_to_be32: Failed to parse IP string: %s\n", ip_string);
+        return 0; // Return 0 to indicate an error
+    }
+
+    return ip_32be; // Return the converted __be32 value
+}
 
 static log_row_t init_log_entry(packet_identifier_t packet_identifier, __u8 protocol) {
 	log_row_t log_entry;
@@ -511,29 +528,30 @@ ssize_t read_logs(struct file *filp, char __user *user_buf, size_t count, loff_t
 static ssize_t modify_mitm_port(struct device *dev, struct device_attribute *attr, const char *buf, size_t count) {
     char input[64]; // Buffer for user input
     char *token, *cur;
-    __be32 src_ip;
-    __be16 src_port, mitm_port;
     struct klist_iter iter;
     struct klist_node *knode;
      connection_rule_row *row;
     int i = 0;
+    packet_identifier_t packet_identifier;
 
-        char cli_ip[16], srv_ip[16]; // Buffers for IP addresses
+    char cli_ip[16], srv_ip[16]; // Buffers for IP addresses
     int cli_port, srv_port;     // Variables for ports
     int ret;
 
     // Check if the input starts with '#'
     if (buf[0] == '#') {
-        printk(KERN_INFO "\n -- PORT COMMAND --\n");
+        printk(KERN_INFO "\n\n -- PORT COMMAND --\n");
         // Parse the input string according to the given format
         ret = sscanf(buf, "#%15[^,],%d,%15[^,],%d\n", cli_ip, &cli_port, srv_ip, &srv_port);
         if (ret != 4) { // Ensure all four values are parsed successfully
             pr_err("Invalid input format. Expected format: \"#{},{},{},{}\\n\"\n");
             return -EINVAL; // Return error if parsing fails
         }
-
-        // Log the parsed values to the kernel log
-        pr_info("Input starts with '#'. Parsed values:\n");
+        packet_identifier.src_ip = ip_string_to_be32(cli_ip);
+        packet_identifier.dst_ip = ip_string_to_be32(srv_ip);
+        packet_identifier.src_port = ip_string_to_be32(cli_port);
+        packet_identifier.dst_port = ip_string_to_be32(dst_port);
+        initiate_connection(packet_identifier);
         pr_info("Client IP: %s\n", cli_ip);
         pr_info("Client Port: %d\n", cli_port);
         pr_info("Server IP: %s\n", srv_ip);
@@ -1209,7 +1227,7 @@ static void tcp_handle_syn(packet_identifier_t packet_identifier, log_row_t* pt_
         *pt_verdict = NF_DROP;
         return;
     }
-    
+
     found_rule_index = comp_packet_to_static_rules(packet_identifier, PROT_TCP, ACK_NO, direction);
     if (found_rule_index >= 0) {
         pt_log_entry->action = FW_RULES[found_rule_index].action;      
