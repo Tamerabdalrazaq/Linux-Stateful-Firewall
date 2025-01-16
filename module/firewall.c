@@ -1248,7 +1248,7 @@ static void tcp_handle_syn(packet_identifier_t packet_identifier, log_row_t* pt_
 }
 
 static void tcp_handle_ack(packet_identifier_t packet_identifier, log_row_t* pt_log_entry, int *pt_verdict,
-                            __u8 syn, __u8 rst, __u8 fin) {
+                            __u8 syn, __u8 ack, __u8 rst, __u8 fin) {
      connection_rule_row* found_connection = find_connection_row(packet_identifier);
     printk(KERN_INFO "**Handling a dynamic packet..");
     // TESTING with the || (srv->cli syn packet) !!!! modify it by checking the LOCAL_PROC_PORT
@@ -1375,12 +1375,17 @@ static void handle_tcp_pre_routing(struct sk_buff *skb, const struct nf_hook_sta
                        packet_identifier_t packet_identifier, log_row_t* pt_log_entry, int *pt_verdict,
                         __u8 syn, __u8 ack, __u8 rst, __u8 fin, direction_t direction) {
     int ret = 0;
-    if (syn == SYN_YES && ack == ACK_NO)
-        tcp_handle_syn(packet_identifier, pt_log_entry, pt_verdict, ack, direction);
-        if (*pt_verdict)
-            handle_new_connection(packet_identifier, pt_log_entry, pt_verdict);
-    else 
-        tcp_handle_ack(packet_identifier, pt_log_entry, pt_verdict, syn, rst, fin);
+    if (syn == SYN_YES && ack == ACK_NO){
+        if(direction == DIRECTION_OUT && packet_identifier.src_port == CONN_FTP_PORT)
+            tcp_handle_ack(packet_identifier, pt_log_entry, pt_verdict, syn, ack, rst, fin);
+        else {
+            tcp_handle_syn(packet_identifier, pt_log_entry, pt_verdict, ack, direction);
+            if (*pt_verdict)
+                handle_new_connection(packet_identifier, pt_log_entry, pt_verdict);
+        }
+        
+    } else 
+        tcp_handle_ack(packet_identifier, pt_log_entry, pt_verdict, syn, ack, rst, fin);
     
 
     // Proxy stuff 
