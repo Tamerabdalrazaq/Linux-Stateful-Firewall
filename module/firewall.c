@@ -996,6 +996,7 @@ static ssize_t modify_mitm_port(struct device *dev, struct device_attribute *att
     char cli_ip[16], srv_ip[16]; // Buffers for IP addresses
     int cli_port, srv_port, mitm_port;     // Variables for ports
     int ret;
+    __be32 src_ip;
 
     // Check if the input starts with '#'
     if (buf[0] == '#') {
@@ -1034,7 +1035,7 @@ static ssize_t modify_mitm_port(struct device *dev, struct device_attribute *att
     cur = input;
     while ((token = strsep(&cur, ",")) != NULL) {
         if (i == 0)
-            cli_ip = ip_string_to_be32(token); // Convert IP string to __be32
+            src_ip = ip_string_to_be32(token); // Convert IP string to __be32
         else if (i == 1)
             cli_port = htons(simple_strtoul(token, NULL, 10)); // Convert to __be16
         else if (i == 2)
@@ -1054,19 +1055,19 @@ static ssize_t modify_mitm_port(struct device *dev, struct device_attribute *att
 
     while ((knode = klist_next(&iter))) {
         row = container_of(knode,  connection_rule_row, node);
-        if (row->connection_rule_cli.packet.src_ip == cli_ip &&
+        if (row->connection_rule_cli.packet.src_ip == src_ip &&
             row->connection_rule_cli.packet.src_port == cli_port) {
             // Update the MITM port in the connection_rule_srv.packet
             row->connection_rule_srv.mitm_proc_port = mitm_port;
             pr_info("MITM port updated successfully: %pI4:%d -> %d\n",
-                    &cli_ip, ntohs(cli_port), ntohs(mitm_port));
+                    &src_ip, ntohs(cli_port), ntohs(mitm_port));
             klist_iter_exit(&iter);
             return count; // Indicate success
         }
     }
 
     klist_iter_exit(&iter);
-    pr_err("No matching connection rule found for: %pI4:%d\n", &src_ip, ntohs(src_port));
+    pr_err("No matching connection rule found for: %pI4:%d\n", &src_ip, ntohs(srv_ip));
     return -ENOENT; // No entry found
 }
 
