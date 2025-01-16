@@ -77,38 +77,58 @@ def get_port_command(client_data):
 def open_active_connection(srv_addr, cli_addr):
     write_to_kernel(format_new_conn_for_kernel(cli_addr, srv_addr))
 
-def forward_data(source, destination, direction):
-    try:
-        while True:
-            data = source.recv(4096)
-            if not data:
-                break
-            print("[{}] {data.decode().strip()}".format(direction))
-            destination.sendall(data)
-    except Exception as e:
-        print("Error in {} forwarding: {}".format(direction, e))
-    finally:
-        source.close()
-        destination.close()
+
+def forward_cli_srv(client_socket, server_socket, client_address):
+    while True:
+        # Receive data from client
+        client_data = client_socket.recv(4096)
+        if not client_data:
+            break
+
+        print("Received from client: ", client_data.decode().strip())
+            # Check if the command is a PORT command
+        port = get_port_command(client_data)
+        if(port):
+            open_active_connection((FTP_SERVER_HOST, FTP_SERVER_PORT_ACTIVE), (client_address[0], port))
+        # Forward all commands to the real server
+        server_socket.sendall(client_data)
+
+        # Wait for the server's response and forward it to the client
+        server_response = server_socket.recv(4096)
+        client_socket.sendall(server_response)
+
+def forward_srv_cli(client_socket, server_socket, client_address):
+    while True:
+        # Receive data from client
+        client_data = client_socket.recv(4096)
+        if not client_data:
+            break
+        print("Received from server: ", client_data.decode().strip())
+            # Check if the command is a PORT command
+        server_socket.sendall(client_data)
+        server_response = server_socket.recv(4096)
+        client_socket.sendall(server_response)
 
 def handle_client(client_socket, client_address):
     server_socket = None
     try:
         # Connect to the actual FTP server
         server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        server_socket.bind(('0.0.0.0', 0))
+        _, port = server_socket.getsockname()
+        write_to_kernel(format_mitm_port_for_kernel(client_address, port))
         server_socket.connect((FTP_SERVER_HOST, FTP_SERVER_PORT))
 
         # Forward server's welcome message to the client
         client_socket.sendall(server_socket.recv(4096))
 
-        # Start threads for bidirectional communication
         client_to_server_thread = threading.Thread(
-            target=forward_data, 
-            args=(client_socket, server_socket, "Client -> Server")
+            target=forward_cli_srv, 
+            args=(client_socket, server_socket)
         )
         server_to_client_thread = threading.Thread(
-            target=forward_data, 
-            args=(server_socket, client_socket, "Server -> Client")
+            target=forward_srv_cli, 
+            args=(server_socket, client_socket)
         )
 
         client_to_server_thread.start()
