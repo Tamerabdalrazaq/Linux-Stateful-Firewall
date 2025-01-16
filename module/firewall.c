@@ -109,11 +109,11 @@ void print_tcp_packet(struct sk_buff *skb) {
     pr_cont("]\n");
 }
 
-static direction_t get_direction_in(const struct nf_hook_state *state) {
+static direction_t get_direction_incoming(const struct nf_hook_state *state) {
     return strcmp(state->in->name, IN_NET_DEVICE_NAME) == 0 ? DIRECTION_IN : DIRECTION_OUT;
 }
 
-static direction_t get_direction_out(const struct nf_hook_state *state) {
+static direction_t get_direction_outgoing(const struct nf_hook_state *state) {
     return strcmp(state->out->name, IN_NET_DEVICE_NAME) == 0 ? DIRECTION_OUT : DIRECTION_IN;
 }
 
@@ -1204,6 +1204,12 @@ static void tcp_handle_syn(packet_identifier_t packet_identifier, log_row_t* pt_
                            __u8 syn, direction_t direction) {
     int found_rule_index;
     printk(KERN_INFO "TCP packet with ack = 0");
+    if(direction == DIRECTION_OUT) {
+        printk(KERN_INFO "Suspicious outbound syn - DROPPING");
+        *pt_verdict = NF_DROP;
+        return;
+    }
+    
     found_rule_index = comp_packet_to_static_rules(packet_identifier, PROT_TCP, ACK_NO, direction);
     if (found_rule_index >= 0) {
         pt_log_entry->action = FW_RULES[found_rule_index].action;      
@@ -1295,7 +1301,7 @@ static int modify_packet(struct sk_buff *skb, __be32 saddr, __be16 sport, __be32
 static int handle_mitm_pre_routing(struct sk_buff *skb, packet_identifier_t packet_identifier, const struct nf_hook_state *state, app_prot_t app_prot) {
     __be32 local_ip;
     __be16 local_port = (app_prot == PROT_HTTP ? LOC_HTTP_PORT: LOC_FTP_PORT); 
-    direction_t dir = get_direction_in(state);
+    direction_t dir = get_direction_incoming(state);
     // •	Client-to-server, inbound, pre-routing, we need to change the dest IP and dest port
     if (dir == DIRECTION_IN){
         local_ip = (in_aton(FW_IN_IP));
@@ -1352,6 +1358,9 @@ static void handle_tcp_pre_routing(struct sk_buff *skb, const struct nf_hook_sta
     else 
         tcp_handle_ack(packet_identifier, pt_log_entry, pt_verdict, syn, rst, fin);
     
+
+    // Proxy stuff 
+
     if(*pt_verdict && (packet_identifier.dst_port == (HTTP_PORT) || 
                       (packet_identifier.src_port == (HTTP_PORT) ))){
         printk(KERN_INFO "Handling an HTTP Packet ...");
@@ -1399,7 +1408,7 @@ static int get_packet_verdict_pre_routing(struct sk_buff *skb, const struct nf_h
     int verdict = NF_DROP;
 
     memset(&log_entry, 0, sizeof(log_row_t)); // Initialize to zero
-    direction = get_direction_in(state);
+    direction = get_direction_incoming(state);
 
     ip_header = ip_hdr(skb);
     if (!ip_header){
@@ -1458,7 +1467,7 @@ static unsigned int module_hook_local_out(void *priv, struct sk_buff *skb, const
     packet_identifier_t packet_identifier;
     packet_identifier_t* original_packet_identifier;
     log_row_t log_entry;
-    direction_t dir = get_direction_out(state);
+    direction_t dir = get_direction_outgoing(state);
 
     ip_header = ip_hdr(skb);
     if (!ip_header || !ip_header->protocol == PROT_TCP)
