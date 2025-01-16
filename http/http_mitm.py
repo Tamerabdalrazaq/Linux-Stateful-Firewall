@@ -9,10 +9,10 @@ SYSFS_PATH_MITM = "/sys/class/fw/mitm/mitm"
 def get_error_respons(reason):
         return  "HTTP/1.1 400 Bad Request\r\n" \
                     "Content-Type: text/plain\r\n" \
-                    "Content-Length: {len()}\r\n" \
+                    "Content-Length: {}\r\n" \
                     "Connection: close\r\n" \
                     "\r\n" \
-                    "{}".format(reason,reason)
+                    "{}".format(len(reason),reason)
             
 
 
@@ -67,10 +67,10 @@ def inspect_packet(http_packet):
 
         # Block response based on criteria
         if (content_length is not None and content_length > 102400):
-            reason = ("Blocking HTTP response: Content-Length is greater than 100KB or Content-Encoding is GZIP.")
+            reason = ("Blocking HTTP response: Content-Length is greater than 100KB")
             return (False, reason)  # Block the packet
         if (content_encoding == "gzip"):
-            reason = ("Blocking HTTP response: Content-Length is greater than 100KB or Content-Encoding is GZIP.")
+            reason = ("Blocking HTTP response: Content-Encoding is GZIP.")
             return (False, reason)  # Block the packet
 
 
