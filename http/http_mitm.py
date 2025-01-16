@@ -8,11 +8,11 @@ SYSFS_PATH_MITM = "/sys/class/fw/mitm/mitm"
 
 def get_error_respons(reason):
         return  "HTTP/1.1 400 Bad Request\r\n" \
-                    f"Content-Type: text/plain\r\n" \
-                    f"Content-Length: {len()}\r\n" \
-                    f"Connection: close\r\n" \
-                    f"\r\n" \
-                    f"{}".format(reason,reason)
+                    "Content-Type: text/plain\r\n" \
+                    "Content-Length: {len()}\r\n" \
+                    "Connection: close\r\n" \
+                    "\r\n" \
+                    "{}".format(reason,reason)
             
 
 
