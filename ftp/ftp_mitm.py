@@ -33,8 +33,10 @@ def write_to_kernel(data_to_write,):
         with open(SYSFS_PATH_MITM, "w") as sysfs_file:
             sysfs_file.write(data_to_write)
         print("MITM process updated with: {}".format(data_to_write.strip()))
+        return 0
     except Exception as e:
         print("Error updating MITM process: {}".format(e))
+        return -1
 
 # Function to handle communication with the actual FTP server
 def handle_server_connection(client_socket, server_socket):
@@ -75,7 +77,7 @@ def get_port_command(client_data):
 
 
 def open_active_connection(srv_addr, cli_addr):
-    write_to_kernel(format_new_conn_for_kernel(cli_addr, srv_addr))
+    return write_to_kernel(format_new_conn_for_kernel(cli_addr, srv_addr))
 
 
 def forward_cli_srv(client_socket, server_socket, client_address):
@@ -89,8 +91,12 @@ def forward_cli_srv(client_socket, server_socket, client_address):
             # Check if the command is a PORT command
         port = get_port_command(client_data)
         if(port):
-            open_active_connection((FTP_SERVER_HOST, FTP_SERVER_PORT_ACTIVE), (client_address[0], port))
-        # Forward all commands to the real server
+            ret = open_active_connection((FTP_SERVER_HOST, FTP_SERVER_PORT_ACTIVE), (client_address[0], port))
+            if ret < 0:
+                error_message = "425 Can't open data connection\r\n"
+                client_socket.sendall(error_message.encode())
+                continue
+
         server_socket.sendall(client_data)
 
 def forward_srv_cli(client_socket, server_socket):

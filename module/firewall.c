@@ -551,7 +551,10 @@ static ssize_t modify_mitm_port(struct device *dev, struct device_attribute *att
         packet_identifier.dst_ip = ip_string_to_be32(srv_ip);
         packet_identifier.src_port = ip_string_to_be32(cli_port);
         packet_identifier.dst_port = ip_string_to_be32(srv_port);
-        initiate_connection(packet_identifier);
+        if(!initiate_connection(packet_identifier)){
+                printk(KERN_ERR "Connection could not be intiated");
+                return -EINVAL;
+        } 
         pr_info("Client IP: %s\n", cli_ip);
         pr_info("Client Port: %d\n", cli_port);
         pr_info("Server IP: %s\n", srv_ip);
