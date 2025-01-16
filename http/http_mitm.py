@@ -6,6 +6,16 @@ import sys
 SYSFS_PATH_CONNS = "/sys/class/fw/conns/conns"
 SYSFS_PATH_MITM = "/sys/class/fw/mitm/mitm"
 
+def get_error_respons(reason):
+        return  "HTTP/1.1 400 Bad Request\r\n" \
+                    f"Content-Type: text/plain\r\n" \
+                    f"Content-Length: {len()}\r\n" \
+                    f"Connection: close\r\n" \
+                    f"\r\n" \
+                    f"{}".format(reason,reason)
+            
+
+
 def find_destination(ip, port):
     try:
         # Read the file content
@@ -151,6 +161,7 @@ def start_mitm_server(listen_port):
                             client_sock.sendall(response)
                         else:
                             print("HTTP Response Did Not Pass Inspection: \n", reason)
+                            client_sock.sendall(get_error_respons(reason).encode())
                     else:
                         print("Failed to receive response from the original destination.")
                 else:
