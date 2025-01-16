@@ -93,10 +93,6 @@ def forward_cli_srv(client_socket, server_socket, client_address):
         # Forward all commands to the real server
         server_socket.sendall(client_data)
 
-        # Wait for the server's response and forward it to the client
-        server_response = server_socket.recv(4096)
-        client_socket.sendall(server_response)
-
 def forward_srv_cli(client_socket, server_socket):
     while True:
         # Receive data from client
@@ -106,8 +102,6 @@ def forward_srv_cli(client_socket, server_socket):
         print("Received from server: ", client_data.decode().strip())
             # Check if the command is a PORT command
         server_socket.sendall(client_data)
-        server_response = server_socket.recv(4096)
-        client_socket.sendall(server_response)
 
 def handle_client(client_socket, client_address):
     server_socket = None
