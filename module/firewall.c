@@ -1015,7 +1015,7 @@ static ssize_t modify_mitm_port(struct device *dev, struct device_attribute *att
                 printk(KERN_ERR "Connection could not be intiated");
                 return -EINVAL;
         } 
-        print_packet_identifier(packet_identifier);
+        print_packet_identifier(&packet_identifier);
         return count; // Indicate success
     }
 
