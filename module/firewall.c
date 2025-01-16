@@ -525,92 +525,6 @@ ssize_t read_logs(struct file *filp, char __user *user_buf, size_t count, loff_t
     return written;
 }
 
-static ssize_t modify_mitm_port(struct device *dev, struct device_attribute *attr, const char *buf, size_t count) {
-    char input[64]; // Buffer for user input
-    char *token, *cur;
-    struct klist_iter iter;
-    struct klist_node *knode;
-     connection_rule_row *row;
-    int i = 0;
-    packet_identifier_t packet_identifier;
-
-    char cli_ip[16], srv_ip[16]; // Buffers for IP addresses
-    int cli_port, srv_port;     // Variables for ports
-    int ret;
-
-    // Check if the input starts with '#'
-    if (buf[0] == '#') {
-        printk(KERN_INFO "\n\n -- PORT COMMAND --\n");
-        // Parse the input string according to the given format
-        ret = sscanf(buf, "#%15[^,],%d,%15[^,],%d\n", cli_ip, &cli_port, srv_ip, &srv_port);
-        if (ret != 4) { // Ensure all four values are parsed successfully
-            pr_err("Invalid input format. Expected format: \"#{},{},{},{}\\n\"\n");
-            return -EINVAL; // Return error if parsing fails
-        }
-        packet_identifier.src_ip = ip_string_to_be32(cli_ip);
-        packet_identifier.dst_ip = ip_string_to_be32(srv_ip);
-        packet_identifier.src_port = ip_string_to_be32(cli_port);
-        packet_identifier.dst_port = ip_string_to_be32(srv_port);
-        if(!initiate_connection(packet_identifier)){
-                printk(KERN_ERR "Connection could not be intiated");
-                return -EINVAL;
-        } 
-        pr_info("Client IP: %s\n", cli_ip);
-        pr_info("Client Port: %d\n", cli_port);
-        pr_info("Server IP: %s\n", srv_ip);
-        pr_info("Server Port: %d\n", srv_port);
-        return count; // Indicate success
-    }
-
-
-    // Copy input for parsing
-    if (count >= sizeof(input)) {
-        pr_err("Input too long\n");
-        return -EINVAL;
-    }
-    strncpy(input, buf, count);
-    input[count] = '\0';
-
-    // Parse user input
-    cur = input;
-    while ((token = strsep(&cur, ",")) != NULL) {
-        if (i == 0)
-            src_ip = in_aton(token); // Convert IP string to __be32
-        else if (i == 1)
-            src_port = htons(simple_strtoul(token, NULL, 10)); // Convert to __be16
-        else if (i == 2)
-            mitm_port = htons(simple_strtoul(token, NULL, 10)); // Convert to __be16
-        else
-            break;
-        i++;
-    }
-
-    if (i != 3) {
-        pr_err("Invalid input format. Expected: <src_ip>,<src_port>,<mitm_port>\n");
-        return -EINVAL;
-    }
-
-    // Search for the matching rule in the connection table
-    klist_iter_init(&connections_table, &iter);
-
-    while ((knode = klist_next(&iter))) {
-        row = container_of(knode,  connection_rule_row, node);
-        if (row->connection_rule_cli.packet.src_ip == src_ip &&
-            row->connection_rule_cli.packet.src_port == src_port) {
-            // Update the MITM port in the connection_rule_srv.packet
-            row->connection_rule_srv.mitm_proc_port = mitm_port;
-            pr_info("MITM port updated successfully: %pI4:%d -> %d\n",
-                    &src_ip, ntohs(src_port), ntohs(mitm_port));
-            klist_iter_exit(&iter);
-            return count; // Indicate success
-        }
-    }
-
-    klist_iter_exit(&iter);
-    pr_err("No matching connection rule found for: %pI4:%d\n", &src_ip, ntohs(src_port));
-    return -ENOENT; // No entry found
-}
-
 void print_packet_logs(void) {
     struct klist_iter iter;
     struct klist_node *knode;
@@ -1068,6 +982,94 @@ static int comp_packet_to_static_rules(packet_identifier_t packet_identifier, __
     }
     return -1;
 } 
+
+
+static ssize_t modify_mitm_port(struct device *dev, struct device_attribute *attr, const char *buf, size_t count) {
+    char input[64]; // Buffer for user input
+    char *token, *cur;
+    struct klist_iter iter;
+    struct klist_node *knode;
+     connection_rule_row *row;
+    int i = 0;
+    packet_identifier_t packet_identifier;
+
+    char cli_ip[16], srv_ip[16]; // Buffers for IP addresses
+    int cli_port, srv_port;     // Variables for ports
+    int ret;
+
+    // Check if the input starts with '#'
+    if (buf[0] == '#') {
+        printk(KERN_INFO "\n\n -- PORT COMMAND --\n");
+        // Parse the input string according to the given format
+        ret = sscanf(buf, "#%15[^,],%d,%15[^,],%d\n", cli_ip, &cli_port, srv_ip, &srv_port);
+        if (ret != 4) { // Ensure all four values are parsed successfully
+            pr_err("Invalid input format. Expected format: \"#{},{},{},{}\\n\"\n");
+            return -EINVAL; // Return error if parsing fails
+        }
+        packet_identifier.src_ip = ip_string_to_be32(cli_ip);
+        packet_identifier.dst_ip = ip_string_to_be32(srv_ip);
+        packet_identifier.src_port = ip_string_to_be32(cli_port);
+        packet_identifier.dst_port = ip_string_to_be32(srv_port);
+        if(!initiate_connection(packet_identifier)){
+                printk(KERN_ERR "Connection could not be intiated");
+                return -EINVAL;
+        } 
+        pr_info("Client IP: %s\n", cli_ip);
+        pr_info("Client Port: %d\n", cli_port);
+        pr_info("Server IP: %s\n", srv_ip);
+        pr_info("Server Port: %d\n", srv_port);
+        return count; // Indicate success
+    }
+
+
+    // Copy input for parsing
+    if (count >= sizeof(input)) {
+        pr_err("Input too long\n");
+        return -EINVAL;
+    }
+    strncpy(input, buf, count);
+    input[count] = '\0';
+
+    // Parse user input
+    cur = input;
+    while ((token = strsep(&cur, ",")) != NULL) {
+        if (i == 0)
+            src_ip = in_aton(token); // Convert IP string to __be32
+        else if (i == 1)
+            src_port = htons(simple_strtoul(token, NULL, 10)); // Convert to __be16
+        else if (i == 2)
+            mitm_port = htons(simple_strtoul(token, NULL, 10)); // Convert to __be16
+        else
+            break;
+        i++;
+    }
+
+    if (i != 3) {
+        pr_err("Invalid input format. Expected: <src_ip>,<src_port>,<mitm_port>\n");
+        return -EINVAL;
+    }
+
+    // Search for the matching rule in the connection table
+    klist_iter_init(&connections_table, &iter);
+
+    while ((knode = klist_next(&iter))) {
+        row = container_of(knode,  connection_rule_row, node);
+        if (row->connection_rule_cli.packet.src_ip == src_ip &&
+            row->connection_rule_cli.packet.src_port == src_port) {
+            // Update the MITM port in the connection_rule_srv.packet
+            row->connection_rule_srv.mitm_proc_port = mitm_port;
+            pr_info("MITM port updated successfully: %pI4:%d -> %d\n",
+                    &src_ip, ntohs(src_port), ntohs(mitm_port));
+            klist_iter_exit(&iter);
+            return count; // Indicate success
+        }
+    }
+
+    klist_iter_exit(&iter);
+    pr_err("No matching connection rule found for: %pI4:%d\n", &src_ip, ntohs(src_port));
+    return -ENOENT; // No entry found
+}
+
 
 
 static int handle_fin_state( connection_rule_row* connection, connection_rule_t* rule, 
