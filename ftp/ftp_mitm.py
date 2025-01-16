@@ -82,44 +82,38 @@ def handle_client(client_socket, client_address):
     try:
         # Connect to the actual FTP server
         server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        server_socket.bind(('0.0.0.0', 0))
+        _, port = server_socket.getsockname()
+        write_to_kernel(format_mitm_port_for_kernel(client_address, port))
         server_socket.connect((FTP_SERVER_HOST, FTP_SERVER_PORT))
 
         # Forward server's welcome message to the client
         client_socket.sendall(server_socket.recv(4096))
 
         while True:
-            # Use select to monitor both sockets for incoming data
-            readable, _, _ = select.select([client_socket, server_socket], [], [])
+            # Receive data from client
+            client_data = client_socket.recv(4096)
+            if not client_data:
+                break
 
-            if client_socket in readable:
-                # Receive data from client
-                client_data = client_socket.recv(4096)
-                if not client_data:  # Client closed the connection
-                    break
+            print("Received from client: ", client_data.decode().strip())
+                # Check if the command is a PORT command
+            port = get_port_command(client_data)
+            if(port):
+                open_active_connection((FTP_SERVER_HOST, FTP_SERVER_PORT_ACTIVE), (client_address[0], port))
+            # Forward all commands to the real server
+            server_socket.sendall(client_data)
 
-                print("Received from client: ", client_data.decode(errors='ignore').strip())
-
-                # Forward all commands to the real server
-                server_socket.sendall(client_data)
-
-            if server_socket in readable:
-                # Receive unsolicited or response data from server
-                server_data = server_socket.recv(4096)
-                if not server_data:  # Server closed the connection
-                    break
-
-                print("Received from server: ", server_data.decode(errors='ignore').strip())
-
-                # Forward server's response or unsolicited data to the client
-                client_socket.sendall(server_data)
-
+            # Wait for the server's response and forward it to the client
+            server_response = server_socket.recv(4096)
+            client_socket.sendall(server_response)
     except Exception as e:
         print("Error handling client: ", e)
     finally:
         if server_socket:
             server_socket.close()
         client_socket.close()
-        print("Closed connection with ",client_address)
+
 
 # Main function to set up the MITM server
 def main():
