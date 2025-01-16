@@ -119,7 +119,7 @@ def handle_client(client_socket, client_address):
         if server_socket:
             server_socket.close()
         client_socket.close()
-        print(f"Closed connection with {client_address}")
+        print("Closed connection with ",client_address)
 
 # Main function to set up the MITM server
 def main():
