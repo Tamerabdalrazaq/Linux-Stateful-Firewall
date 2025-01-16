@@ -50,10 +50,12 @@ def handle_server_connection(client_socket, server_socket):
         client_socket.close()
 
 def get_port_command(client_data):
-    if client_data.decode('utf-8').upper().startswith("PORT"):
+    command = client_data.decode('utf-8')
+    print("command: ", command)
+    if command.upper().startswith("PORT"):
         try:
             # Extract the arguments after the "PORT" command
-            args = client_data[5:].strip().split(",")
+            args = command[5:].strip().split(",")
             if len(args) == 6:
                 # Parse the IP address and port numbers
                 ip_address = ".".join(args[:4])
