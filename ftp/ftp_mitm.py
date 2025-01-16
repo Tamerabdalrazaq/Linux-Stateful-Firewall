@@ -97,7 +97,7 @@ def forward_cli_srv(client_socket, server_socket, client_address):
         server_response = server_socket.recv(4096)
         client_socket.sendall(server_response)
 
-def forward_srv_cli(client_socket, server_socket, client_address):
+def forward_srv_cli(client_socket, server_socket):
     while True:
         # Receive data from client
         client_data = client_socket.recv(4096)
@@ -124,7 +124,7 @@ def handle_client(client_socket, client_address):
 
         client_to_server_thread = threading.Thread(
             target=forward_cli_srv, 
-            args=(client_socket, server_socket)
+            args=(client_socket, server_socket, client_address)
         )
         server_to_client_thread = threading.Thread(
             target=forward_srv_cli, 
