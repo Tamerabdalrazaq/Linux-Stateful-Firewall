@@ -930,20 +930,21 @@ static int initiate_connection(packet_identifier_t packet_identifier) {
 }
 
 // Removes the connection from the klist connections_table 
-static int remove_connection_row( connection_rule_row *connection) {
+static int remove_connection_row(connection_rule_row *connection) {
     if (!connection) {
         printk(KERN_ERR "remove_connection_row: NULL connection pointer\n");
-        return -EINVAL;  // Return error for invalid argument
+        return -EINVAL;
     }
 
-    // Remove the node from the klist
+    spin_lock(&klist_lock); // Acquire lock
     klist_remove(&connection->node);
+    spin_unlock(&klist_lock); // Release lock
 
     kfree(connection);
 
     printk(KERN_INFO "Connection successfully removed from the klist\n");
-    print_connections_table();
-    return 0;  // Success
+    print_connections_table(); // Ensure thread-safe access here too
+    return 0;
 }
 
 
