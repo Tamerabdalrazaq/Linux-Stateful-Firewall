@@ -140,31 +140,33 @@ def start_mitm_server(listen_port):
             print("Accepted connection from {}".format(client_addr))
 
             try:
-                data = client_sock.recv(4096)  # Read the HTTP packet
+                while True:
 
-                if not data:
-                    continue
-                    # Retrieve original destination from connection table (stub for now)
-                original_dest = find_destination(cli_ip, cli_port)  # This should query your sysfs device
+                    data = client_sock.recv(4096)  # Read the HTTP packet
+
+                    if not data:
+                        break
+                        # Retrieve original destination from connection table (stub for now)
+                    original_dest = find_destination(cli_ip, cli_port)  # This should query your sysfs device
 
 
-                if original_dest:
-                    # Forward to the original destination
-                    print("forwarding to: {}", original_dest)
-                    response = forward_to_destination(client_addr, original_dest, data)
+                    if original_dest:
+                        # Forward to the original destination
+                        print("forwarding to: {}", original_dest)
+                        response = forward_to_destination(client_addr, original_dest, data)
 
-                    if response:
-                        verdict, reason = inspect_packet(response)
-                        # Send the response back to the client
-                        if verdict:
-                            client_sock.sendall(response)
+                        if response:
+                            verdict, reason = inspect_packet(response)
+                            # Send the response back to the client
+                            if verdict:
+                                client_sock.sendall(response)
+                            else:
+                                print("HTTP Response Did Not Pass Inspection: \n", reason)
+                                client_sock.sendall(get_error_respons(reason).encode())
                         else:
-                            print("HTTP Response Did Not Pass Inspection: \n", reason)
-                            client_sock.sendall(get_error_respons(reason).encode())
+                            print("Failed to receive response from the original destination.")
                     else:
-                        print("Failed to receive response from the original destination.")
-                else:
-                    print("Original destination not found.")
+                        print("Original destination not found.")
             except Exception as e:
                 print("Error handling connection: {}".format(e))
             finally:
