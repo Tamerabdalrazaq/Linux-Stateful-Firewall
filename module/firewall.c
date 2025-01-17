@@ -23,6 +23,9 @@ MODULE_AUTHOR("Razaq");
 MODULE_DESCRIPTION("Basic Packet Filtering");
 MODULE_VERSION("1");
 
+static DEFINE_SPINLOCK(klist_lock);
+
+
 static int major_number;
 static struct class* sysfs_class = NULL;
 static struct device* sysfs_device = NULL;
@@ -936,9 +939,9 @@ static int remove_connection_row(connection_rule_row *connection) {
         return -EINVAL;
     }
 
-    spin_lock(&klist_lock); // Acquire lock
+    spin_lock(&klist_lock);
     klist_remove(&connection->node);
-    spin_unlock(&klist_lock); // Release lock
+    spin_unlock(&klist_lock);
 
     kfree(connection);
 
