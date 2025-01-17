@@ -1394,6 +1394,8 @@ static int handle_mitm_local_out(struct sk_buff *skb, packet_identifier_t* packe
     return ret;
 }
 
+
+
 static void handle_tcp_pre_routing(struct sk_buff *skb, const struct nf_hook_state *state, 
                        packet_identifier_t packet_identifier, log_row_t* pt_log_entry, int *pt_verdict,
                         __u8 syn, __u8 ack, __u8 rst, __u8 fin, direction_t direction) {
@@ -1624,7 +1626,7 @@ static struct file_operations fops = {
 // Initialization function; handles error registering the hooks with cleanups and an indicative return value
 static int __init fw_init(void) {    
     int ret;
-    printk(KERN_INFO "\n\n\n\n\nLoading firewall module...!\n __V1__\n\n\n\n");
+    printk(KERN_INFO "\n\n\n\n\nLoading firewall module...!\n __V1.01__\n\n\n\n");
     // ******
     // Devices setup
     // ******
