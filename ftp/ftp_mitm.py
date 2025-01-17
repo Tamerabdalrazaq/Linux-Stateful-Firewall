@@ -15,8 +15,8 @@ def find_destination(ip, port):
     try:
         with open(SYSFS_PATH_CONNS, "r") as file:
             lines = file.readlines()
-
-        # Process each line and print the formatted table
+        print("looking for {} in {}".format((ip, port), lines))
+        # Process each line and print the formatted table  
         for line in lines:
             # Strip whitespace and split by commas
             print(line)
