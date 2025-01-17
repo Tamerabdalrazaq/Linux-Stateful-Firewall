@@ -1361,7 +1361,7 @@ static int handle_mitm_local_out(struct sk_buff *skb, packet_identifier_t* packe
     } 
     // •	Server-to-client, outbound, local-out,
     else { 
-        original_packet_identifier = get_original_packet_identifier(packet_identifier, dir);
+        original_packet_identifier = get_original_packet_identifier(*packet_identifier, dir);
         if (!original_packet_identifier){
             printk(KERN_ERR "\nError @ Local_out -> Client: Could not identify original packet\n");
             return -1;
