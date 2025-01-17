@@ -25,6 +25,7 @@ def find_destination(ip, port):
         # Process each line and print the formatted table
         for line in lines:
             # Strip whitespace and split by commas
+            print(line)
             parts = line.strip().split(",")
             src_ip, src_port, dst_ip, dst_port, MITM_proc, state = parts
             if src_ip == ip and src_port == port:

@@ -1199,6 +1199,7 @@ static int handle_tcp_state_machine(packet_identifier_t packet_identifier,
             if ((cli_rule->state == STATE_SYN_RECEIVED || cli_rule->state == STATE_ESTABLISHED) && 
                 !sender_client && syn == SYN_NO && ack == ACK_YES) {
                     printk(KERN_INFO "STATCE_MACHINE_cli: Accepting for STATE_SYN_SENT -> Established");
+                print_connections_table();
                 srv_rule->state = STATE_ESTABLISHED;
                 srv_verdict = NF_ACCEPT;
             }
@@ -1244,6 +1245,7 @@ static int handle_tcp_state_machine(packet_identifier_t packet_identifier,
             if ((srv_rule->state == STATE_SYN_RECEIVED || srv_rule->state == STATE_ESTABLISHED) && 
                 sender_client && syn == SYN_NO && ack == ACK_YES) {
                     printk(KERN_INFO "STATCE_MACHINE_cli: Accepting for STATE_SYN_SENT -> Established");
+                print_connections_table();
                 cli_rule->state = STATE_ESTABLISHED;
                 cli_verdict = NF_ACCEPT;
             }
