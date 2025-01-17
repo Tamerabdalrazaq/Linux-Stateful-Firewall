@@ -6,6 +6,8 @@ import sys
 SYSFS_PATH_CONNS = "/sys/class/fw/conns/conns"
 SYSFS_PATH_MITM = "/sys/class/fw/mitm/mitm"
 
+
+
 def get_error_respons(reason):
         return  "HTTP/1.1 400 Bad Request\r\n" \
                     "Content-Type: text/plain\r\n" \
@@ -41,6 +43,20 @@ def find_destination(ip, port):
         print("Error: An unexpected error occurred: {}".format(e))
 
 
+
+def read_http_request(sock):
+    data = b""
+    while True:
+        chunk = sock.recv(4096)
+        if not chunk:
+            break
+        data += chunk
+        # Break if the headers are fully read
+        if b"\r\n\r\n" in data:
+            break
+    print("received from client: ")
+    print(data.decode())
+    return data
 
 #block any HTTP response with content length greater than 100KB (102400 bytes) OR when content is encoded with GZIP
 def inspect_packet(http_packet):
@@ -113,25 +129,11 @@ def forward_to_destination(client_address, original_dest, packet):
             print("local socket is at port ", port)
             forward_sock.connect(original_dest)
             forward_sock.sendall(packet)
-            response = forward_sock.recv(4096)
+            response = read_http_request(forward_sock)
         return response
     except Exception as e:
         print("Error forwarding to destination: {}".format(e))
         return None
-
-def read_http_request(client_sock):
-    data = b""
-    while True:
-        chunk = client_sock.recv(4096)
-        if not chunk:
-            break
-        data += chunk
-        # Break if the headers are fully read
-        if b"\r\n\r\n" in data:
-            break
-    print("received from client: ")
-    print(data.decode())
-    return data
 
 def start_mitm_server(listen_port):
     """
