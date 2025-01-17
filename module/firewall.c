@@ -1338,13 +1338,15 @@ static int handle_mitm_pre_routing(struct sk_buff *skb, packet_identifier_t pack
     return 0;
 }
 
-static int handle_mitm_local_out(struct sk_buff *skb, packet_identifier_t* original_packet_identifier,
+static int handle_mitm_local_out(struct sk_buff *skb, packet_identifier_t* packet_identifier,
                                 tcp_data_t* tcp_data, direction_t dir) {
     __be32 original_ip;
     __be16 original_port;
     __be16 mimt_proc_port;
     connection_rule_row* conn;
-    
+    packet_identifier_t* original_packet_identifier;
+    int ret = 0;
+
     printk(KERN_INFO "Modifying packet @ local_out");
     mimt_proc_port = tcp_data->src_port;
     conn = find_connection_row_by_mitm_port(mimt_proc_port);
@@ -1355,15 +1357,20 @@ static int handle_mitm_local_out(struct sk_buff *skb, packet_identifier_t* origi
     // •	Client-to-server, outbound, local-out 
     if (dir == DIRECTION_IN){
         original_ip = (conn->connection_rule_cli.packet.src_ip);
-        int ret = modify_packet(skb, original_ip, NULL, NULL, NULL);
+        ret = modify_packet(skb, original_ip, NULL, NULL, NULL);
     } 
     // •	Server-to-client, outbound, local-out,
     else { 
+        original_packet_identifier = get_original_packet_identifier(packet_identifier, dir);
+        if (!original_packet_identifier){
+            printk(KERN_ERR "\nError @ Local_out -> Client: Could not identify original packet\n");
+            return -1;
+        }
         original_port = original_packet_identifier->dst_port;
         original_ip = (original_packet_identifier->dst_ip);
-        int ret = modify_packet(skb, original_ip, original_port, NULL, NULL);
+        ret = modify_packet(skb, original_ip, original_port, NULL, NULL);
     }
-    return 0;
+    return ret;
 }
 
 
@@ -1494,6 +1501,7 @@ static unsigned int module_hook_local_out(void *priv, struct sk_buff *skb, const
     packet_identifier_t* original_packet_identifier;
     log_row_t log_entry;
     direction_t dir = get_direction_outgoing(state);
+    int ret = 0;
 
     ip_header = ip_hdr(skb);
     if (!ip_header || !ip_header->protocol == PROT_TCP)
@@ -1511,7 +1519,6 @@ static unsigned int module_hook_local_out(void *priv, struct sk_buff *skb, const
 
     log_entry = init_log_entry(packet_identifier, PROT_TCP);
     // get_original_packet_identifier returns the client packet not the server's
-    original_packet_identifier = get_original_packet_identifier(packet_identifier, dir);
 
 
     if(tcp_data->src_port == LOC_HTTP_PORT || tcp_data->dst_port == HTTP_PORT || 
@@ -1522,12 +1529,11 @@ static unsigned int module_hook_local_out(void *priv, struct sk_buff *skb, const
         printk(KERN_INFO "\n");
         printk(KERN_INFO "packet identifier:\n");
         print_tcp_packet(skb);
-        if(original_packet_identifier){
-            printk(KERN_INFO "Original packet is:\n");
-            print_packet_identifier(original_packet_identifier);
-
+        ret = handle_mitm_local_out(skb, &packet_identifier, tcp_data, dir);
+        if (ret < 0){
+            printk(KERN_CRIT "Dropping local_out packet\n");
+            return NF_DROP;
         }
-        handle_mitm_local_out(skb, original_packet_identifier, tcp_data, dir);
         printk(KERN_CRIT "\nMITM - Modifed @ local out to:\n");
         print_tcp_packet(skb);
     }
