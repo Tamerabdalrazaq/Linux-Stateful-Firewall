@@ -1172,6 +1172,9 @@ static int handle_tcp_state_machine(packet_identifier_t packet_identifier,
     connection_rule_t* cli_rule = &found_connection->connection_rule_cli;
     int sender_client = compare_packets(packet_identifier, cli_rule->packet);
     int srv_verdict, cli_verdict;
+    printk(KERN_INFO "\n\n Inside TCP State Machin \n\n");
+    print_connection(found_connection);
+    printk (KERN_INFO "TCP Packet flags:\n SYN = %d   ACK = %d   RST = %d   FIN = %d", syn, ack, rst, fin);
     // Handle RST (Reset): Always drop connection on RST
     if (rst == RST_YES) {
         srv_rule->state = STATE_CLOSED;
