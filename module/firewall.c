@@ -1260,10 +1260,14 @@ static void tcp_handle_syn(packet_identifier_t packet_identifier, log_row_t* pt_
 
 static void tcp_handle_ack(packet_identifier_t packet_identifier, log_row_t* pt_log_entry, int *pt_verdict,
                             __u8 syn, __u8 ack, __u8 rst, __u8 fin) {
-     connection_rule_row* found_connection = find_connection_row(packet_identifier);
+    connection_rule_row* found_connection;
+    if(packet_identifier.src_port != HTTP_PORT || packet_identifier.src_port != FTP_PORT)
+        found_connection = find_connection_row_by_proxy(NULL, packet_identifier.dst_port, DIRECTION_IN);
+    else 
+        found_connection = find_connection_row(packet_identifier);
     printk(KERN_INFO "**Handling a dynamic packet..");
     // TESTING with the || (srv->cli syn packet) !!!! modify it by checking the LOCAL_PROC_PORT
-    if (found_connection == NULL && packet_identifier.src_port != HTTP_PORT && packet_identifier.src_port != FTP_PORT){
+    if (found_connection == NULL){
         printk (KERN_INFO "\n\nNo connecition found in the table. DROPPING.\n\n");
         pt_log_entry->action = NF_DROP;
         pt_log_entry->reason = REASON_NO_CONNECTION;   
