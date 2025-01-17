@@ -149,7 +149,7 @@ def show_connections_table():
             parts = line.strip().split(",")
             if len(parts) == 6:
                 src_ip, src_port, dst_ip, dst_port, MITM_port, state = parts
-                print("{:<15} {:<15} {:<15} {:<15} {:<18} {:<15}".format(src_ip, src_port, dst_ip, MITM_port, dst_port, get_tcp_state_name(state)))
+                print("{:<15} {:<15} {:<15} {:<15} {:<18} {:<15}".format(src_ip, src_port, dst_ip, dst_port, MITM_port, get_tcp_state_name(state)))
             else:
                 print("Invalid line format:", line.strip())
     
