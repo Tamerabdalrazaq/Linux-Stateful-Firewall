@@ -751,7 +751,7 @@ static  connection_rule_row *find_connection_row_by_proxy(packet_identifier_t* p
     // Iterate over the klist to find a matching entry
     while ((knode = klist_next(&iter))) {
         row = container_of(knode,  connection_rule_row, node);
-        if(!is_active_rule(entry)) continue;
+        if(!is_active_rule(row)) continue;
         if (dir == DIRECTION_IN){
             if (row->connection_rule_srv.mitm_proc_port == mitm_proc_port ||
                 row->connection_rule_cli.mitm_proc_port == mitm_proc_port) {
