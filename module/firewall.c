@@ -774,7 +774,8 @@ static tcp_data_t* get_tcp_data(struct sk_buff *skb) {
 static  connection_rule_row *find_connection_row_by_proxy(packet_identifier_t* packet_identifier_local_out, __be16 mitm_proc_port, direction_t dir) {
     struct klist_iter iter;
     struct klist_node *knode;
-    connection_rule_row *row, original_row = NULL;
+    connection_rule_row *row;
+    connection_rule_row *original_row = NULL;
 
     klist_iter_init(&connections_table, &iter);
 
