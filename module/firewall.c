@@ -889,44 +889,44 @@ static void reverse_packet_identifier(const packet_identifier_t *packet, packet_
 }
 
 static int initiate_connection(packet_identifier_t packet_identifier) {
-     connection_rule_row* found_connection = find_connection_row(packet_identifier);
-    packet_identifier_t *reversed_packet_identifier;
-     connection_rule_row *new_rule_sender;
-    if (found_connection != NULL){
-        printk(KERN_ERR "initiate_connection Error: Connection already exists.");
-        return NF_DROP;
-    }
+    spin_lock(&klist_lock);
+        connection_rule_row* found_connection = find_connection_row(packet_identifier);
+        packet_identifier_t *reversed_packet_identifier;
+        connection_rule_row *new_rule_sender;
+        if (found_connection != NULL){
+            printk(KERN_ERR "initiate_connection Error: Connection already exists.");
+            return NF_DROP;
+        }
 
-    // Allocate memory for reversed_packet_identifier
-    reversed_packet_identifier = kmalloc(sizeof(packet_identifier_t), GFP_KERNEL);
-    if (!reversed_packet_identifier) {
-        printk(KERN_ERR "Memory allocation failed for reversed_packet_identifier\n");
-        return NF_DROP;
-    }
-    reverse_packet_identifier(&packet_identifier, reversed_packet_identifier);
+        // Allocate memory for reversed_packet_identifier
+        reversed_packet_identifier = kmalloc(sizeof(packet_identifier_t), GFP_KERNEL);
+        if (!reversed_packet_identifier) {
+            printk(KERN_ERR "Memory allocation failed for reversed_packet_identifier\n");
+            return NF_DROP;
+        }
+        reverse_packet_identifier(&packet_identifier, reversed_packet_identifier);
 
-    // Allocate memory for new_rule_sender and new_rule_reciever
-    new_rule_sender = kmalloc(sizeof( connection_rule_row), GFP_KERNEL);
-    if (!new_rule_sender) {
-        printk(KERN_ERR "Memory allocation failed for new_rule_sender\n");
+        // Allocate memory for new_rule_sender and new_rule_reciever
+        new_rule_sender = kmalloc(sizeof( connection_rule_row), GFP_KERNEL);
+        if (!new_rule_sender) {
+            printk(KERN_ERR "Memory allocation failed for new_rule_sender\n");
+            kfree(reversed_packet_identifier);
+            return NF_DROP;
+        }
+
+        // Initialize the state rules
+        new_rule_sender->connection_rule_cli.state = STATE_SYN_SENT;
+        new_rule_sender->connection_rule_srv.state = STATE_LISTEN;
+
+        // Copy packet identifiers
+        memcpy(&new_rule_sender->connection_rule_cli.packet, &packet_identifier, sizeof(packet_identifier_t));
+        memcpy(&new_rule_sender->connection_rule_srv.packet, reversed_packet_identifier, sizeof(packet_identifier_t));
+
+        // Free reversed_packet_identifier after use
         kfree(reversed_packet_identifier);
-        kfree(new_rule_sender);
-        return NF_DROP;
-    }
 
-    // Initialize the state rules
-    new_rule_sender->connection_rule_cli.state = STATE_SYN_SENT;
-    new_rule_sender->connection_rule_srv.state = STATE_LISTEN;
-
-    // Copy packet identifiers
-    memcpy(&new_rule_sender->connection_rule_cli.packet, &packet_identifier, sizeof(packet_identifier_t));
-    memcpy(&new_rule_sender->connection_rule_srv.packet, reversed_packet_identifier, sizeof(packet_identifier_t));
-
-    // Free reversed_packet_identifier after use
-    kfree(reversed_packet_identifier);
-
-    // Add the new entries to the klist
-    klist_add_tail(&new_rule_sender->node, &connections_table);
+        klist_add_tail(&new_rule_sender->node, &connections_table);
+    spin_unlock(&klist_lock);
 
     print_connections_table();
     return NF_ACCEPT;
@@ -940,9 +940,8 @@ static int remove_connection_row(connection_rule_row *connection) {
     }
 
     spin_lock(&klist_lock);
-    klist_remove(&connection->node);
-
-    kfree(connection);
+        klist_remove(&connection->node);
+        kfree(connection);
     spin_unlock(&klist_lock);
 
     printk(KERN_INFO "Connection successfully removed from the klist\n");
