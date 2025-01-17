@@ -145,7 +145,7 @@ def start_mitm_server(listen_port):
                     data = client_sock.recv(4096)  # Read the HTTP packet
 
                     if not data:
-                        break
+                        continue
                         # Retrieve original destination from connection table (stub for now)
                     original_dest = find_destination(cli_ip, cli_port)  # This should query your sysfs device
 
