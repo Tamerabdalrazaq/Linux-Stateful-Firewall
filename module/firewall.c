@@ -1080,7 +1080,7 @@ static int handle_fin_state( connection_rule_row* connection, connection_rule_t*
                 break;
 
             case STATE_FIN_WAIT_1:
-                if (ack = ACK_YES && fin == FIN_NO && packet_sent) { // Handle simultanuous closing.....
+                if (ack == ACK_YES && fin == FIN_NO && packet_sent) { // Handle simultanuous closing.....
                     printk(KERN_INFO "STATCE_MACHINE_%s: Accepting for Wait_1 -> Closing", terminator);
                     rule->state = STATE_CLOSING;
                     print_connections_table();
