@@ -129,6 +129,8 @@ def read_http_request(client_sock):
         # Break if the headers are fully read
         if b"\r\n\r\n" in data:
             break
+    print("received from client: ")
+    print(data.decode())
     return data
 
 def start_mitm_server(listen_port):
