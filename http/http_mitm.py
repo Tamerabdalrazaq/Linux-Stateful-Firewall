@@ -51,8 +51,6 @@ def read_http_response(sock):
 
     headers = response.getheaders()
     print("\n\n@@Received Headers:")
-    for header in headers:
-        print(f"{header[0]}: {header[1]}")
 
     # Read the body
     body = response.read()
