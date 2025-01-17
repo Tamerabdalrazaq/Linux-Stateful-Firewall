@@ -1090,6 +1090,11 @@ static int handle_fin_state( connection_rule_row* connection, connection_rule_t*
                     rule->state = STATE_CLOSING;
                     print_connections_table();
                     return NF_ACCEPT;
+                } else if (ack = ACK_YES && fin == FIN_YES && !packet_sent) { // Handle simultanuous closing.....
+                    printk(KERN_INFO "STATCE_MACHINE_%s: Accepting for Wait_1 -> Closing", terminator);
+                    rule->state = STATE_CLOSING;
+                    print_connections_table();
+                    return NF_ACCEPT;
                 }
                 break;
 
