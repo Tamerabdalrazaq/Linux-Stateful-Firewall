@@ -126,7 +126,8 @@ typedef enum {
 	STATE_CLOSING       = 0x08, // Both sides sent FIN, waiting for ACK
 	STATE_LAST_ACK      = 0x09, // Passive close, waiting for final ACK
 	STATE_TIME_WAIT     = 0x0A, // Waiting to ensure all packets are accounted for
-	STATE_CLOSED        = 0x0B  // Connection is fully closed
+	STATE_CLOSED        = 0x0B,  // Connection is fully closed
+	STATE_REMOVED        = 0x0C  // Connection is fully closed
 } tcp_state_t;
 
 // rule base

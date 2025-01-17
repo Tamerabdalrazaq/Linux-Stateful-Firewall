@@ -56,6 +56,7 @@ STATE_MAP = {
     0x09: "LAST_ACK",
     0x0A: "TIME_WAIT",
     0x0B: "CLOSED",
+    0x0C: "Removed",
 }
 
 
