@@ -107,7 +107,7 @@ def forward_cli_srv(client_socket, server_socket, client_address, server_address
             # Check if the command is a PORT command
         port = get_port_command(client_data)
         if(port):
-            ret = open_active_connection(server_address, (client_address[0], port))
+            ret = open_active_connection((server_address[0], FTP_SERVER_PORT_ACTIVE), (client_address[0], port))
             if ret < 0:
                 error_message = "425 Can't open data connection\r\n"
                 client_socket.sendall(error_message.encode())
