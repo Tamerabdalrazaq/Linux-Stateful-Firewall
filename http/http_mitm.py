@@ -42,6 +42,28 @@ def find_destination(ip, port):
     except Exception as e:
         print("Error: An unexpected error occurred: {}".format(e))
 
+import http.client
+
+def read_http_response(sock):
+    response = http.client.HTTPResponse(sock)
+    
+    response.begin()
+
+    headers = response.getheaders()
+    print("\n\n@@Received Headers:")
+    for header in headers:
+        print(f"{header[0]}: {header[1]}")
+
+    # Read the body
+    body = response.read()
+
+    # Combine headers and body to return the full response
+    response_bytes = "HTTP/{}.{} {} {}\r\n".format(response.version // 10, response.version % 10, response.status,response.reason).encode()
+    for header in headers:
+        response_bytes += "{}: {}\r\n".format(header[0], header[1]).encode()
+    response_bytes += b"\r\n" + body
+
+    return response_bytes
 
 
 def read_http_request(sock):
@@ -54,7 +76,7 @@ def read_http_request(sock):
         # Break if the headers are fully read
         if b"\r\n\r\n" in data:
             break
-    print("\n@@@@@@@@@ received from client: ")
+    print("\n\n@@received from client: ")
     print(data.decode())
     return data
 
@@ -129,7 +151,7 @@ def forward_to_destination(client_address, original_dest, packet):
             print("local socket is at port ", port)
             forward_sock.connect(original_dest)
             forward_sock.sendall(packet)
-            response = read_http_request(forward_sock)
+            response = read_http_response(forward_sock)
         return response
     except Exception as e:
         print("Error forwarding to destination: {}".format(e))
