@@ -941,7 +941,7 @@ static int remove_connection_row(connection_rule_row *connection) {
 
     spin_lock(&klist_lock);
         klist_remove(&connection->node);
-        kfree(connection);
+        // kfree(connection);
     spin_unlock(&klist_lock);
 
     printk(KERN_INFO "Connection successfully removed from the klist\n");
@@ -1420,9 +1420,9 @@ static int handle_mitm_local_out(struct sk_buff *skb, packet_identifier_t* packe
         ret = modify_packet(skb, original_ip, original_port, NULL, NULL);
         handle_tcp_state_machine(original_packet_identifier, conn, tcp_data->syn, tcp_data->ack, tcp_data->rst, tcp_data->fin);
     }
-    // if (conn->connection_rule_cli.state == STATE_CLOSED &&
-    //     conn->connection_rule_srv.state == STATE_CLOSED)
-    //     remove_connection_row(conn);
+    if (conn->connection_rule_cli.state == STATE_CLOSED &&
+        conn->connection_rule_srv.state == STATE_CLOSED)
+        remove_connection_row(conn);
     return ret;
 }
 
