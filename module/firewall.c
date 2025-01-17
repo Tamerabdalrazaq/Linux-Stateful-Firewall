@@ -1261,6 +1261,9 @@ static int handle_tcp_state_machine(packet_identifier_t packet_identifier,
             cli_verdict = handle_fin_state(found_connection, cli_rule, sender_client, 1, srv_rule->state, ack, fin);
     }
 
+    if (found_connection->connection_rule_cli.state == STATE_CLOSED &&
+        found_connection->connection_rule_srv.state == STATE_CLOSED)
+        remove_connection_row(found_connection);
     return (srv_verdict == NF_ACCEPT || cli_verdict == NF_ACCEPT) ? NF_ACCEPT : NF_DROP;
 }
 
@@ -1421,9 +1424,6 @@ static int handle_mitm_local_out(struct sk_buff *skb, packet_identifier_t* packe
         ret = modify_packet(skb, original_ip, original_port, NULL, NULL);
         handle_tcp_state_machine(original_packet_identifier, conn, tcp_data->syn, tcp_data->ack, tcp_data->rst, tcp_data->fin);
     }
-    if (conn->connection_rule_cli.state == STATE_CLOSED &&
-        conn->connection_rule_srv.state == STATE_CLOSED)
-        remove_connection_row(conn);
     return ret;
 }
 
