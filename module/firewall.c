@@ -1390,7 +1390,7 @@ static int handle_mitm_local_out(struct sk_buff *skb, packet_identifier_t* packe
         original_port = original_packet_identifier.src_port; // Server's port
         original_ip = (original_packet_identifier.src_ip); // Server's IP
         ret = modify_packet(skb, original_ip, original_port, NULL, NULL);
-        // handle_tcp_state_machine(packet_identifier, found_connection, syn, ACK_YES, rst, fin);
+        handle_tcp_state_machine(original_packet_identifier, conn, tcp_data->syn, tcp_data->ack, tcp_data->rst, tcp_data->fin);
     }
     return ret;
 }
