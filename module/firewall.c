@@ -1097,8 +1097,7 @@ static int handle_fin_state( connection_rule_row* connection, connection_rule_t*
                     print_connections_table();
                     return NF_ACCEPT;
                 }
-                if (fin == FIN_NO && ack == ACK_YES &&
-                    packet_sent && others_state == STATE_FIN_WAIT_1)
+                if (fin == FIN_NO && ack == ACK_YES && packet_sent )
                 {
                     printk(KERN_INFO "STATCE_MACHINE_%s: Accepting for Established -> Close_Wait", terminator);
                     rule->state = STATE_CLOSE_WAIT;
