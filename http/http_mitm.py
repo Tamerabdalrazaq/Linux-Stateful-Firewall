@@ -33,6 +33,9 @@ def find_destination(ip, port):
             if dst_ip == ip and dst_port == port:
                 return ((src_ip, int(src_port)))
         print("ERROR - Connection not found")
+    except Exception as e:
+        print(e)
+
 
     
     except FileNotFoundError:

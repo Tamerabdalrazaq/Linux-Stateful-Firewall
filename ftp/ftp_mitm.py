@@ -8,6 +8,27 @@ FTP_SERVER_HOST = '10.1.2.2'  # Replace with the actual FTP server IP or hostnam
 FTP_SERVER_PORT = 21
 FTP_SERVER_PORT_ACTIVE = 20
 SYSFS_PATH_MITM = "/sys/class/fw/mitm/mitm"
+SYSFS_PATH_CONNS = "/sys/class/fw/conns/conns"
+
+
+def find_destination(ip, port):
+    try:
+        with open(SYSFS_PATH_CONNS, "r") as file:
+            lines = file.readlines()
+
+        # Process each line and print the formatted table
+        for line in lines:
+            # Strip whitespace and split by commas
+            print(line)
+            parts = line.strip().split(",")
+            src_ip, src_port, dst_ip, dst_port, MITM_proc, state = parts
+            if src_ip == ip and src_port == port:
+                return ((dst_ip, int(dst_port)))
+            if dst_ip == ip and dst_port == port:
+                return ((src_ip, int(src_port)))
+        print("ERROR - Connection not found")
+    except Exception as e:
+        print(e)
 
 def format_mitm_port_for_kernel(client_address, mitm_port):
         client_ip, client_port = client_address
@@ -23,12 +44,6 @@ def format_new_conn_for_kernel(cli_addr, srv_addr):
 
 
 def write_to_kernel(data_to_write,):
-    """
-    Updates the MITM process by writing the relevant data to the sysfs device.
-
-    :param client_address: Tuple (client_ip, client_port) from the accepted client socket
-    :param mitm_port: The port of the current MITM process
-    """
     try:
         with open(SYSFS_PATH_MITM, "w") as sysfs_file:
             sysfs_file.write(data_to_write)
@@ -80,7 +95,7 @@ def open_active_connection(srv_addr, cli_addr):
     return write_to_kernel(format_new_conn_for_kernel(cli_addr, srv_addr))
 
 
-def forward_cli_srv(client_socket, server_socket, client_address):
+def forward_cli_srv(client_socket, server_socket, client_address, server_address):
     while True:
         # Receive data from client
         client_data = client_socket.recv(4096)
@@ -91,7 +106,7 @@ def forward_cli_srv(client_socket, server_socket, client_address):
             # Check if the command is a PORT command
         port = get_port_command(client_data)
         if(port):
-            ret = open_active_connection((FTP_SERVER_HOST, FTP_SERVER_PORT_ACTIVE), (client_address[0], port))
+            ret = open_active_connection(server_address, (client_address[0], port))
             if ret < 0:
                 error_message = "425 Can't open data connection\r\n"
                 client_socket.sendall(error_message.encode())
@@ -117,14 +132,15 @@ def handle_client(client_socket, client_address):
         server_socket.bind(('0.0.0.0', 0))
         _, port = server_socket.getsockname()
         write_to_kernel(format_mitm_port_for_kernel(client_address, port))
-        server_socket.connect((FTP_SERVER_HOST, FTP_SERVER_PORT))
+        server_address = find_destination(client_address[0], client_address[1])
+        server_socket.connect(server_address)
 
         # Forward server's welcome message to the client
         client_socket.sendall(server_socket.recv(4096))
 
         client_to_server_thread = threading.Thread(
             target=forward_cli_srv, 
-            args=(client_socket, server_socket, client_address)
+            args=(client_socket, server_socket, client_address, server_address)
         )
         server_to_client_thread = threading.Thread(
             target=forward_srv_cli, 
