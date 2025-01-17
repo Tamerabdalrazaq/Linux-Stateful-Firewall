@@ -1548,8 +1548,6 @@ static unsigned int module_hook_local_out(void *priv, struct sk_buff *skb, const
     packet_identifier.src_port = tcp_data->src_port;
     packet_identifier.dst_port = tcp_data->dst_port;
 
-    log_entry = init_log_entry(packet_identifier, PROT_TCP);
-
     if(tcp_data->src_port == LOC_HTTP_PORT || tcp_data->dst_port == HTTP_PORT || 
         tcp_data->src_port == LOC_FTP_PORT || tcp_data->dst_port == FTP_PORT){
         // TESTING !!!
@@ -1566,7 +1564,7 @@ static unsigned int module_hook_local_out(void *priv, struct sk_buff *skb, const
         printk(KERN_CRIT "\nMITM - Modifed @ local out to:\n");
         print_tcp_packet(skb);
     }
-    return NF_DROP;
+    return NF_ACCEPT;
 }
 
 static unsigned int module_hook_local_in(void *priv, struct sk_buff *skb, const struct nf_hook_state *state) {
