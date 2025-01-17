@@ -941,9 +941,9 @@ static int remove_connection_row(connection_rule_row *connection) {
 
     spin_lock(&klist_lock);
     klist_remove(&connection->node);
-    spin_unlock(&klist_lock);
 
     kfree(connection);
+    spin_unlock(&klist_lock);
 
     printk(KERN_INFO "Connection successfully removed from the klist\n");
     print_connections_table(); // Ensure thread-safe access here too
