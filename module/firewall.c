@@ -1303,15 +1303,14 @@ static void tcp_handle_ack(packet_identifier_t packet_identifier, log_row_t* pt_
     } else {
         printk (KERN_INFO "Connection found. Comparing agains TCP state machine.\n");
         // Syn packet for Active FTP conenction
-        if (syn == SYN_YES && ack == ACK_NO)
+        if (syn == SYN_YES && ack == ACK_NO){
             *pt_verdict = NF_ACCEPT;
-         else {
+        } else {
             *pt_verdict = handle_tcp_state_machine(packet_identifier, found_connection, syn, ACK_YES, rst, fin);
             if (found_connection->connection_rule_cli.state == STATE_CLOSED &&
                 found_connection->connection_rule_cli.state == STATE_CLOSED)
                 remove_connection_row(found_connection);
          }
-        // **** TESTING!!
         if (*pt_verdict)
             pt_log_entry->reason = REASON_VALID_CONNECTION;   
         else
@@ -1423,6 +1422,9 @@ static int handle_mitm_local_out(struct sk_buff *skb, packet_identifier_t* packe
         ret = modify_packet(skb, original_ip, original_port, NULL, NULL);
         handle_tcp_state_machine(original_packet_identifier, conn, tcp_data->syn, tcp_data->ack, tcp_data->rst, tcp_data->fin);
     }
+    if (found_connection->connection_rule_cli.state == STATE_CLOSED &&
+        found_connection->connection_rule_cli.state == STATE_CLOSED)
+        remove_connection_row(found_connection);
     return ret;
 }
 
