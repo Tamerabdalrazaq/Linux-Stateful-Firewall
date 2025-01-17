@@ -54,7 +54,7 @@ def read_http_request(sock):
         # Break if the headers are fully read
         if b"\r\n\r\n" in data:
             break
-    print("received from client: ")
+    print("\n@@@@@@@@@ received from client: ")
     print(data.decode())
     return data
 
