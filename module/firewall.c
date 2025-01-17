@@ -1361,25 +1361,22 @@ static int handle_mitm_local_out(struct sk_buff *skb, packet_identifier_t* packe
     packet_identifier_t original_packet_identifier;
     int ret = 0;
 
-    // •	cli-to-server, outbound, local-out,
+    mimt_proc_port = tcp_data->src_port;
+    conn = find_connection_row_by_proxy(packet_identifier, mimt_proc_port, dir);
+    if (!conn){
+        printk(KERN_ERR "\nError @ Local_out -> Client: Could not find connection by MITM_PORT\n");
+        return -1;
+    }
+
     printk(KERN_INFO "Modifying packet @ local_out");
+    
+    // •	cli-to-server, outbound, local-out,
     if (dir == DIRECTION_IN){
-        mimt_proc_port = tcp_data->src_port;
-        conn = find_connection_row_by_proxy(NULL, mimt_proc_port, DIRECTION_IN);
-        if (!conn){
-            printk(KERN_ERR "\nError @ Local_out -> Client: Could not find connection by MITM_PORT\n");
-            return -1;
-        }
         original_ip = (conn->connection_rule_cli.packet.src_ip); // Client's IP
         ret = modify_packet(skb, original_ip, NULL, NULL, NULL);
     } 
     // •	Server-to-client, outbound, local-out,
     else { 
-        conn = find_connection_row_by_proxy(packet_identifier, 0, DIRECTION_OUT);
-        if (!conn){
-            printk(KERN_ERR "\nError @ Local_out -> Client: Could not identify original packet\n");
-            return -1;
-        }
         original_packet_identifier = conn->connection_rule_cli.packet;
         original_port = original_packet_identifier.dst_port; // Server's port
         original_ip = (original_packet_identifier.dst_ip); // Server's IP
