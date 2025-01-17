@@ -1195,6 +1195,14 @@ static int handle_tcp_state_machine(packet_identifier_t packet_identifier,
                 srv_verdict = NF_ACCEPT;
             }
             break;
+        case STATE_SYN_SENT:
+            if ((cli_rule->state == STATE_SYN_RECEIVED || cli_rule->state == STATE_ESTABLISHED) && 
+                !sender_client && syn == SYN_NO && ack == ACK_YES) {
+                    printk(KERN_INFO "STATCE_MACHINE_cli: Accepting for STATE_SYN_SENT -> Established");
+                srv_rule->state = STATE_ESTABLISHED;
+                srv_verdict = NF_ACCEPT;
+            }
+            break;
 
         case STATE_SYN_RECEIVED:
             if (ack == ACK_YES && syn == SYN_NO && sender_client) {
@@ -1216,6 +1224,22 @@ static int handle_tcp_state_machine(packet_identifier_t packet_identifier,
 
     // Handle client-side state transitions
     switch (cli_rule->state) {
+        case STATE_LISTEN:
+            if (syn == SYN_YES && ack == ACK_YES && sender_client) {
+                printk(KERN_INFO "STATCE_MACHINE_srv: Accepting for Listen -> Syn_received");
+                cli_rule->state = STATE_SYN_RECEIVED;
+                print_connections_table();
+                cli_verdict = NF_ACCEPT;
+            }
+            break;
+        case STATE_SYN_RECEIVED:
+            if (ack == ACK_YES && syn == SYN_NO && !sender_client) {
+                printk(KERN_INFO "STATCE_MACHINE_srv: Accepting for Syn_received -> Established");
+                cli_rule->state = STATE_ESTABLISHED;
+                print_connections_table();
+                cli_verdict = NF_ACCEPT;
+            }
+            break;
         case STATE_SYN_SENT:
             if ((srv_rule->state == STATE_SYN_RECEIVED || srv_rule->state == STATE_ESTABLISHED) && 
                 sender_client && syn == SYN_NO && ack == ACK_YES) {
