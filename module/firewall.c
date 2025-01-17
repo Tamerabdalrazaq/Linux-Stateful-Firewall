@@ -1347,15 +1347,11 @@ static int handle_mitm_local_out(struct sk_buff *skb, packet_identifier_t* packe
     packet_identifier_t* original_packet_identifier;
     int ret = 0;
 
+    // •	cli-to-server, outbound, local-out,
     printk(KERN_INFO "Modifying packet @ local_out");
-    mimt_proc_port = tcp_data->src_port;
-    conn = find_connection_row_by_mitm_port(mimt_proc_port);
-    // if(conn) {
-    //     printk(KERN_INFO "INFO@MIMT_LO: Found connection:");
-    //     print_connection(conn);
-    // }
-    // •	Client-to-server, outbound, local-out 
     if (dir == DIRECTION_IN){
+        mimt_proc_port = tcp_data->src_port;
+        conn = find_connection_row_by_mitm_port(mimt_proc_port);
         original_ip = (conn->connection_rule_cli.packet.src_ip);
         ret = modify_packet(skb, original_ip, NULL, NULL, NULL);
     } 
