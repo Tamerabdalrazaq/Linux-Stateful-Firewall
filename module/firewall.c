@@ -1320,6 +1320,8 @@ static int modify_packet(struct sk_buff *skb, __be32 saddr, __be16 sport, __be32
 
     iph = ip_hdr(skb);
     tcph = tcp_hdr(skb);
+    if(!iph || !tcph)
+        return -1;
 
     if (daddr)
         iph->daddr = daddr;
@@ -1538,9 +1540,8 @@ static unsigned int module_hook_local_out(void *priv, struct sk_buff *skb, const
     int ret = 0;
 
     ip_header = ip_hdr(skb);
-    if (!ip_header || !ip_header->protocol == PROT_TCP)
+    if (!ip_header || ip_header->protocol != PROT_TCP)
         return NF_ACCEPT;
-
     tcp_data = get_tcp_data(skb);
     if (!tcp_data) {
         printk(KERN_ERR "Accepting non-TCP packets");
@@ -1569,7 +1570,7 @@ static unsigned int module_hook_local_out(void *priv, struct sk_buff *skb, const
         printk(KERN_CRIT "\nMITM - Modifed @ local out to:\n");
         print_tcp_packet(skb);
     }
-    return NF_ACCEPT;
+    return NF_DROP;
 }
 
 static unsigned int module_hook_local_in(void *priv, struct sk_buff *skb, const struct nf_hook_state *state) {
