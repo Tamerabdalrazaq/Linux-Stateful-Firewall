@@ -154,6 +154,10 @@ static direction_t get_direction_outgoing(const struct nf_hook_state *state) {
     return strcmp(state->out->name, IN_NET_DEVICE_NAME) == 0 ? DIRECTION_OUT : DIRECTION_IN;
 }
 
+static int is_active_rule (connection_rule_row* rule){
+    return (rule->connection_rule_cli.state != STATE_INACTIVE);
+}
+
 static __be32 ip_string_to_be32(const char *ip_string)
 {
     __be32 ip_32be = 0; // Initialize to 0 (error indicator)
@@ -621,6 +625,7 @@ static ssize_t read_connections_table(struct device *dev, struct device_attribut
 
     while ((knode = klist_next(&iter)) != NULL) {
         entry = container_of(knode,  connection_rule_row, node);
+        if(!is_active_rule(entry)) continue;
         len = snprintf(temp_buffer, sizeof(temp_buffer),
                        "%pI4,%u,%pI4,%u,%u,%u\n",
                        &entry->connection_rule_srv.packet.src_ip,
@@ -734,45 +739,6 @@ static tcp_data_t* get_tcp_data(struct sk_buff *skb) {
     return tcp_data;
 }
 
-// static connection_rule_row * get_original_packet_identifier(packet_identifier_t packet_identifier_local_out, direction_t dir) {
-//     struct klist_iter iter;
-//      connection_rule_row *row;
-//      connection_rule_row *original_row = NULL;
-//     struct klist_node *knode;
-
-//     // Initialize iterator
-//     klist_iter_init(&connections_table, &iter);
-
-//     while ((knode = klist_next(&iter))) {
-//         row = container_of(knode,  connection_rule_row, node);
-//         if (dir == DIRECTION_OUT) {
-//             // Check if the CLI packet matches
-//             if (row->connection_rule_cli.packet.src_ip == packet_identifier_local_out.dst_ip &&
-//                 row->connection_rule_cli.packet.src_port == packet_identifier_local_out.dst_port) {
-
-//                 original_row = row;
-//                 break;
-//             }
-//         } else if (dir == DIRECTION_IN) {
-//             // Check if the SRV packet matches
-//             if (row->connection_rule_srv.packet.src_ip == packet_identifier_local_out.dst_ip &&
-//                 row->connection_rule_srv.packet.src_port == packet_identifier_local_out.dst_port) {
-//                 original_row = row;
-//                 break;
-//             }
-//         }
-//     }
-
-//     // Cleanup iterator
-//     klist_iter_exit(&iter);
-//     if (!row) {
-//         printk(KERN_ERR "Original packet not found");
-//         print_connections_table();
-//         print_packet_identifier(&packet_identifier_local_out);
-//     }
-//     return row;
-// }
-
 
 static  connection_rule_row *find_connection_row_by_proxy(packet_identifier_t* packet_identifier_local_out, __be16 mitm_proc_port, direction_t dir) {
     struct klist_iter iter;
@@ -785,6 +751,7 @@ static  connection_rule_row *find_connection_row_by_proxy(packet_identifier_t* p
     // Iterate over the klist to find a matching entry
     while ((knode = klist_next(&iter))) {
         row = container_of(knode,  connection_rule_row, node);
+        if(!is_active_rule(entry)) continue;
         if (dir == DIRECTION_IN){
             if (row->connection_rule_srv.mitm_proc_port == mitm_proc_port ||
                 row->connection_rule_cli.mitm_proc_port == mitm_proc_port) {
@@ -868,6 +835,7 @@ static  connection_rule_row* find_connection_row(packet_identifier_t packet_iden
     // Iterate over the klist to find a matching entry
     while ((knode = klist_next(&iter))) {
         existing_entry = container_of(knode,  connection_rule_row, node);
+        if(!is_active_rule(existing_entry)) continue;
         if (compare_packets(existing_entry->connection_rule_cli.packet, packet_identifier) ||
             compare_packets(existing_entry->connection_rule_srv.packet, packet_identifier)){
             return existing_entry;
@@ -1070,6 +1038,7 @@ static ssize_t modify_mitm_port(struct device *dev, struct device_attribute *att
 
     while ((knode = klist_next(&iter))) {
         row = container_of(knode,  connection_rule_row, node);
+        if(!is_active_rule(row)) continue;
         if (row->connection_rule_cli.packet.src_ip == src_ip &&
             row->connection_rule_cli.packet.src_port == cli_port) {
             // Update the MITM port in the connection_rule_srv.packet
