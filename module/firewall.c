@@ -1381,7 +1381,7 @@ static int handle_mitm_local_out(struct sk_buff *skb, packet_identifier_t* packe
     // •	cli-to-server, outbound, local-out,
     if (dir == DIRECTION_IN){
         original_packet_identifier = conn->connection_rule_srv.packet;
-        original_ip = (original_packet_identifier.packet.dst_ip); // Client's IP
+        original_ip = (original_packet_identifier.dst_ip); // Client's IP
         ret = modify_packet(skb, original_ip, NULL, NULL, NULL);
     } 
     // •	Server-to-client, outbound, local-out,
