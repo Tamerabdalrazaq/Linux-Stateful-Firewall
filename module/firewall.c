@@ -935,7 +935,7 @@ static int initiate_connection(packet_identifier_t packet_identifier) {
 // Removes the connection from the klist connections_table 
 static int remove_connection_row(connection_rule_row *connection) {
     if (!connection) {
-        printk(KERN_ERR "remove_connection_row: NULL connection pointer\n");
+        printk(KERN_ERR "remove_connection : NULL connection pointer\n");
         return -EINVAL;
     }
 
@@ -1153,7 +1153,6 @@ static int handle_fin_state( connection_rule_row* connection, connection_rule_t*
                 if (ack == ACK_YES && !packet_sent) {
                     printk(KERN_INFO "STATCE_MACHINE_%s: Accepting for Last_ACK -> Closed", terminator);
                         rule->state = STATE_CLOSED;
-                        // remove_connection_row(connection);
                         print_connections_table();
                         return NF_ACCEPT;
                     }
@@ -1184,7 +1183,6 @@ static int handle_tcp_state_machine(packet_identifier_t packet_identifier,
         cli_rule->state = STATE_CLOSED;
         printk(KERN_INFO "STATCE_MACHINE_srv: Accepting for rst = 1");
         print_connections_table();
-        // remove_connection_row(found_connection);
         return NF_ACCEPT;
     }
 
@@ -1311,9 +1309,6 @@ static void tcp_handle_ack(packet_identifier_t packet_identifier, log_row_t* pt_
             *pt_verdict = NF_ACCEPT;
         } else {
             *pt_verdict = handle_tcp_state_machine(packet_identifier, found_connection, syn, ACK_YES, rst, fin);
-            if (found_connection->connection_rule_cli.state == STATE_CLOSED &&
-                found_connection->connection_rule_cli.state == STATE_CLOSED)
-                remove_connection_row(found_connection);
          }
         if (*pt_verdict)
             pt_log_entry->reason = REASON_VALID_CONNECTION;   
