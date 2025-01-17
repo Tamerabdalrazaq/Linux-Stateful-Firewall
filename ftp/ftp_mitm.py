@@ -12,6 +12,7 @@ SYSFS_PATH_CONNS = "/sys/class/fw/conns/conns"
 
 
 def find_destination(ip, port):
+    port = str(port)
     try:
         with open(SYSFS_PATH_CONNS, "r") as file:
             lines = file.readlines()
