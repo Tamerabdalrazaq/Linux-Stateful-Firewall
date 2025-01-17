@@ -1274,9 +1274,13 @@ static void tcp_handle_ack(packet_identifier_t packet_identifier, log_row_t* pt_
         *pt_verdict = NF_DROP;
     } else {
         printk (KERN_INFO "Connection found. Comparing agains TCP state machine.\n");
+        // Syn acket for Active FTP conenction
+        if (syn == SYN_YES)
+            *pt_verdict = NF_ACCEPT;
+         else 
+            *pt_verdict = NF_ACCEPT;
+            // *pt_verdict = handle_tcp_state_machine(packet_identifier, found_connection, syn, ACK_YES, rst, fin);
         // **** TESTING!!
-        *pt_verdict = NF_ACCEPT;
-        // *pt_verdict = handle_tcp_state_machine(packet_identifier, found_connection, syn, ACK_YES, rst, fin);
         if (*pt_verdict)
             pt_log_entry->reason = REASON_VALID_CONNECTION;   
         else
@@ -1376,7 +1380,8 @@ static int handle_mitm_local_out(struct sk_buff *skb, packet_identifier_t* packe
     
     // •	cli-to-server, outbound, local-out,
     if (dir == DIRECTION_IN){
-        original_ip = (conn->connection_rule_cli.packet.src_ip); // Client's IP
+        original_packet_identifier = conn->connection_rule_srv.packet;
+        original_ip = (original_packet_identifier.packet.dst_ip); // Client's IP
         ret = modify_packet(skb, original_ip, NULL, NULL, NULL);
     } 
     // •	Server-to-client, outbound, local-out,
@@ -1388,8 +1393,6 @@ static int handle_mitm_local_out(struct sk_buff *skb, packet_identifier_t* packe
     }
     return ret;
 }
-
-
 
 static void handle_tcp_pre_routing(struct sk_buff *skb, const struct nf_hook_state *state, 
                        packet_identifier_t packet_identifier, log_row_t* pt_log_entry, int *pt_verdict,
