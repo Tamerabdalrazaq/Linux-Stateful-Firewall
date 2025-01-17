@@ -993,10 +993,10 @@ static ssize_t modify_mitm_port(struct device *dev, struct device_attribute *att
             pr_err("Invalid input format. Expected format: \"#{},{},{},{}\\n\"\n");
             return -EINVAL; // Return error if parsing fails
         }
-        packet_identifier.dst_ip = ip_string_to_be32(cli_ip);
-        packet_identifier.src_ip = ip_string_to_be32(srv_ip);
-        packet_identifier.dst_port = htons(cli_port);
-        packet_identifier.src_port = htons(srv_port);
+        packet_identifier.src_ip = ip_string_to_be32(cli_ip);
+        packet_identifier.src_port = htons(cli_port);
+        packet_identifier.dst_ip = ip_string_to_be32(srv_ip);
+        packet_identifier.dst_port = htons(srv_port);
         if(!initiate_connection(packet_identifier)){
                 printk(KERN_ERR "Connection could not be intiated");
                 return -EINVAL;
