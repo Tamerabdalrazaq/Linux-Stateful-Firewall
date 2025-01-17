@@ -1303,8 +1303,8 @@ static void tcp_handle_ack(packet_identifier_t packet_identifier, log_row_t* pt_
         *pt_verdict = NF_DROP;
     } else {
         printk (KERN_INFO "Connection found. Comparing agains TCP state machine.\n");
-        // Syn acket for Active FTP conenction
-        if (syn == SYN_YES)
+        // Syn packet for Active FTP conenction
+        if (syn == SYN_YES && ack == ACK_NO)
             *pt_verdict = NF_ACCEPT;
          else 
             // *pt_verdict = NF_ACCEPT;
