@@ -119,6 +119,17 @@ def forward_to_destination(client_address, original_dest, packet):
         print("Error forwarding to destination: {}".format(e))
         return None
 
+def read_http_request(client_sock):
+    data = b""
+    while True:
+        chunk = client_sock.recv(4096)
+        if not chunk:
+            break
+        data += chunk
+        # Break if the headers are fully read
+        if b"\r\n\r\n" in data:
+            break
+    return data
 
 def start_mitm_server(listen_port):
     """
@@ -140,7 +151,7 @@ def start_mitm_server(listen_port):
             print("Accepted connection from {}".format(client_addr))
 
             try:
-                data = client_sock.recv(4096)  # Read the HTTP packet
+                data = read_http_request(client_sock) # Read the HTTP packet
 
                 if not data:
                     continue
