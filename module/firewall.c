@@ -731,66 +731,79 @@ static tcp_data_t* get_tcp_data(struct sk_buff *skb) {
     return tcp_data;
 }
 
-static packet_identifier_t* get_original_packet_identifier(packet_identifier_t packet_identifier_local_out, direction_t dir) {
+// static connection_rule_row * get_original_packet_identifier(packet_identifier_t packet_identifier_local_out, direction_t dir) {
+//     struct klist_iter iter;
+//      connection_rule_row *row;
+//      connection_rule_row *original_row = NULL;
+//     struct klist_node *knode;
+
+//     // Initialize iterator
+//     klist_iter_init(&connections_table, &iter);
+
+//     while ((knode = klist_next(&iter))) {
+//         row = container_of(knode,  connection_rule_row, node);
+//         if (dir == DIRECTION_OUT) {
+//             // Check if the CLI packet matches
+//             if (row->connection_rule_cli.packet.src_ip == packet_identifier_local_out.dst_ip &&
+//                 row->connection_rule_cli.packet.src_port == packet_identifier_local_out.dst_port) {
+
+//                 original_row = row;
+//                 break;
+//             }
+//         } else if (dir == DIRECTION_IN) {
+//             // Check if the SRV packet matches
+//             if (row->connection_rule_srv.packet.src_ip == packet_identifier_local_out.dst_ip &&
+//                 row->connection_rule_srv.packet.src_port == packet_identifier_local_out.dst_port) {
+//                 original_row = row;
+//                 break;
+//             }
+//         }
+//     }
+
+//     // Cleanup iterator
+//     klist_iter_exit(&iter);
+//     if (!row) {
+//         printk(KERN_ERR "Original packet not found");
+//         print_connections_table();
+//         print_packet_identifier(&packet_identifier_local_out);
+//     }
+//     return row;
+// }
+
+
+static  connection_rule_row *find_connection_row_by_proxy(packet_identifier_t* packet_identifier_local_out, __be16 mitm_proc_port, direction_t dir) {
     struct klist_iter iter;
-     connection_rule_row *row;
-    packet_identifier_t* original_packet = NULL;
     struct klist_node *knode;
-
-    // Initialize iterator
-    klist_iter_init(&connections_table, &iter);
-
-        while ((knode = klist_next(&iter))) {
-        row = container_of(knode,  connection_rule_row, node);
-        if (dir == DIRECTION_OUT) {
-            // Check if the CLI packet matches
-            if (row->connection_rule_cli.packet.src_ip == packet_identifier_local_out.dst_ip &&
-                row->connection_rule_cli.packet.src_port == packet_identifier_local_out.dst_port) {
-
-                original_packet = &row->connection_rule_cli.packet;
-                break;
-            }
-        } else if (dir == DIRECTION_IN) {
-            // Check if the SRV packet matches
-            if (row->connection_rule_srv.packet.src_ip == packet_identifier_local_out.dst_ip &&
-                row->connection_rule_srv.packet.src_port == packet_identifier_local_out.dst_port) {
-                original_packet = &row->connection_rule_cli.packet;
-                break;
-            }
-        }
-    }
-
-    // Cleanup iterator
-    klist_iter_exit(&iter);
-    if (!original_packet) {
-        printk(KERN_ERR "Original packet not found");
-        print_connections_table();
-        print_packet_identifier(&packet_identifier_local_out);
-    }
-    return original_packet;
-}
-
-
-static  connection_rule_row *find_connection_row_by_mitm_port(__be16 mitm_proc_port) {
-    struct klist_iter iter;
-    struct klist_node *knode;
-    connection_rule_row *row;
+    connection_rule_row *row, original_row = NULL;
 
     klist_iter_init(&connections_table, &iter);
 
     // Iterate over the klist to find a matching entry
     while ((knode = klist_next(&iter))) {
         row = container_of(knode,  connection_rule_row, node);
-        if (row->connection_rule_srv.mitm_proc_port == mitm_proc_port ||
-            row->connection_rule_cli.mitm_proc_port == mitm_proc_port) {
-            klist_iter_exit(&iter);
-            return row; 
+        if (dir == DIRECTION_IN){
+            if (row->connection_rule_srv.mitm_proc_port == mitm_proc_port ||
+                row->connection_rule_cli.mitm_proc_port == mitm_proc_port) {
+                klist_iter_exit(&iter);
+                original_row = row; 
+                break;
+            }
+        } else if (dir == DIRECTION_OUT) {
+            if (row->connection_rule_cli.packet.src_ip == packet_identifier_local_out->dst_ip &&
+                row->connection_rule_cli.packet.src_port == packet_identifier_local_out->dst_port) {
+                original_row = row;
+                break;
+            }
         }
     }
 
     klist_iter_exit(&iter);
-
-    return NULL; // No match found
+    if (!original_row) {
+        printk(KERN_ERR "Original packet not found");
+        print_connections_table();
+        print_packet_identifier(&packet_identifier_local_out);
+    }
+    return original_row; // No match found
 }
 
 static void extract_transport_fields(struct sk_buff *skb, __u8 protocol, __be16 *src_port,
@@ -1351,19 +1364,24 @@ static int handle_mitm_local_out(struct sk_buff *skb, packet_identifier_t* packe
     printk(KERN_INFO "Modifying packet @ local_out");
     if (dir == DIRECTION_IN){
         mimt_proc_port = tcp_data->src_port;
-        conn = find_connection_row_by_mitm_port(mimt_proc_port);
-        original_ip = (conn->connection_rule_cli.packet.src_ip);
+        conn = find_connection_row_by_proxy(NULL, mimt_proc_port, DIRECTION_IN);
+        if (!conn){
+            printk(KERN_ERR "\nError @ Local_out -> Client: Could not find connection by MITM_PORT\n");
+            return -1;
+        }
+        original_ip = (conn->connection_rule_cli.packet.src_ip); // Client's IP
         ret = modify_packet(skb, original_ip, NULL, NULL, NULL);
     } 
     // •	Server-to-client, outbound, local-out,
     else { 
-        original_packet_identifier = get_original_packet_identifier(*packet_identifier, dir);
-        if (!original_packet_identifier){
+        conn = find_connection_row_by_proxy(packet_identifier, 0, DIRECTION_OUT);
+        if (!conn){
             printk(KERN_ERR "\nError @ Local_out -> Client: Could not identify original packet\n");
             return -1;
         }
-        original_port = original_packet_identifier->dst_port;
-        original_ip = (original_packet_identifier->dst_ip);
+        original_packet_identifier = conn->connection_rule_cli.packet;
+        original_port = original_packet_identifier->dst_port; // Server's port
+        original_ip = (original_packet_identifier->dst_ip); // Server's IP
         ret = modify_packet(skb, original_ip, original_port, NULL, NULL);
     }
     return ret;
@@ -1514,8 +1532,6 @@ static unsigned int module_hook_local_out(void *priv, struct sk_buff *skb, const
     packet_identifier.dst_port = tcp_data->dst_port;
 
     log_entry = init_log_entry(packet_identifier, PROT_TCP);
-    // get_original_packet_identifier returns the client packet not the server's
-
 
     if(tcp_data->src_port == LOC_HTTP_PORT || tcp_data->dst_port == HTTP_PORT || 
         tcp_data->src_port == LOC_FTP_PORT || tcp_data->dst_port == FTP_PORT){
