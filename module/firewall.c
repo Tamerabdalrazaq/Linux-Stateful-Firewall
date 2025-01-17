@@ -23,8 +23,6 @@ MODULE_AUTHOR("Razaq");
 MODULE_DESCRIPTION("Basic Packet Filtering");
 MODULE_VERSION("1");
 
-static DEFINE_SPINLOCK(klist_lock);
-
 
 static int major_number;
 static struct class* sysfs_class = NULL;
@@ -857,7 +855,6 @@ static void reverse_packet_identifier(const packet_identifier_t *packet, packet_
 }
 
 static int initiate_connection(packet_identifier_t packet_identifier) {
-    spin_lock(&klist_lock);
         connection_rule_row* found_connection = find_connection_row(packet_identifier);
         packet_identifier_t *reversed_packet_identifier;
         connection_rule_row *new_rule_sender;
@@ -894,7 +891,6 @@ static int initiate_connection(packet_identifier_t packet_identifier) {
         kfree(reversed_packet_identifier);
 
         klist_add_tail(&new_rule_sender->node, &connections_table);
-    spin_unlock(&klist_lock);
 
     print_connections_table();
     return NF_ACCEPT;
