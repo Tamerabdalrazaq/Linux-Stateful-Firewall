@@ -802,7 +802,7 @@ static  connection_rule_row *find_connection_row_by_proxy(packet_identifier_t* p
     if (!original_row) {
         printk(KERN_ERR "Original packet not found");
         print_connections_table();
-        print_packet_identifier(&packet_identifier_local_out);
+        print_packet_identifier(packet_identifier_local_out);
     }
     return original_row; // No match found
 }
@@ -1358,7 +1358,7 @@ static int handle_mitm_local_out(struct sk_buff *skb, packet_identifier_t* packe
     __be16 original_port;
     __be16 mimt_proc_port;
     connection_rule_row* conn;
-    packet_identifier_t* original_packet_identifier;
+    packet_identifier_t original_packet_identifier;
     int ret = 0;
 
     // •	cli-to-server, outbound, local-out,
@@ -1381,8 +1381,8 @@ static int handle_mitm_local_out(struct sk_buff *skb, packet_identifier_t* packe
             return -1;
         }
         original_packet_identifier = conn->connection_rule_cli.packet;
-        original_port = original_packet_identifier->dst_port; // Server's port
-        original_ip = (original_packet_identifier->dst_ip); // Server's IP
+        original_port = original_packet_identifier.dst_port; // Server's port
+        original_ip = (original_packet_identifier.dst_ip); // Server's IP
         ret = modify_packet(skb, original_ip, original_port, NULL, NULL);
     }
     return ret;
