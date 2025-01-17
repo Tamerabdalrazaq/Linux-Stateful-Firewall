@@ -1278,8 +1278,8 @@ static void tcp_handle_ack(packet_identifier_t packet_identifier, log_row_t* pt_
         if (syn == SYN_YES)
             *pt_verdict = NF_ACCEPT;
          else 
-            *pt_verdict = NF_ACCEPT;
-            // *pt_verdict = handle_tcp_state_machine(packet_identifier, found_connection, syn, ACK_YES, rst, fin);
+            // *pt_verdict = NF_ACCEPT;
+            *pt_verdict = handle_tcp_state_machine(packet_identifier, found_connection, syn, ACK_YES, rst, fin);
         // **** TESTING!!
         if (*pt_verdict)
             pt_log_entry->reason = REASON_VALID_CONNECTION;   
