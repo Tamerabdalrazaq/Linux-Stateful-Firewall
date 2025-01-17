@@ -1305,9 +1305,12 @@ static void tcp_handle_ack(packet_identifier_t packet_identifier, log_row_t* pt_
         // Syn packet for Active FTP conenction
         if (syn == SYN_YES && ack == ACK_NO)
             *pt_verdict = NF_ACCEPT;
-         else 
-            // *pt_verdict = NF_ACCEPT;
+         else {
             *pt_verdict = handle_tcp_state_machine(packet_identifier, found_connection, syn, ACK_YES, rst, fin);
+            if (found_connection->connection_rule_cli.state == STATE_CLOSED &&
+                found_connection->connection_rule_cli.state == STATE_CLOSED)
+                remove_connection_row(found_connection);
+         }
         // **** TESTING!!
         if (*pt_verdict)
             pt_log_entry->reason = REASON_VALID_CONNECTION;   
