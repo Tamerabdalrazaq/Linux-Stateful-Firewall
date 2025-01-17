@@ -1422,7 +1422,7 @@ static int handle_mitm_local_out(struct sk_buff *skb, packet_identifier_t* packe
         handle_tcp_state_machine(original_packet_identifier, conn, tcp_data->syn, tcp_data->ack, tcp_data->rst, tcp_data->fin);
     }
     if (conn->connection_rule_cli.state == STATE_CLOSED &&
-        conn->connection_rule_cli.state == STATE_CLOSED)
+        conn->connection_rule_srv.state == STATE_CLOSED)
         remove_connection_row(conn);
     return ret;
 }
