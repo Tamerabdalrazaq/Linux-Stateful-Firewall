@@ -181,6 +181,7 @@ typedef struct {
 	__be16 			dst_port;	  	// if you use this struct in userspace, change the type to unsigned short
 	reason_t     	reason;       	// rule#index, or values from: reason_t
 	unsigned int   	count;        	// counts this line's hits
+	int 			ignore;
 } log_row_t;
 
 

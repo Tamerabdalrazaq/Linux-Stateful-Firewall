@@ -184,6 +184,7 @@ static log_row_t init_log_entry(packet_identifier_t packet_identifier, __u8 prot
 	log_entry.action = 0;                    // Default action (can be updated later)
 	log_entry.reason = 0;                    // Default reason (can be updated later)
 	log_entry.count = 1;                     // Initialize count to 1
+    log_entry.ignore = 0;
 
 	return log_entry;                        // Return the initialized log entry
 }
@@ -667,6 +668,7 @@ void add_or_update_log_entry(log_row_t *new_entry) {
     struct klist_node *knode;
     struct packet_log *existing_entry;
 
+    if (new_entry->ignore) return;
     int found = 0;
 
     // Initialize an iterator for the klist
@@ -1397,6 +1399,7 @@ static int handle_mitm_local_out(struct sk_buff *skb, packet_identifier_t* packe
     __be16 mimt_proc_port;
     connection_rule_row* conn;
     packet_identifier_t original_packet_identifier;
+    log_row_t log_entry;
     int ret = 0;
 
     mimt_proc_port = tcp_data->src_port;
@@ -1421,6 +1424,10 @@ static int handle_mitm_local_out(struct sk_buff *skb, packet_identifier_t* packe
         original_ip = (original_packet_identifier.src_ip); // Server's IP
         ret = modify_packet(skb, original_ip, original_port, 0, 0);
         handle_tcp_state_machine(original_packet_identifier, conn, tcp_data->syn, tcp_data->ack, tcp_data->rst, tcp_data->fin);
+    }
+    if (dir == DIRECTION_OUT && ret >= 0){
+        log_entry = init_log_entry(original_packet_identifier, PROT_TCP);
+        add_or_update_log_entry(&log_entry);
     }
     return ret;
 }
@@ -1450,10 +1457,12 @@ static void handle_tcp_pre_routing(struct sk_buff *skb, const struct nf_hook_sta
                       (packet_identifier.src_port == (HTTP_PORT) )))){
         printk(KERN_INFO "Handling an HTTP Packet ...");
         ret = handle_mitm_pre_routing(skb, packet_identifier, state, PROT_HTTP);
+        if (direction == DIRECTION_OUT) pt_log_entry->ignore = 1;
     } else if(*pt_verdict &&( (packet_identifier.dst_port == (FTP_PORT)) || 
                       (packet_identifier.src_port == (FTP_PORT) )) ){
         printk(KERN_INFO "Handling an FTP Packet ...");
         ret = handle_mitm_pre_routing(skb, packet_identifier, state, PROT_FTP);
+        if (direction == DIRECTION_OUT) pt_log_entry->ignore = 1;
     }
 
     if(ret < 0) {
@@ -1548,7 +1557,6 @@ static unsigned int module_hook_local_out(void *priv, struct sk_buff *skb, const
     struct iphdr *ip_header;
     tcp_data_t* tcp_data;
     packet_identifier_t packet_identifier;
-    log_row_t log_entry;
     direction_t dir = get_direction_outgoing(state);
     int ret = 0;
 
@@ -1565,8 +1573,6 @@ static unsigned int module_hook_local_out(void *priv, struct sk_buff *skb, const
     packet_identifier.dst_ip = ip_header->daddr;
     packet_identifier.src_port = tcp_data->src_port;
     packet_identifier.dst_port = tcp_data->dst_port;
-
-    log_entry = init_log_entry(packet_identifier, PROT_TCP);
 
     if(tcp_data->src_port == LOC_HTTP_PORT || tcp_data->dst_port == HTTP_PORT || 
         tcp_data->src_port == LOC_FTP_PORT || tcp_data->dst_port == FTP_PORT){
