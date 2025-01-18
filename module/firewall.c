@@ -1074,7 +1074,7 @@ static ssize_t modify_mitm_port(struct device *dev, struct device_attribute *att
     }
 
     klist_iter_exit(&iter);
-    pr_err("No matching connection rule found for: %pI4:%d\n", &src_ip, ntohs(srv_ip));
+    printk(KERN_ERR "No matching connection rule found for: %pI4:%d\n", &src_ip, ntohs(srv_ip));
     return -ENOENT; // No entry found
 }
 
@@ -1087,7 +1087,7 @@ static int handle_fin_state( connection_rule_row* connection, connection_rule_t*
         switch (rule->state) {
             case STATE_ESTABLISHED:
                 if (fin == FIN_YES && (packet_sent)) {
-                    printk(KERN_INFO "%s is terminating the session");
+                    printk(KERN_INFO "%s terminating the session", terminator);
                     printk(KERN_INFO "STATCE_MACHINE_%s: Accepting for Established -> Wait_1", terminator);
                     rule->state = STATE_FIN_WAIT_1;
                     print_connections_table();
