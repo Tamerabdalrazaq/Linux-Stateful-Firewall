@@ -1081,7 +1081,7 @@ static ssize_t modify_mitm_port(struct device *dev, struct device_attribute *att
 
 
 static int handle_fin_state( connection_rule_row* connection, connection_rule_t* rule, 
-                            int sender, int rule_owner, tcp_state_t others_state, __u8 ack, __u8 fin){
+                            int sender, int rule_owner, connection_rule_t* other_rule, __u8 ack, __u8 fin){
     int packet_sent = (sender == rule_owner);
     char* terminator = (sender == 0) ? "srv": "cli";
         switch (rule->state) {
@@ -1102,14 +1102,15 @@ static int handle_fin_state( connection_rule_row* connection, connection_rule_t*
                 break;
 
             case STATE_FIN_WAIT_1:
-                if (ack == ACK_YES && fin == FIN_NO && !packet_sent) {
-                    printk(KERN_INFO "STATCE_MACHINE_%s: Accepting for Wait_1 -> Wait_2", terminator);
-                    rule->state = STATE_FIN_WAIT_2;
-                    print_connections_table();
-                    return NF_ACCEPT;
-                } else if (ack == ACK_YES && packet_sent) { // Handle simultanuous closing.....
+                if (ack == ACK_YES && packet_sent) { // Handle simultanuous closing.....
                     printk(KERN_INFO "STATCE_MACHINE_%s: Accepting for Wait_1 -> Closing", terminator);
                     rule->state = STATE_CLOSING;
+                    print_connections_table();
+                    return NF_ACCEPT;
+                }
+                else if (ack == ACK_YES && fin == FIN_NO && !packet_sent  && (other_rule->state <= STATE_LAST_ACK)) {
+                    printk(KERN_INFO "STATCE_MACHINE_%s: Accepting for Wait_1 -> Wait_2", terminator);
+                    rule->state = STATE_FIN_WAIT_2;
                     print_connections_table();
                     return NF_ACCEPT;
                 }
@@ -1213,7 +1214,7 @@ static int handle_tcp_state_machine(packet_identifier_t packet_identifier,
                 break;
             }
         default:
-            srv_verdict = handle_fin_state(found_connection, srv_rule, sender_client, 0, cli_rule->state, ack, fin);
+            srv_verdict = handle_fin_state(found_connection, srv_rule, sender_client, 0, cli_rule, ack, fin);
     }
 
     // Handle client-side state transitions
@@ -1250,7 +1251,7 @@ static int handle_tcp_state_machine(packet_identifier_t packet_identifier,
                 break;
             }
         default:
-            cli_verdict = handle_fin_state(found_connection, cli_rule, sender_client, 1, srv_rule->state, ack, fin);
+            cli_verdict = handle_fin_state(found_connection, cli_rule, sender_client, 1, srv_rule, ack, fin);
     }
 
     return (srv_verdict == NF_ACCEPT || cli_verdict == NF_ACCEPT) ? NF_ACCEPT : NF_DROP;

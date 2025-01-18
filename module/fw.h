@@ -120,11 +120,11 @@ typedef enum {
 	STATE_SYN_SENT      = 0x02, // Client sent SYN, waiting for SYN-ACK
 	STATE_SYN_RECEIVED  = 0x03, // Server received SYN, sent SYN-ACK, waiting for ACK
 	STATE_ESTABLISHED   = 0x04, // Connection is established, data transfer allowed
-	STATE_FIN_WAIT_1    = 0x05, // Active close initiated, FIN sent, waiting for ACK or FIN
-	STATE_FIN_WAIT_2    = 0x06, // FIN acknowledged, waiting for peer's FIN
-	STATE_CLOSE_WAIT    = 0x07, // FIN received, waiting for application to close
-	STATE_CLOSING       = 0x08, // Both sides sent FIN, waiting for ACK
-	STATE_LAST_ACK      = 0x09, // Passive close, waiting for final ACK
+	STATE_CLOSE_WAIT    = 0x05, // FIN received, waiting for application to close
+	STATE_LAST_ACK      = 0x06, // Passive close, waiting for final ACK
+	STATE_FIN_WAIT_1    = 0x07, // Active close initiated, FIN sent, waiting for ACK or FIN
+	STATE_FIN_WAIT_2    = 0x08, // FIN acknowledged, waiting for peer's FIN
+	STATE_CLOSING       = 0x09, // Both sides sent FIN, waiting for ACK
 	STATE_TIME_WAIT     = 0x0A, // Waiting to ensure all packets are accounted for
 	STATE_CLOSED        = 0x0B  // Connection is fully closed
 } tcp_state_t;
