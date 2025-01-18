@@ -202,7 +202,7 @@ def show_log():
     try:
         with open(CHARDEV_PATH_LOG, 'r') as f:
             print("Reading firewall logs...")
-            print("{:<20} {:<15} {:<15} {:<10} {:<10} {:<8} {:<8} {:<15} {:<5}".format(
+            print("{:<20} {:<15} {:<15} {:<10} {:<10} {:<8} {:<8} {:<20} {:<5}".format(
                 "timestamp", "src_ip", "dst_ip", "src_port", "dst_port", "protocol", "action", "reason", "count"
             ))
 
@@ -230,7 +230,7 @@ def show_log():
                 action_str = ACTION_MAP.get(action, "{}".format(action))
                 reason_str = REASON_MAP.get(reason, "{}".format(reason))
 
-                print("{:<20} {:<15} {:<15} {:<10} {:<10} {:<8} {:<8} {:<15} {:<5}".format(
+                print("{:<20} {:<15} {:<15} {:<10} {:<10} {:<8} {:<8} {:<20} {:<5}".format(
                     timestamp, src_ip, dst_ip, src_port, dst_port, protocol_str, action_str, reason_str, count
                 ))
     except Exception as e:

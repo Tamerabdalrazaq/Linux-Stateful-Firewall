@@ -4,7 +4,7 @@ spoof1 in 10.0.1.1/24 any any any any any drop
 spoof2 out 10.0.2.2/24 any any any any any drop
 telnet1 out 10.0.1.1/24 any TCP >1023 23 any accept
 srv_cli_ping out 10.1.2.2/24 10.1.1.1/24 ICMP any any any accept
-srv_cli_ping out 10.1.2.2/24 10.1.1.1/24 ICMP any any any accept
+srv_cli_ping out 10.1.1.1/24 10.1.2.2/24 ICMP any any any accept
 cli_srv_ftp in 10.1.1.1/24 10.1.2.2/24 TCP any 21 no accept
 cli_srv_http in 10.1.1.1/24 10.1.2.2/24 TCP any 80 no accept
 default any any any any any any any drop
