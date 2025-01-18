@@ -20,7 +20,7 @@
 
 MODULE_LICENSE("GPL");
 MODULE_AUTHOR("Razaq");
-MODULE_DESCRIPTION("Basic Packet Filtering");
+MODULE_DESCRIPTION("Stateful Firewall");
 MODULE_VERSION("1");
 
 static int major_number;
