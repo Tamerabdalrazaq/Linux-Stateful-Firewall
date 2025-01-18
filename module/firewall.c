@@ -1087,8 +1087,12 @@ static int handle_fin_state( connection_rule_row* connection, connection_rule_t*
         switch (rule->state) {
             case STATE_ESTABLISHED:
                 if (fin == FIN_YES && (packet_sent)) {
+                    if(others_state == STATE_FIN_WAIT_1)
+                        printk(KERN_INFO "STATCE_MACHINE_%s: Accepting for Established -> CLOSING", terminator);
+                        rule->state = STATE_CLOSING;
+                        return NF_ACCEPT;
+                    }
                     printk(KERN_INFO "%s terminating the session", terminator);
-                    printk(KERN_INFO "STATCE_MACHINE_%s: Accepting for Established -> Wait_1", terminator);
                     rule->state = STATE_FIN_WAIT_1;
                     print_connections_table();
                     return NF_ACCEPT;
