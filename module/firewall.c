@@ -898,7 +898,7 @@ static int handle_restart_existing_connection(connection_rule_row* found_connect
         return NF_DROP;
     } else {
         printk(KERN_ERR "initiate_connection: Restarting existing connection");
-        int sender_client = compare_packets(packet_identifier, found_connection->connection_rule_cli);
+        int sender_client = compare_packets(packet_identifier, found_connection->connection_rule_cli.packet);
         found_connection->connection_rule_cli.state = sender_client ? STATE_SYN_SENT: STATE_LISTEN;
         found_connection->connection_rule_srv.state = sender_client ? STATE_LISTEN: STATE_SYN_SENT;
         return NF_ACCEPT;
