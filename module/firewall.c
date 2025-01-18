@@ -1282,7 +1282,9 @@ static void tcp_handle_syn(packet_identifier_t packet_identifier, log_row_t* pt_
     int found_rule_index;
     printk(KERN_INFO "TCP packet with ack = 0");
     if(direction == DIRECTION_OUT) {
-        printk(KERN_INFO "Suspicious outbound syn - DROPPING");
+        printk(KERN_ERR "\n\nSuspicious outbound syn - DROPPING\n\n");
+        pt_log_entry->action =NF_DROP;
+        pt_log_entry->reason = REASON_INVALID_CONNECTION;
         *pt_verdict = NF_DROP;
         return;
     }
