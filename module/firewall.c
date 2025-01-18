@@ -23,9 +23,6 @@ MODULE_AUTHOR("Razaq");
 MODULE_DESCRIPTION("Basic Packet Filtering");
 MODULE_VERSION("1");
 
-static DEFINE_SPINLOCK(klist_lock);
-
-
 static int major_number;
 static struct class* sysfs_class = NULL;
 static struct device* sysfs_device = NULL;
@@ -892,12 +889,13 @@ static void reverse_packet_identifier(const packet_identifier_t *packet, packet_
 }
 
 static int handle_restart_existing_connection(connection_rule_row* found_connection, packet_identifier_t packet_identifier) {
+    int sender_client;
     if (is_active_connection(found_connection)) {
         printk(KERN_ERR "initiate_connection Error: Connection already exists.");
         return NF_DROP;
     } else {
         printk(KERN_ERR "initiate_connection: Restarting existing connection");
-        int sender_client = compare_packets(packet_identifier, found_connection->connection_rule_cli.packet);
+        sender_client = compare_packets(packet_identifier, found_connection->connection_rule_cli.packet);
         found_connection->connection_rule_cli.state = sender_client ? STATE_SYN_SENT: STATE_LISTEN;
         found_connection->connection_rule_srv.state = sender_client ? STATE_LISTEN: STATE_SYN_SENT;
         return NF_ACCEPT;
@@ -1089,7 +1087,7 @@ static int handle_fin_state( connection_rule_row* connection, connection_rule_t*
         switch (rule->state) {
             case STATE_ESTABLISHED:
                 if (fin == FIN_YES && (packet_sent)) {
-                    printk(KERN_CRIT "%s is terminating the session");
+                    printk(KERN_INFO "%s is terminating the session");
                     printk(KERN_INFO "STATCE_MACHINE_%s: Accepting for Established -> Wait_1", terminator);
                     rule->state = STATE_FIN_WAIT_1;
                     print_connections_table();
@@ -1370,19 +1368,20 @@ static int handle_mitm_pre_routing(struct sk_buff *skb, packet_identifier_t pack
     __be32 local_ip;
     __be16 local_port = (app_prot == PROT_HTTP ? LOC_HTTP_PORT: LOC_FTP_PORT); 
     direction_t dir = get_direction_incoming(state);
+    int ret = 0;
     // •	Client-to-server, inbound, pre-routing
     if (dir == DIRECTION_IN){
         local_ip = (in_aton(FW_IN_IP));
-        int ret = modify_packet(skb, NULL, NULL, local_ip, local_port);
+        ret = modify_packet(skb, 0, 0, local_ip, local_port);
     } 
     // •	Server-to-client, inbound, pre-routing
     else { 
         local_ip = (in_aton(FW_OUT_IP));
-        int ret = modify_packet(skb, NULL, NULL, local_ip, NULL);
+        ret = modify_packet(skb, 0, 0, local_ip, 0);
     }
     printk(KERN_CRIT "MITM - Modifed CLI --> LOCAL:%d\n", ntohs(local_port));
     print_tcp_packet(skb);
-    return 0;
+    return ret;
 }
 
 static int handle_mitm_local_out(struct sk_buff *skb, packet_identifier_t* packet_identifier,
@@ -1407,14 +1406,14 @@ static int handle_mitm_local_out(struct sk_buff *skb, packet_identifier_t* packe
     if (dir == DIRECTION_IN){
         original_packet_identifier = conn->connection_rule_cli.packet;
         original_ip = (original_packet_identifier.src_ip); // Client's IP
-        ret = modify_packet(skb, original_ip, NULL, NULL, NULL);
+        ret = modify_packet(skb, original_ip, 0, 0, 0);
     } 
     // •	Server-to-client, outbound, local-out,
     else { 
         original_packet_identifier = conn->connection_rule_srv.packet;
         original_port = original_packet_identifier.src_port; // Server's port
         original_ip = (original_packet_identifier.src_ip); // Server's IP
-        ret = modify_packet(skb, original_ip, original_port, NULL, NULL);
+        ret = modify_packet(skb, original_ip, original_port, 0, 0);
         handle_tcp_state_machine(original_packet_identifier, conn, tcp_data->syn, tcp_data->ack, tcp_data->rst, tcp_data->fin);
     }
     return ret;
@@ -1441,12 +1440,12 @@ static void handle_tcp_pre_routing(struct sk_buff *skb, const struct nf_hook_sta
 
     // Proxy stuff 
 
-    if(*pt_verdict && (packet_identifier.dst_port == (HTTP_PORT) || 
-                      (packet_identifier.src_port == (HTTP_PORT) ))){
+    if(*pt_verdict && ((packet_identifier.dst_port == (HTTP_PORT) || 
+                      (packet_identifier.src_port == (HTTP_PORT) )))){
         printk(KERN_INFO "Handling an HTTP Packet ...");
         ret = handle_mitm_pre_routing(skb, packet_identifier, state, PROT_HTTP);
-    } else if(*pt_verdict && (packet_identifier.dst_port == (FTP_PORT)) || 
-                      (packet_identifier.src_port == (FTP_PORT) ) ){
+    } else if(*pt_verdict &&( (packet_identifier.dst_port == (FTP_PORT)) || 
+                      (packet_identifier.src_port == (FTP_PORT) )) ){
         printk(KERN_INFO "Handling an FTP Packet ...");
         ret = handle_mitm_pre_routing(skb, packet_identifier, state, PROT_FTP);
     }
@@ -1540,18 +1539,15 @@ static int get_packet_verdict_pre_routing(struct sk_buff *skb, const struct nf_h
 }
 
 static unsigned int module_hook_local_out(void *priv, struct sk_buff *skb, const struct nf_hook_state *state) {
-    unsigned int verdict = NF_DROP;
     struct iphdr *ip_header;
-    struct tcphdr *tcph;
     tcp_data_t* tcp_data;
     packet_identifier_t packet_identifier;
-    packet_identifier_t* original_packet_identifier;
     log_row_t log_entry;
     direction_t dir = get_direction_outgoing(state);
     int ret = 0;
 
     ip_header = ip_hdr(skb);
-    if (!ip_header || !ip_header->protocol == PROT_TCP)
+    if (!ip_header || !(ip_header->protocol == PROT_TCP))
         return NF_ACCEPT;
 
     tcp_data = get_tcp_data(skb);
@@ -1590,7 +1586,6 @@ static unsigned int module_hook_local_out(void *priv, struct sk_buff *skb, const
 static unsigned int module_hook(void *priv, struct sk_buff *skb, const struct nf_hook_state *state) {
     unsigned int verdict = NF_DROP;
     struct iphdr *ip_header;
-    struct tcphdr *tcph = tcp_hdr(skb);
     ip_header = ip_hdr(skb);
     if (!ip_header) {
         printk(KERN_INFO "\nAccepting for NON-IPv4 packets\n");
