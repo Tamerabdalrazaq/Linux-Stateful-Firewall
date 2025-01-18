@@ -1,7 +1,7 @@
 sudo mknod /dev/fw_log c 243 0
 echo ""
 echo "Loading Rules.."
-sudo python3 ./http/http_mitm.py > http_output.log 2>&1
+sudo python3 ./user/main.py load_rules rules
 echo ""
 echo ""
 sudo python3 ./user/main.py show_rules
