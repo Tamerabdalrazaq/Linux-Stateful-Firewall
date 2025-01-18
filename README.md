@@ -13,12 +13,17 @@ This project implements a simple Linux kernel module that performs basic packet 
 ## Installation
 1. Clone the repository:
    ```bash
-   git clone https://github.com/yourusername/firewall-module.git
-   cd firewall-module
+   git clone https://github.com/tamerabdalrazaq/linux-stateful-firewall.git
+   cd linux-stateful-firewall
+2. Initialize the module:
+    ```bash
+    bash init_module.sh
 
 ## Sysfs Interface
 
 This firewall module exposes several attributes via the sysfs interface. These attributes allow interaction with the firewall, such as adding/removing rules, viewing connection logs, and resetting the logs.
+    ```bash
+    bash run_user.sh
 
 ### Available Attributes
 

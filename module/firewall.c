@@ -56,7 +56,6 @@ static struct klist connections_table = KLIST_INIT(connections_table, NULL, NULL
 
 // Netfilter hooks for relevant packet phases
 static struct nf_hook_ops netfilter_ops_fw;
-static struct nf_hook_ops netfilter_ops_fw_local_in;
 static struct nf_hook_ops netfilter_ops_fw_local_out;
 
 static int RULES_COUNT = 0;
@@ -71,7 +70,7 @@ void print_tcp_packet(struct sk_buff *skb) {
         return;
 
     iph = ip_hdr(skb);
-    if (!iph || iph->protocol != IPPROTO_TCP) {
+    if (!iph || iph->protocol != PROT_TCP) {
         pr_info("Not a TCP packet\n");
         return;
     }
@@ -945,23 +944,6 @@ static int initiate_connection(packet_identifier_t packet_identifier) {
     return NF_ACCEPT;
 }
 
-// Removes the connection from the klist connections_table 
-static int remove_connection_row(connection_rule_row *connection) {
-    if (!connection) {
-        printk(KERN_ERR "remove_connection : NULL connection pointer\n");
-        return -EINVAL;
-    }
-
-    spin_lock(&klist_lock);
-        klist_remove(&connection->node);
-        kfree(connection);
-    spin_unlock(&klist_lock);
-
-    printk(KERN_INFO "Connection successfully removed from the klist\n");
-    print_connections_table(); // Ensure thread-safe access here too
-    return 0;
-}
-
 
 static int comp_packet_to_static_rules(packet_identifier_t packet_identifier, __u8 protocol, __u8 ack, direction_t direction) {
     int i;
@@ -1388,12 +1370,12 @@ static int handle_mitm_pre_routing(struct sk_buff *skb, packet_identifier_t pack
     __be32 local_ip;
     __be16 local_port = (app_prot == PROT_HTTP ? LOC_HTTP_PORT: LOC_FTP_PORT); 
     direction_t dir = get_direction_incoming(state);
-    // •	Client-to-server, inbound, pre-routing, we need to change the dest IP and dest port
+    // •	Client-to-server, inbound, pre-routing
     if (dir == DIRECTION_IN){
         local_ip = (in_aton(FW_IN_IP));
         int ret = modify_packet(skb, NULL, NULL, local_ip, local_port);
     } 
-    // •	Server-to-client, inbound, pre-routing, we need to change the dest IP
+    // •	Server-to-client, inbound, pre-routing
     else { 
         local_ip = (in_aton(FW_OUT_IP));
         int ret = modify_packet(skb, NULL, NULL, local_ip, NULL);
@@ -1435,9 +1417,6 @@ static int handle_mitm_local_out(struct sk_buff *skb, packet_identifier_t* packe
         ret = modify_packet(skb, original_ip, original_port, NULL, NULL);
         handle_tcp_state_machine(original_packet_identifier, conn, tcp_data->syn, tcp_data->ack, tcp_data->rst, tcp_data->fin);
     }
-    // if (conn->connection_rule_cli.state == STATE_CLOSED &&
-    //     conn->connection_rule_srv.state == STATE_CLOSED)
-    //     remove_connection_row(conn);
     return ret;
 }
 
@@ -1606,20 +1585,6 @@ static unsigned int module_hook_local_out(void *priv, struct sk_buff *skb, const
     return NF_ACCEPT;
 }
 
-static unsigned int module_hook_local_in(void *priv, struct sk_buff *skb, const struct nf_hook_state *state) {
-    unsigned int verdict = NF_DROP;
-    struct iphdr *ip_header;
-    struct tcphdr *tcph = tcp_hdr(skb);
-    ip_header = ip_hdr(skb);
-    
-    // if (tcph->dest == htons(800)){
-    //     printk(KERN_INFO "\nPacket @ LOCAL_IN: \n");
-
-    //     printk(KERN_CRIT " Src IP: %pI4, Src Port: %u, Dst IP: %pI4, Dst Port: %u\n\n",
-    //     &ip_header->saddr, ntohs(tcph->source), &ip_header->daddr, ntohs(tcph->dest));
-    // }
-    return NF_ACCEPT;
-}
 
 
 static unsigned int module_hook(void *priv, struct sk_buff *skb, const struct nf_hook_state *state) {
@@ -1627,13 +1592,6 @@ static unsigned int module_hook(void *priv, struct sk_buff *skb, const struct nf
     struct iphdr *ip_header;
     struct tcphdr *tcph = tcp_hdr(skb);
     ip_header = ip_hdr(skb);
-    // Accept external incoming packets (** FOR DEV MODE ONLY **) 
-    // if (DEV_MODE && (strcmp(state->in->name, EX_NET_DEVICE_NAME) == 0 || 
-    //     strcmp(state->in->name, EX_NET_DEVICE_NAME) == 0) ){
-    //     printk(KERN_INFO "(DEV) Accepting External Packet ");
-    //     return NF_ACCEPT;
-    // }
-
     if (!ip_header) {
         printk(KERN_INFO "\nAccepting for NON-IPv4 packets\n");
         return NF_ACCEPT; // Accept non-IPv4 packets (e.g., IPv6)
@@ -1650,7 +1608,7 @@ static unsigned int module_hook(void *priv, struct sk_buff *skb, const struct nf
         return NF_ACCEPT;
     }
 
-    printk(KERN_INFO "\n\n************\nRecieved a new packet \n\n\n");
+    printk(KERN_INFO "\n\n************\nRecieved a new packet *************\n\n\n");
 
     verdict = get_packet_verdict_pre_routing(skb, state);
     printk(KERN_INFO "\n\n\nEnd packet <- %s \n************\n\n", verdict ? "Accept": "Drop");
@@ -1795,22 +1753,6 @@ static int __init fw_init(void) {
     }
 
     // Set up the Netfilter hook for forwarding packets
-    netfilter_ops_fw_local_in.hook = module_hook_local_in;
-    netfilter_ops_fw_local_in.pf = PF_INET;
-    netfilter_ops_fw_local_in.hooknum = NF_INET_LOCAL_IN;
-    netfilter_ops_fw_local_in.priority = NF_IP_PRI_FIRST;
-
-    ret = nf_register_net_hook(&init_net, &netfilter_ops_fw_local_in);
-    if (ret) {
-        printk(KERN_ERR "firewall: Failed to register LOCAL_IN hook. Error: %d\n", ret);
-        device_destroy(sysfs_class, MKDEV(major_number, 1));
-        device_destroy(sysfs_class, MKDEV(major_number, 0));
-        class_destroy(sysfs_class);
-        unregister_chrdev(major_number, "fw_log");
-        nf_unregister_net_hook(&init_net, &netfilter_ops_fw);
-        return ret;
-    }
-    // Set up the Netfilter hook for forwarding packets
     netfilter_ops_fw_local_out.hook = module_hook_local_out;
     netfilter_ops_fw_local_out.pf = PF_INET;
     netfilter_ops_fw_local_out.hooknum = NF_INET_LOCAL_OUT;
@@ -1824,7 +1766,6 @@ static int __init fw_init(void) {
         class_destroy(sysfs_class);
         unregister_chrdev(major_number, "fw_log");
         nf_unregister_net_hook(&init_net, &netfilter_ops_fw);
-        nf_unregister_net_hook(&init_net, &netfilter_ops_fw_local_in);
         return ret;
     }
     
@@ -1869,7 +1810,6 @@ static void __exit fw_exit(void)
 
     // ****** Netfilter Cleanup ******
     nf_unregister_net_hook(&init_net, &netfilter_ops_fw);
-    nf_unregister_net_hook(&init_net, &netfilter_ops_fw_local_in);
     nf_unregister_net_hook(&init_net, &netfilter_ops_fw_local_out);
 
     printk(KERN_INFO "firewall module removed successfully.\n");
