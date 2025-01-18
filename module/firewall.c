@@ -154,6 +154,10 @@ static direction_t get_direction_outgoing(const struct nf_hook_state *state) {
     return strcmp(state->out->name, IN_NET_DEVICE_NAME) == 0 ? DIRECTION_OUT : DIRECTION_IN;
 }
 
+static int is_active_connection (connection_rule_row* rule){
+    return ((rule->connection_rule_cli.state != STATE_CLOSED) || (rule->connection_rule_srv.state != STATE_CLOSED) );
+}
+
 static __be32 ip_string_to_be32(const char *ip_string)
 {
     __be32 ip_32be = 0; // Initialize to 0 (error indicator)
@@ -888,15 +892,26 @@ static void reverse_packet_identifier(const packet_identifier_t *packet, packet_
     reversed->dst_port = packet->src_port;
 }
 
+static int handle_restart_existing_connection(connection_rule_row* found_connection, packet_identifier_t packet_identifier) {
+    if (is_active_connection(found_connection)) {
+        printk(KERN_ERR "initiate_connection Error: Connection already exists.");
+        return NF_DROP;
+    } else {
+        printk(KERN_ERR "initiate_connection: Restarting existing connection");
+        int sender_client = compare_packets(packet_identifier, found_connection->connection_rule_cli);
+        found_connection->connection_rule_cli.state = sender_client ? STATE_SYN_SENT: STATE_LISTEN;
+        found_connection->connection_rule_srv.state = sender_client ? STATE_LISTEN: STATE_SYN_SENT;
+        return NF_ACCEPT;
+    }   
+}
+
 static int initiate_connection(packet_identifier_t packet_identifier) {
     spin_lock(&klist_lock);
         connection_rule_row* found_connection = find_connection_row(packet_identifier);
         packet_identifier_t *reversed_packet_identifier;
         connection_rule_row *new_rule_sender;
-        if (found_connection != NULL){
-            printk(KERN_ERR "initiate_connection Error: Connection already exists.");
-            return NF_DROP;
-        }
+        if (found_connection != NULL)
+            return handle_restart_existing_connection(found_connection, packet_identifier);
 
         // Allocate memory for reversed_packet_identifier
         reversed_packet_identifier = kmalloc(sizeof(packet_identifier_t), GFP_KERNEL);
