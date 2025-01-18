@@ -4,7 +4,6 @@ import select
 
 # Configuration
 LISTEN_PORT = 210
-FTP_SERVER_HOST = '10.1.2.2'  # Replace with the actual FTP server IP or hostname
 FTP_SERVER_PORT = 21
 FTP_SERVER_PORT_ACTIVE = 20
 SYSFS_PATH_MITM = "/sys/class/fw/mitm/mitm"
