@@ -186,7 +186,7 @@ static log_row_t init_log_entry(packet_identifier_t packet_identifier, __u8 prot
 	log_entry.count = 1;                     // Initialize count to 1
     log_entry.ignore = 0;
 
-	return log_entry;                        // Return the initialized log entry
+	return log_entry;
 }
 
 
@@ -667,9 +667,9 @@ void add_or_update_log_entry(log_row_t *new_entry) {
     struct klist_iter iter;
     struct klist_node *knode;
     struct packet_log *existing_entry;
+    int found = 0;
 
     if (new_entry->ignore) return;
-    int found = 0;
 
     // Initialize an iterator for the klist
     klist_iter_init(&packet_logs, &iter);
@@ -683,7 +683,8 @@ void add_or_update_log_entry(log_row_t *new_entry) {
             existing_entry->log_object.dst_ip == new_entry->dst_ip &&
             existing_entry->log_object.src_port == new_entry->src_port &&
             existing_entry->log_object.dst_port == new_entry->dst_port &&
-            existing_entry->log_object.protocol == new_entry->protocol) {
+            existing_entry->log_object.protocol == new_entry->protocol && 
+            existing_entry->log_object.action == new_entry->action) {
             
             // Match found: update timestamp and increment count
             existing_entry->log_object.timestamp = new_entry->timestamp;
@@ -735,45 +736,6 @@ static tcp_data_t* get_tcp_data(struct sk_buff *skb) {
     tcp_data->rst = (tcph->rst ? RST_YES : RST_NO);
     return tcp_data;
 }
-
-// static connection_rule_row * get_original_packet_identifier(packet_identifier_t packet_identifier_local_out, direction_t dir) {
-//     struct klist_iter iter;
-//      connection_rule_row *row;
-//      connection_rule_row *original_row = NULL;
-//     struct klist_node *knode;
-
-//     // Initialize iterator
-//     klist_iter_init(&connections_table, &iter);
-
-//     while ((knode = klist_next(&iter))) {
-//         row = container_of(knode,  connection_rule_row, node);
-//         if (dir == DIRECTION_OUT) {
-//             // Check if the CLI packet matches
-//             if (row->connection_rule_cli.packet.src_ip == packet_identifier_local_out.dst_ip &&
-//                 row->connection_rule_cli.packet.src_port == packet_identifier_local_out.dst_port) {
-
-//                 original_row = row;
-//                 break;
-//             }
-//         } else if (dir == DIRECTION_IN) {
-//             // Check if the SRV packet matches
-//             if (row->connection_rule_srv.packet.src_ip == packet_identifier_local_out.dst_ip &&
-//                 row->connection_rule_srv.packet.src_port == packet_identifier_local_out.dst_port) {
-//                 original_row = row;
-//                 break;
-//             }
-//         }
-//     }
-
-//     // Cleanup iterator
-//     klist_iter_exit(&iter);
-//     if (!row) {
-//         printk(KERN_ERR "Original packet not found");
-//         print_connections_table();
-//         print_packet_identifier(&packet_identifier_local_out);
-//     }
-//     return row;
-// }
 
 
 static  connection_rule_row *find_connection_row_by_proxy(packet_identifier_t* packet_identifier_local_out, __be16 mitm_proc_port, direction_t dir) {
@@ -1315,7 +1277,7 @@ static void tcp_handle_ack(packet_identifier_t packet_identifier, log_row_t* pt_
         if (*pt_verdict)
             pt_log_entry->reason = REASON_VALID_CONNECTION;   
         else
-            pt_log_entry->reason = REASON_INVALID_CONNECTION;   
+            pt_log_entry->reason = REASON_INVALID_TCP_STATE;   
         pt_log_entry->action = *pt_verdict;
     }
 }
@@ -1427,6 +1389,8 @@ static int handle_mitm_local_out(struct sk_buff *skb, packet_identifier_t* packe
     }
     if (dir == DIRECTION_OUT && ret >= 0){
         log_entry = init_log_entry(original_packet_identifier, PROT_TCP);
+        log_entry.action = NF_ACCEPT;
+        log_entry.reason = REASON_VALID_CONNECTION;
         add_or_update_log_entry(&log_entry);
     }
     return ret;

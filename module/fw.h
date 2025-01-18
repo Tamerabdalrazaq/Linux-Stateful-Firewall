@@ -51,6 +51,7 @@ typedef enum {
 	REASON_XMAS_PACKET           = -6,
 	REASON_ILLEGAL_VALUE         = -7,
 	REASON_MITM_ERR              = -8,
+	REASON_INVALID_TCP_STATE     = -9,
 } reason_t;
 	
 

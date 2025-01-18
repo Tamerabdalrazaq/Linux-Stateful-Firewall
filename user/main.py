@@ -20,6 +20,8 @@ REASON_MAP = {
     -5: "VALID_CONNECTION",
     -6: "XMAS_PACKET",
     -7: "ILLEGAL_VALUE",
+    -8: "MITM_ERR",
+    -9: "INVALID_TCP_STATE",
 }
 
 ACTION_MAP = {
