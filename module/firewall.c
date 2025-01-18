@@ -906,7 +906,6 @@ static int handle_restart_existing_connection(connection_rule_row* found_connect
 }
 
 static int initiate_connection(packet_identifier_t packet_identifier) {
-    spin_lock(&klist_lock);
         connection_rule_row* found_connection = find_connection_row(packet_identifier);
         packet_identifier_t *reversed_packet_identifier;
         connection_rule_row *new_rule_sender;
@@ -941,7 +940,6 @@ static int initiate_connection(packet_identifier_t packet_identifier) {
         kfree(reversed_packet_identifier);
 
         klist_add_tail(&new_rule_sender->node, &connections_table);
-    spin_unlock(&klist_lock);
 
     print_connections_table();
     return NF_ACCEPT;
