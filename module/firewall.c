@@ -413,6 +413,7 @@ ssize_t modify_rules(struct device *dev, struct device_attribute *attr, const ch
             printk(KERN_ALERT "Rule count exceeded allocated space.\n");
             break;
         }
+        if (*line == '\0') continue;
         if (parse_rule(line, &FW_RULES[i]) < 0) {
             printk(KERN_ALERT "ERROR IN Rule Parsing.");
             printk(KERN_ALERT "Terminating ...");
