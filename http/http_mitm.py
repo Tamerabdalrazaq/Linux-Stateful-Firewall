@@ -66,8 +66,10 @@ def read_http_response(sock):
 
 def read_http_request(sock):
     data = b""
+    print("reading data...")
     while True:
         chunk = sock.recv(4096)
+        print(chunk.decode())
         if not chunk:
             break
         data += chunk
