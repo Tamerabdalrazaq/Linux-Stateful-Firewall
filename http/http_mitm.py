@@ -65,7 +65,7 @@ import http.client
 #     return response_bytes
 
 def read_http_response(sock):
-    print("reading response...")
+    print("reading response @ read_http_response...")
     response_data = b""
     buffer_size = 4096  # 4KB buffer size
     
