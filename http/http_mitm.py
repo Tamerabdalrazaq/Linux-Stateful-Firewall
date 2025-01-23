@@ -176,7 +176,8 @@ def start_mitm_server(listen_port):
 
             try:
                 data = read_http_request(client_sock) # Read the HTTP packet
-
+                print("Received Data:")
+                print(data.decode())
                 if not data:
                     continue
                     # Retrieve original destination from connection table (stub for now)
