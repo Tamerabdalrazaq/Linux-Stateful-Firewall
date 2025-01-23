@@ -71,7 +71,9 @@ def read_http_response(sock):
     
     # Read data from the socket in chunks
     while True:
+        print("\n\nChunk:\n\n")
         chunk = sock.recv(buffer_size)
+        print(chunk.decode())
         if not chunk:
             break
         response_data += chunk
