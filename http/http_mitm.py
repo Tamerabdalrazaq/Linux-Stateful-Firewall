@@ -45,8 +45,8 @@ def find_destination(ip, port):
 import http.client
 
 def read_http_response(sock):
+    print("Reading response from server ...")
     response = http.client.HTTPResponse(sock)
-    
     response.begin()
 
     headers = response.getheaders()
