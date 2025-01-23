@@ -65,41 +65,19 @@ import http.client
 #     return response_bytes
 
 def read_http_response(sock):
-    """
-    Reads an HTTP response from a socket.
-
-    Parameters:
-        sock (socket.socket): The socket object connected to the server.
-
-    Returns:
-        str: The full HTTP response (headers and body).
-    """
+    print("reading response...")
     response_data = b""
-    buffer_size = 4096  # Read in chunks of 4KB
-
+    buffer_size = 4096  # 4KB buffer size
+    
+    # Read data from the socket in chunks
     while True:
         chunk = sock.recv(buffer_size)
-        if not chunk:  # If the connection is closed or no more data
+        if not chunk:
             break
         response_data += chunk
-
-        # Stop reading if the headers are complete and the body is fully received
-        if b"\r\n\r\n" in response_data:
-            headers, _, body = response_data.partition(b"\r\n\r\n")
-
-            # Check for Content-Length header to determine if the body is complete
-            for header_line in headers.split(b"\r\n"):
-                if header_line.lower().startswith(b"content-length:"):
-                    content_length = int(header_line.split(b":")[1].strip())
-                    if len(body) >= content_length:
-                        return response_data.decode()
-
-            # If Transfer-Encoding: chunked, handle it differently (not implemented here)
-            if b"transfer-encoding: chunked" in headers.lower():
-                # Handling chunked responses would require more advanced logic
-                pass
-
-    return response_data.decode()
+    
+    # Return the raw response as bytes
+    return response_data
 
 
 
