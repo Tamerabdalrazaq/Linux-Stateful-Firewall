@@ -44,24 +44,63 @@ def find_destination(ip, port):
 
 import http.client
 
+# # Given a socket that sock that sent sock.sendall(packet) to the server, this function receives the HTTP response from the server
+# def read_http_response(sock):
+#     print("Reading response from server ...")
+#     response = http.client.HTTPResponse(sock)
+#     response.begin()
+
+#     headers = response.getheaders()
+#     print("\n\n@@Received Headers:")
+
+#     # Read the body
+#     body = response.read()
+
+#     # Combine headers and body to return the full response
+#     response_bytes = "HTTP/{}.{} {} {}\r\n".format(response.version // 10, response.version % 10, response.status,response.reason).encode()
+#     for header in headers:
+#         response_bytes += "{}: {}\r\n".format(header[0], header[1]).encode()
+#     response_bytes += b"\r\n" + body
+
+#     return response_bytes
+
 def read_http_response(sock):
-    print("Reading response from server ...")
-    response = http.client.HTTPResponse(sock)
-    response.begin()
+    """
+    Reads an HTTP response from a socket.
 
-    headers = response.getheaders()
-    print("\n\n@@Received Headers:")
+    Parameters:
+        sock (socket.socket): The socket object connected to the server.
 
-    # Read the body
-    body = response.read()
+    Returns:
+        str: The full HTTP response (headers and body).
+    """
+    response_data = b""
+    buffer_size = 4096  # Read in chunks of 4KB
 
-    # Combine headers and body to return the full response
-    response_bytes = "HTTP/{}.{} {} {}\r\n".format(response.version // 10, response.version % 10, response.status,response.reason).encode()
-    for header in headers:
-        response_bytes += "{}: {}\r\n".format(header[0], header[1]).encode()
-    response_bytes += b"\r\n" + body
+    while True:
+        chunk = sock.recv(buffer_size)
+        if not chunk:  # If the connection is closed or no more data
+            break
+        response_data += chunk
 
-    return response_bytes
+        # Stop reading if the headers are complete and the body is fully received
+        if b"\r\n\r\n" in response_data:
+            headers, _, body = response_data.partition(b"\r\n\r\n")
+
+            # Check for Content-Length header to determine if the body is complete
+            for header_line in headers.split(b"\r\n"):
+                if header_line.lower().startswith(b"content-length:"):
+                    content_length = int(header_line.split(b":")[1].strip())
+                    if len(body) >= content_length:
+                        return response_data.decode()
+
+            # If Transfer-Encoding: chunked, handle it differently (not implemented here)
+            if b"transfer-encoding: chunked" in headers.lower():
+                # Handling chunked responses would require more advanced logic
+                pass
+
+    return response_data.decode()
+
 
 
 def read_http_request(sock):
