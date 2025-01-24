@@ -27,7 +27,6 @@ def find_destination(ip, port):
         # Process each line and print the formatted table
         for line in lines:
             # Strip whitespace and split by commas
-            print(line)
             parts = line.strip().split(",")
             src_ip, src_port, dst_ip, dst_port, MITM_proc, state = parts
             if src_ip == ip and src_port == port:
@@ -50,7 +49,6 @@ def read_http_response(sock):
     response.begin()
 
     headers = response.getheaders()
-    print("\n\n@@Received Headers:")
 
     # Read the body
     body = response.read()
@@ -175,7 +173,6 @@ def forward_to_destination(client_address, original_dest, packet):
             forward_sock.bind(('0.0.0.0', 0))
             _, port = forward_sock.getsockname()
             update_mitm_process(client_address, port)
-            print("local socket is at port ", port)
             forward_sock.connect(original_dest)
             forward_sock.sendall(packet)
             response = read_http_response(forward_sock)
@@ -205,6 +202,8 @@ def start_mitm_server(listen_port):
 
             try:
                 data = read_http_request(client_sock) # Read the HTTP packet
+                print("Client's HTTP request: ")
+                print(data.decode())
 
                 if not data:
                     continue
@@ -216,7 +215,8 @@ def start_mitm_server(listen_port):
                     # Forward to the original destination
                     print("forwarding to: {}", original_dest)
                     response = forward_to_destination(client_addr, original_dest, data)
-
+                    print("\nServer's HTTP Response: ")
+                    print(response.decode())
                     if response:
                         verdict, reason = inspect_packet(response)
                         # Send the response back to the client
