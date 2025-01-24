@@ -64,19 +64,29 @@ def read_http_response(sock):
     return response_bytes
 
 
-def read_http_request(sock):
-    data = b""
-    while True:
-        chunk = sock.recv(4096)
-        if not chunk:
-            break
-        data += chunk
-        # Break if the headers are fully read
-        if b"\r\n\r\n" in data:
-            break
-    print("\n\n@@received from client: ")
-    print(data.decode())
-    return data
+def read_http_request(client_sock):
+    """
+    Reads the HTTP request from the client socket.
+
+    :param client_sock: The client socket.
+    :return: The raw HTTP request data (bytes).
+    """
+    request_data = b""
+    client_sock.settimeout(5.0)  # Timeout for reading data
+    try:
+        while True:
+            chunk = client_sock.recv(4096)  # Receive data in chunks
+            if not chunk:
+                break
+            request_data += chunk
+            # Stop reading if the end of headers is detected
+            if b"\r\n\r\n" in request_data:
+                break
+    except socket.timeout:
+        print("Timed out reading from client socket.")
+    except Exception as e:
+        print(f"Error reading HTTP request: {e}")
+    return request_data
 
 #block any HTTP response with content length greater than 100KB (102400 bytes) OR when content is encoded with GZIP
 def inspect_packet(http_packet):
@@ -134,25 +144,28 @@ def update_mitm_process(client_address, mitm_port):
         print("Error updating MITM process: {}".format(e))
 
 
-def forward_to_destination(client_address, original_dest, packet):
+def forward_to_destination(client_addr, original_dest, data):
     """
-    Forwards the inspected HTTP packet to the original destination.
+    Forwards the intercepted HTTP request to the original destination.
 
-    :param original_dest: Tuple (original_ip, original_port)
-    :param packet: The inspected HTTP packet
+    :param client_addr: The address of the client.
+    :param original_dest: Tuple of (destination IP, port).
+    :param data: The HTTP request data.
+    :return: The server's response (bytes), or None if an error occurs.
     """
     try:
-        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as forward_sock:
-            forward_sock.bind(('0.0.0.0', 0))
-            _, port = forward_sock.getsockname()
-            update_mitm_process(client_address, port)
-            print("local socket is at port ", port)
-            forward_sock.connect(original_dest)
-            forward_sock.sendall(packet)
-            response = read_http_response(forward_sock)
-        return response
+        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as dest_sock:
+            dest_sock.connect(original_dest)
+            dest_sock.sendall(data)
+            response_data = b""
+            while True:
+                chunk = dest_sock.recv(4096)
+                if not chunk:
+                    break
+                response_data += chunk
+        return response_data
     except Exception as e:
-        print("Error forwarding to destination: {}".format(e))
+        print(f"Error forwarding to destination: {e}")
         return None
 
 def start_mitm_server(listen_port):
