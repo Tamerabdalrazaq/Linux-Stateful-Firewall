@@ -66,28 +66,47 @@ def read_http_response(sock):
 
 def read_http_request(client_sock):
     """
-    Reads the HTTP request from the client socket.
+    Reads the complete HTTP request, including the headers and body (if any), from the client socket.
 
     :param client_sock: The client socket.
-    :return: The raw HTTP request data (bytes).
+    :return: The complete HTTP request (bytes).
     """
     request_data = b""
     client_sock.settimeout(5.0)  # Timeout for reading data
     try:
+        # Read headers first
         while True:
-            chunk = client_sock.recv(4096)  # Receive data in chunks
+            chunk = client_sock.recv(4096)
             if not chunk:
                 break
             request_data += chunk
-            # Stop reading if the end of headers is detected
+            # Stop reading when the end of headers is detected
             if b"\r\n\r\n" in request_data:
                 break
+
+        # Check for Content-Length to read the body (if any)
+        headers, _, body = request_data.partition(b"\r\n\r\n")
+        content_length = 0
+        for line in headers.split(b"\r\n"):
+            if line.lower().startswith(b"content-length:"):
+                content_length = int(line.split(b":")[1].strip())
+                break
+
+        # Read the body if Content-Length is specified
+        while len(body) < content_length:
+            chunk = client_sock.recv(4096)
+            if not chunk:
+                break
+            body += chunk
+
+        # Combine headers and body
+        request_data = headers + b"\r\n\r\n" + body
+
     except socket.timeout:
         print("Timed out reading from client socket.")
     except Exception as e:
-        print("Error reading HTTP request: ", e)
+        print(f"Error reading HTTP request: {e}")
     return request_data
-
 #block any HTTP response with content length greater than 100KB (102400 bytes) OR when content is encoded with GZIP
 def inspect_packet(http_packet):
     try:
