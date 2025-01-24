@@ -27,7 +27,6 @@ def find_destination(ip, port):
         # Process each line and print the formatted table
         for line in lines:
             # Strip whitespace and split by commas
-            print(line)
             parts = line.strip().split(",")
             src_ip, src_port, dst_ip, dst_port, MITM_proc, state = parts
             if src_ip == ip and src_port == port:
@@ -50,7 +49,6 @@ def read_http_response(sock):
     response.begin()
 
     headers = response.getheaders()
-    print("\n\n@@Received Headers:")
 
     # Read the body
     body = response.read()
@@ -64,20 +62,49 @@ def read_http_response(sock):
     return response_bytes
 
 
-def read_http_request(sock):
-    data = b""
-    while True:
-        chunk = sock.recv(4096)
-        if not chunk:
-            break
-        data += chunk
-        # Break if the headers are fully read
-        if b"\r\n\r\n" in data:
-            break
-    print("\n\n@@received from client: ")
-    print(data.decode())
-    return data
+def read_http_request(client_sock):
+    """
+    Reads the complete HTTP request, including the headers and body (if any), from the client socket.
 
+    :param client_sock: The client socket.
+    :return: The complete HTTP request (bytes).
+    """
+    request_data = b""
+    client_sock.settimeout(5.0)  # Timeout for reading data
+    try:
+        # Read headers first
+        while True:
+            chunk = client_sock.recv(4096)
+            if not chunk:
+                break
+            request_data += chunk
+            # Stop reading when the end of headers is detected
+            if b"\r\n\r\n" in request_data:
+                break
+
+        # Check for Content-Length to read the body (if any)
+        headers, _, body = request_data.partition(b"\r\n\r\n")
+        content_length = 0
+        for line in headers.split(b"\r\n"):
+            if line.lower().startswith(b"content-length:"):
+                content_length = int(line.split(b":")[1].strip())
+                break
+
+        # Read the body if Content-Length is specified
+        while len(body) < content_length:
+            chunk = client_sock.recv(4096)
+            if not chunk:
+                break
+            body += chunk
+
+        # Combine headers and body
+        request_data = headers + b"\r\n\r\n" + body
+
+    except socket.timeout:
+        print("Timed out reading from client socket.")
+    except Exception as e:
+        print("Error reading HTTP request: ", e)
+    return request_data
 #block any HTTP response with content length greater than 100KB (102400 bytes) OR when content is encoded with GZIP
 def inspect_packet(http_packet):
     try:
@@ -146,7 +173,6 @@ def forward_to_destination(client_address, original_dest, packet):
             forward_sock.bind(('0.0.0.0', 0))
             _, port = forward_sock.getsockname()
             update_mitm_process(client_address, port)
-            print("local socket is at port ", port)
             forward_sock.connect(original_dest)
             forward_sock.sendall(packet)
             response = read_http_response(forward_sock)
@@ -166,7 +192,7 @@ def start_mitm_server(listen_port):
         server_sock.bind(("0.0.0.0", listen_port))
         server_sock.listen(5)
 
-        print("MITM Server listening on port {}...".format(listen_port))
+        print("V1.11 MITM Server listening on port {}...".format(listen_port))
 
         while True:
             client_sock, client_addr = server_sock.accept()
@@ -176,6 +202,8 @@ def start_mitm_server(listen_port):
 
             try:
                 data = read_http_request(client_sock) # Read the HTTP packet
+                print("Client's HTTP request: ")
+                print(data.decode())
 
                 if not data:
                     continue
@@ -187,7 +215,8 @@ def start_mitm_server(listen_port):
                     # Forward to the original destination
                     print("forwarding to: {}", original_dest)
                     response = forward_to_destination(client_addr, original_dest, data)
-
+                    print("\nServer's HTTP Response: ")
+                    print(response.decode())
                     if response:
                         verdict, reason = inspect_packet(response)
                         # Send the response back to the client
