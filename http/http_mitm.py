@@ -195,7 +195,7 @@ def start_mitm_server(listen_port):
         server_sock.bind(("0.0.0.0", listen_port))
         server_sock.listen(5)
 
-        print("V1.1 MITM Server listening on port {}...".format(listen_port))
+        print("V1.11 MITM Server listening on port {}...".format(listen_port))
 
         while True:
             client_sock, client_addr = server_sock.accept()
