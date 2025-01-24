@@ -85,7 +85,7 @@ def read_http_request(client_sock):
     except socket.timeout:
         print("Timed out reading from client socket.")
     except Exception as e:
-        print(f"Error reading HTTP request: {e}")
+        print("Error reading HTTP request: ", e)
     return request_data
 
 #block any HTTP response with content length greater than 100KB (102400 bytes) OR when content is encoded with GZIP
@@ -165,7 +165,7 @@ def forward_to_destination(client_addr, original_dest, data):
                 response_data += chunk
         return response_data
     except Exception as e:
-        print(f"Error forwarding to destination: {e}")
+        print("Error forwarding to destination: ", e)
         return None
 
 def start_mitm_server(listen_port):
