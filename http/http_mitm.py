@@ -163,28 +163,25 @@ def update_mitm_process(client_address, mitm_port):
         print("Error updating MITM process: {}".format(e))
 
 
-def forward_to_destination(client_addr, original_dest, data):
+def forward_to_destination(client_address, original_dest, packet):
     """
-    Forwards the intercepted HTTP request to the original destination.
+    Forwards the inspected HTTP packet to the original destination.
 
-    :param client_addr: The address of the client.
-    :param original_dest: Tuple of (destination IP, port).
-    :param data: The HTTP request data.
-    :return: The server's response (bytes), or None if an error occurs.
+    :param original_dest: Tuple (original_ip, original_port)
+    :param packet: The inspected HTTP packet
     """
     try:
-        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as dest_sock:
-            dest_sock.connect(original_dest)
-            dest_sock.sendall(data)
-            response_data = b""
-            while True:
-                chunk = dest_sock.recv(4096)
-                if not chunk:
-                    break
-                response_data += chunk
-        return response_data
+        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as forward_sock:
+            forward_sock.bind(('0.0.0.0', 0))
+            _, port = forward_sock.getsockname()
+            update_mitm_process(client_address, port)
+            print("local socket is at port ", port)
+            forward_sock.connect(original_dest)
+            forward_sock.sendall(packet)
+            response = read_http_response(forward_sock)
+        return response
     except Exception as e:
-        print("Error forwarding to destination: ", e)
+        print("Error forwarding to destination: {}".format(e))
         return None
 
 def start_mitm_server(listen_port):
