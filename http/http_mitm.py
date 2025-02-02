@@ -1,6 +1,4 @@
 import socket
-import select
-import struct
 import sys
 
 SYSFS_PATH_CONNS = "/sys/class/fw/conns/conns"
@@ -105,8 +103,44 @@ def read_http_request(client_sock):
     except Exception as e:
         print("Error reading HTTP request: ", e)
     return request_data
-#block any HTTP response with content length greater than 100KB (102400 bytes) OR when content is encoded with GZIP
-def inspect_packet(http_packet):
+
+
+def inspect_http_request(request):
+    try:
+        # Decode the received data to a readable format
+        request = request.decode('utf-8')
+        
+        # Print the GET request with all headers
+        print("Received HTTP Request:")
+        print(request)
+        
+        # Check headers for content length and encoding
+        body = request.split("\r\n\r\n")
+        print(body)
+
+        # for header in headers:
+        #     if header.lower().startswith("content-length:"):
+        #         content_length = int(header.split(":")[1].strip())
+        #     elif header.lower().startswith("content-encoding:"):
+        #         content_encoding = header.split(":")[1].strip().lower()
+
+        # # Block response based on criteria
+        # if (content_length is not None and content_length > 102400):
+        #     reason = ("Blocking HTTP response: Content-Length is greater than 100KB")
+        #     return (False, reason)  # Block the packet
+        # if (content_encoding == "gzip"):
+        #     reason = ("Blocking HTTP response: Content-Encoding is GZIP.")
+        #     return (False, reason)  # Block the packet
+
+
+        # return (True, "")
+    except Exception as e:
+        print("Failed to decode HTTP request: {}".format(e))
+        return (False, e)
+    
+
+
+def inspect_http_response(http_packet):
     try:
         # Decode the received data to a readable format
         http_request = http_packet.decode('utf-8')
@@ -202,6 +236,7 @@ def start_mitm_server(listen_port):
 
             try:
                 data = read_http_request(client_sock) # Read the HTTP packet
+                verdict = inspect_http_request(data)
                 print("Client's HTTP request: ")
                 print(data.decode())
 
@@ -218,7 +253,7 @@ def start_mitm_server(listen_port):
                     print("\nServer's HTTP Response: ")
                     print(response.decode())
                     if response:
-                        verdict, reason = inspect_packet(response)
+                        verdict, reason = inspect_http_response(response)
                         # Send the response back to the client
                         if verdict:
                             client_sock.sendall(response)
