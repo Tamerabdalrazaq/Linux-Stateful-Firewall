@@ -109,14 +109,11 @@ def inspect_http_request(request):
     try:
         # Decode the received data to a readable format
         print("\nInspecting http request...")
-        request = request.decode('utf-8')
-        
-        # Print the GET request with all headers
-        print("Received HTTP Request:")
+        request = request.decode('utf-8')        
         print(request)
         
         # Check headers for content length and encoding
-        headers, _, body = request.partition(b"\r\n\r\n")
+        headers, _, body = request.partition("\r\n\r\n")
         request_type = headers[0].partition(" ")[0]
         print(request_type)
         if(request_type == "POST"):
