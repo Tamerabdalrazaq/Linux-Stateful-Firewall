@@ -115,7 +115,7 @@ def inspect_http_request(request):
         # Check headers for content length and encoding
         headers, _, body = request.partition("\r\n\r\n")
         request_type = headers[0].partition(" ")[0]
-        print(headers[0])
+        print(headers)
         print(request_type)
         if(request_type == "POST"):
             print("POST REQUEST...")
