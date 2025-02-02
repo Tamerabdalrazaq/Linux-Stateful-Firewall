@@ -108,6 +108,7 @@ def read_http_request(client_sock):
 def inspect_http_request(request):
     try:
         # Decode the received data to a readable format
+        print("\nInspecting http request...")
         request = request.decode('utf-8')
         
         # Print the GET request with all headers
@@ -115,23 +116,14 @@ def inspect_http_request(request):
         print(request)
         
         # Check headers for content length and encoding
-        body = request.split("\r\n\r\n")
-        print(body)
-
-        # for header in headers:
-        #     if header.lower().startswith("content-length:"):
-        #         content_length = int(header.split(":")[1].strip())
-        #     elif header.lower().startswith("content-encoding:"):
-        #         content_encoding = header.split(":")[1].strip().lower()
-
-        # # Block response based on criteria
-        # if (content_length is not None and content_length > 102400):
-        #     reason = ("Blocking HTTP response: Content-Length is greater than 100KB")
-        #     return (False, reason)  # Block the packet
-        # if (content_encoding == "gzip"):
-        #     reason = ("Blocking HTTP response: Content-Encoding is GZIP.")
-        #     return (False, reason)  # Block the packet
-
+        headers, _, body = request.partition(b"\r\n\r\n")
+        request_type = headers[0].partition(" ")[0]
+        if(request_type == "POST"):
+            print("POST REQUEST...")
+        for line in headers.split(b"\r\n"):
+            if line.lower().startswith(b"content-length:"):
+                content_length = int(line.split(b":")[1].strip())
+                break
 
         # return (True, "")
     except Exception as e:
