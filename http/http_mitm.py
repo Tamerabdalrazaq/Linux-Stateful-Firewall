@@ -118,13 +118,10 @@ def inspect_http_request(request):
         # Check headers for content length and encoding
         headers, _, body = request.partition(b"\r\n\r\n")
         request_type = headers[0].partition(" ")[0]
+        print(request_type)
         if(request_type == "POST"):
             print("POST REQUEST...")
-        for line in headers.split(b"\r\n"):
-            if line.lower().startswith(b"content-length:"):
-                content_length = int(line.split(b":")[1].strip())
-                break
-
+        
         # return (True, "")
     except Exception as e:
         print("Failed to decode HTTP request: {}".format(e))
@@ -229,8 +226,6 @@ def start_mitm_server(listen_port):
             try:
                 data = read_http_request(client_sock) # Read the HTTP packet
                 verdict = inspect_http_request(data)
-                print("Client's HTTP request: ")
-                print(data.decode())
 
                 if not data:
                     continue
