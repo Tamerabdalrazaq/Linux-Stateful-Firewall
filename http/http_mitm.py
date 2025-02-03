@@ -1,5 +1,6 @@
 import socket
 import sys
+import vulnerabilities
 
 SYSFS_PATH_CONNS = "/sys/class/fw/conns/conns"
 SYSFS_PATH_MITM = "/sys/class/fw/mitm/mitm"
@@ -115,12 +116,13 @@ def inspect_http_request(request):
         # Check headers for content length and encoding
         headers, _, body = request.partition("\r\n\r\n")
         request_type = headers.split('\r\n')[0].partition(" ")[0]
-        if(request_type == "POST"):
-            print(body)        
-        # return (True, "")
+        for vuln in vulnerabilities.HTTP_SIGNATURES:
+            if (vuln(headers, body)):
+                return (False, "400")
+        return (True, "")
     except Exception as e:
         print("Failed to decode HTTP request: {}".format(e))
-        return (False, e)
+        return (True, "")
     
 
 
@@ -220,8 +222,12 @@ def start_mitm_server(listen_port):
 
             try:
                 data = read_http_request(client_sock) # Read the HTTP packet
-                verdict = inspect_http_request(data)
-
+                verdict, reason = inspect_http_request(data)
+                
+                # If request did not pass inspection drop 
+                if not verdict:
+                    print("HTTP Response Did Not Pass Inspection: \n", reason)
+                    client_sock.sendall(get_error_respons(reason).encode())
                 if not data:
                     continue
                     # Retrieve original destination from connection table (stub for now)
