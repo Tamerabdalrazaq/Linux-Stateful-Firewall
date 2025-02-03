@@ -1,7 +1,7 @@
 def ofbiz_forgotpw(headers, body):
     headers = headers.split('\r\n')
     method, target, _v = headers[0].split(" ")
-    if method == "POST" and "webtools/control/forgotpassword" in target.lower() and "/programexport" in target.lower:
+    if method == "POST" and "webtools/control/forgotpassword" in target.lower() and "/programexport" in target.lower():
         pairs = body.split("&")
         for pair in pairs:
             key, value = pair.split("=")
