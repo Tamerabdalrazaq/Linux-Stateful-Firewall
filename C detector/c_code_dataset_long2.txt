@@ -1,0 +1,1850 @@
+#include <stdio.h>
+
+void printEvenNumbers(int n) {
+    for (int i = 2; i <= n; i += 2) {
+        printf("%d ", i);
+    }
+    printf("\n");
+}
+
+int main() {
+    int n = 20;
+    printf("Even numbers up to %d:\n", n);
+    printEvenNumbers(n);
+    return 0;
+}
+
+#include <stdio.h>
+
+int findGCD(int a, int b) {
+    while (b != 0) {
+        int temp = b;
+        b = a % b;
+        a = temp;
+    }
+    return a;
+}
+
+int main() {
+    int num1 = 56, num2 = 98;
+    printf("GCD of %d and %d is %d\n", num1, num2, findGCD(num1, num2));
+    return 0;
+}
+
+#include <stdio.h>
+
+int isPalindrome(int num) {
+    int reversed = 0, temp = num;
+    while (temp > 0) {
+        reversed = reversed * 10 + temp % 10;
+        temp /= 10;
+    }
+    return reversed == num;
+}
+
+int main() {
+    int num = 121;
+    if (isPalindrome(num))
+        printf("%d is a palindrome\n", num);
+    else
+        printf("%d is not a palindrome\n", num);
+    return 0;
+}
+
+#include <stdio.h>
+
+void printFibonacci(int n) {
+    int a = 0, b = 1, next;
+    for (int i = 0; i < n; i++) {
+        printf("%d ", a);
+        next = a + b;
+        a = b;
+        b = next;
+    }
+    printf("\n");
+}
+
+int main() {
+    int terms = 10;
+    printf("First %d Fibonacci numbers:\n", terms);
+    printFibonacci(terms);
+    return 0;
+}
+
+#include <stdio.h>
+
+void swap(int *a, int *b) {
+    int temp = *a;
+    *a = *b;
+    *b = temp;
+}
+
+int main() {
+    int x = 5, y = 10;
+    printf("Before swap: x = %d, y = %d\n", x, y);
+    swap(&x, &y);
+    printf("After swap: x = %d, y = %d\n", x, y);
+    return 0;
+}
+
+#include <stdio.h>
+
+int factorial(int n) {
+    if (n == 0) return 1;
+    return n * factorial(n - 1);
+}
+
+int main() {
+    int num = 6;
+    printf("Factorial of %d is %d\n", num, factorial(num));
+    return 0;
+}
+
+#include <stdio.h>
+
+void reverseString(char *str) {
+    int length = 0;
+    while (str[length] != '\0') length++;
+
+    for (int i = 0, j = length - 1; i < j; i++, j--) {
+        char temp = str[i];
+        str[i] = str[j];
+        str[j] = temp;
+    }
+}
+
+int main() {
+    char str[] = "Hello World";
+    printf("Original: %s\n", str);
+    reverseString(str);
+    printf("Reversed: %s\n", str);
+    return 0;
+}
+
+#include <stdio.h>
+
+void countVowelsConsonants(char *str, int *vowels, int *consonants) {
+    *vowels = 0;
+    *consonants = 0;
+    for (int i = 0; str[i] != '\0'; i++) {
+        char ch = str[i];
+        if (ch >= 'A' && ch <= 'Z') ch += 'a' - 'A';
+        if (ch >= 'a' && ch <= 'z') {
+            if (ch == 'a' || ch == 'e' || ch == 'i' || ch == 'o' || ch == 'u')
+                (*vowels)++;
+            else
+                (*consonants)++;
+        }
+    }
+}
+
+int main() {
+    char str[] = "Hello Programming";
+    int vowels, consonants;
+    countVowelsConsonants(str, &vowels, &consonants);
+    printf("Vowels: %d, Consonants: %d\n", vowels, consonants);
+    return 0;
+}
+
+#include <stdio.h>
+
+void printTriangle(int rows) {
+    for (int i = 1; i <= rows; i++) {
+        for (int j = 1; j <= i; j++)
+            printf("* ");
+        printf("\n");
+    }
+}
+
+int main() {
+    int rows = 5;
+    printf("Triangle pattern:\n");
+    printTriangle(rows);
+    return 0;
+}
+
+#include <stdio.h>
+
+void binaryToDecimal(int binary) {
+    int decimal = 0, base = 1;
+    while (binary > 0) {
+        int lastDigit = binary % 10;
+        decimal += lastDigit * base;
+        base *= 2;
+        binary /= 10;
+    }
+    printf("Decimal: %d\n", decimal);
+}
+
+int main() {
+    int binary = 1011;
+    printf("Binary: %d\n", binary);
+    binaryToDecimal(binary);
+    return 0;
+}
+
+#include <stdio.h>
+
+void printEvenNumbers(int n) {
+    for (int i = 2; i <= n; i += 2) {
+        printf("%d ", i);
+    }
+    printf("\n");
+}
+
+int main() {
+    int n = 20;
+    printf("Even numbers up to %d:\n", n);
+    printEvenNumbers(n);
+    return 0;
+}
+
+#include <stdio.h>
+
+int findGCD(int a, int b) {
+    while (b != 0) {
+        int temp = b;
+        b = a % b;
+        a = temp;
+    }
+    return a;
+}
+
+int main() {
+    int num1 = 56, num2 = 98;
+    printf("GCD of %d and %d is %d\n", num1, num2, findGCD(num1, num2));
+    return 0;
+}
+
+#include <stdio.h>
+
+int isPalindrome(int num) {
+    int reversed = 0, temp = num;
+    while (temp > 0) {
+        reversed = reversed * 10 + temp % 10;
+        temp /= 10;
+    }
+    return reversed == num;
+}
+
+int main() {
+    int num = 121;
+    if (isPalindrome(num))
+        printf("%d is a palindrome\n", num);
+    else
+        printf("%d is not a palindrome\n", num);
+    return 0;
+}
+
+#include <stdio.h>
+
+void printFibonacci(int n) {
+    int a = 0, b = 1, next;
+    for (int i = 0; i < n; i++) {
+        printf("%d ", a);
+        next = a + b;
+        a = b;
+        b = next;
+    }
+    printf("\n");
+}
+
+int main() {
+    int terms = 10;
+    printf("First %d Fibonacci numbers:\n", terms);
+    printFibonacci(terms);
+    return 0;
+}
+
+#include <stdio.h>
+
+void swap(int *a, int *b) {
+    int temp = *a;
+    *a = *b;
+    *b = temp;
+}
+
+int main() {
+    int x = 5, y = 10;
+    printf("Before swap: x = %d, y = %d\n", x, y);
+    swap(&x, &y);
+    printf("After swap: x = %d, y = %d\n", x, y);
+    return 0;
+}
+
+#include <stdio.h>
+
+int factorial(int n) {
+    if (n == 0) return 1;
+    return n * factorial(n - 1);
+}
+
+int main() {
+    int num = 6;
+    printf("Factorial of %d is %d\n", num, factorial(num));
+    return 0;
+}
+
+#include <stdio.h>
+
+void reverseString(char *str) {
+    int length = 0;
+    while (str[length] != '\0') length++;
+
+    for (int i = 0, j = length - 1; i < j; i++, j--) {
+        char temp = str[i];
+        str[i] = str[j];
+        str[j] = temp;
+    }
+}
+
+int main() {
+    char str[] = "Hello World";
+    printf("Original: %s\n", str);
+    reverseString(str);
+    printf("Reversed: %s\n", str);
+    return 0;
+}
+
+#include <stdio.h>
+
+void countVowelsConsonants(char *str, int *vowels, int *consonants) {
+    *vowels = 0;
+    *consonants = 0;
+    for (int i = 0; str[i] != '\0'; i++) {
+        char ch = str[i];
+        if (ch >= 'A' && ch <= 'Z') ch += 'a' - 'A';
+        if (ch >= 'a' && ch <= 'z') {
+            if (ch == 'a' || ch == 'e' || ch == 'i' || ch == 'o' || ch == 'u')
+                (*vowels)++;
+            else
+                (*consonants)++;
+        }
+    }
+}
+
+int main() {
+    char str[] = "Hello Programming";
+    int vowels, consonants;
+    countVowelsConsonants(str, &vowels, &consonants);
+    printf("Vowels: %d, Consonants: %d\n", vowels, consonants);
+    return 0;
+}
+
+#include <stdio.h>
+
+void printTriangle(int rows) {
+    for (int i = 1; i <= rows; i++) {
+        for (int j = 1; j <= i; j++)
+            printf("* ");
+        printf("\n");
+    }
+}
+
+int main() {
+    int rows = 5;
+    printf("Triangle pattern:\n");
+    printTriangle(rows);
+    return 0;
+}
+
+#include <stdio.h>
+
+void binaryToDecimal(int binary) {
+    int decimal = 0, base = 1;
+    while (binary > 0) {
+        int lastDigit = binary % 10;
+        decimal += lastDigit * base;
+        base *= 2;
+        binary /= 10;
+    }
+    printf("Decimal: %d\n", decimal);
+}
+
+int main() {
+    int binary = 1011;
+    printf("Binary: %d\n", binary);
+    binaryToDecimal(binary);
+    return 0;
+}
+
+#include <stdio.h>
+
+void printEvenNumbers(int n) {
+    for (int i = 2; i <= n; i += 2) {
+        printf("%d ", i);
+    }
+    printf("\n");
+}
+
+int main() {
+    int n = 20;
+    printf("Even numbers up to %d:\n", n);
+    printEvenNumbers(n);
+    return 0;
+}
+
+#include <stdio.h>
+
+int findGCD(int a, int b) {
+    while (b != 0) {
+        int temp = b;
+        b = a % b;
+        a = temp;
+    }
+    return a;
+}
+
+int main() {
+    int num1 = 56, num2 = 98;
+    printf("GCD of %d and %d is %d\n", num1, num2, findGCD(num1, num2));
+    return 0;
+}
+
+#include <stdio.h>
+
+int isPalindrome(int num) {
+    int reversed = 0, temp = num;
+    while (temp > 0) {
+        reversed = reversed * 10 + temp % 10;
+        temp /= 10;
+    }
+    return reversed == num;
+}
+
+int main() {
+    int num = 121;
+    if (isPalindrome(num))
+        printf("%d is a palindrome\n", num);
+    else
+        printf("%d is not a palindrome\n", num);
+    return 0;
+}
+
+#include <stdio.h>
+
+void printFibonacci(int n) {
+    int a = 0, b = 1, next;
+    for (int i = 0; i < n; i++) {
+        printf("%d ", a);
+        next = a + b;
+        a = b;
+        b = next;
+    }
+    printf("\n");
+}
+
+int main() {
+    int terms = 10;
+    printf("First %d Fibonacci numbers:\n", terms);
+    printFibonacci(terms);
+    return 0;
+}
+
+#include <stdio.h>
+
+void swap(int *a, int *b) {
+    int temp = *a;
+    *a = *b;
+    *b = temp;
+}
+
+int main() {
+    int x = 5, y = 10;
+    printf("Before swap: x = %d, y = %d\n", x, y);
+    swap(&x, &y);
+    printf("After swap: x = %d, y = %d\n", x, y);
+    return 0;
+}
+
+#include <stdio.h>
+
+int factorial(int n) {
+    if (n == 0) return 1;
+    return n * factorial(n - 1);
+}
+
+int main() {
+    int num = 6;
+    printf("Factorial of %d is %d\n", num, factorial(num));
+    return 0;
+}
+
+#include <stdio.h>
+
+void reverseString(char *str) {
+    int length = 0;
+    while (str[length] != '\0') length++;
+
+    for (int i = 0, j = length - 1; i < j; i++, j--) {
+        char temp = str[i];
+        str[i] = str[j];
+        str[j] = temp;
+    }
+}
+
+int main() {
+    char str[] = "Hello World";
+    printf("Original: %s\n", str);
+    reverseString(str);
+    printf("Reversed: %s\n", str);
+    return 0;
+}
+
+#include <stdio.h>
+
+void countVowelsConsonants(char *str, int *vowels, int *consonants) {
+    *vowels = 0;
+    *consonants = 0;
+    for (int i = 0; str[i] != '\0'; i++) {
+        char ch = str[i];
+        if (ch >= 'A' && ch <= 'Z') ch += 'a' - 'A';
+        if (ch >= 'a' && ch <= 'z') {
+            if (ch == 'a' || ch == 'e' || ch == 'i' || ch == 'o' || ch == 'u')
+                (*vowels)++;
+            else
+                (*consonants)++;
+        }
+    }
+}
+
+int main() {
+    char str[] = "Hello Programming";
+    int vowels, consonants;
+    countVowelsConsonants(str, &vowels, &consonants);
+    printf("Vowels: %d, Consonants: %d\n", vowels, consonants);
+    return 0;
+}
+
+#include <stdio.h>
+
+void printTriangle(int rows) {
+    for (int i = 1; i <= rows; i++) {
+        for (int j = 1; j <= i; j++)
+            printf("* ");
+        printf("\n");
+    }
+}
+
+int main() {
+    int rows = 5;
+    printf("Triangle pattern:\n");
+    printTriangle(rows);
+    return 0;
+}
+
+#include <stdio.h>
+
+void binaryToDecimal(int binary) {
+    int decimal = 0, base = 1;
+    while (binary > 0) {
+        int lastDigit = binary % 10;
+        decimal += lastDigit * base;
+        base *= 2;
+        binary /= 10;
+    }
+    printf("Decimal: %d\n", decimal);
+}
+
+int main() {
+    int binary = 1011;
+    printf("Binary: %d\n", binary);
+    binaryToDecimal(binary);
+    return 0;
+}
+
+#include <stdio.h>
+
+void printEvenNumbers(int n) {
+    for (int i = 2; i <= n; i += 2) {
+        printf("%d ", i);
+    }
+    printf("\n");
+}
+
+int main() {
+    int n = 20;
+    printf("Even numbers up to %d:\n", n);
+    printEvenNumbers(n);
+    return 0;
+}
+
+#include <stdio.h>
+
+int findGCD(int a, int b) {
+    while (b != 0) {
+        int temp = b;
+        b = a % b;
+        a = temp;
+    }
+    return a;
+}
+
+int main() {
+    int num1 = 56, num2 = 98;
+    printf("GCD of %d and %d is %d\n", num1, num2, findGCD(num1, num2));
+    return 0;
+}
+
+#include <stdio.h>
+
+int isPalindrome(int num) {
+    int reversed = 0, temp = num;
+    while (temp > 0) {
+        reversed = reversed * 10 + temp % 10;
+        temp /= 10;
+    }
+    return reversed == num;
+}
+
+int main() {
+    int num = 121;
+    if (isPalindrome(num))
+        printf("%d is a palindrome\n", num);
+    else
+        printf("%d is not a palindrome\n", num);
+    return 0;
+}
+
+#include <stdio.h>
+
+void printFibonacci(int n) {
+    int a = 0, b = 1, next;
+    for (int i = 0; i < n; i++) {
+        printf("%d ", a);
+        next = a + b;
+        a = b;
+        b = next;
+    }
+    printf("\n");
+}
+
+int main() {
+    int terms = 10;
+    printf("First %d Fibonacci numbers:\n", terms);
+    printFibonacci(terms);
+    return 0;
+}
+
+#include <stdio.h>
+
+void swap(int *a, int *b) {
+    int temp = *a;
+    *a = *b;
+    *b = temp;
+}
+
+int main() {
+    int x = 5, y = 10;
+    printf("Before swap: x = %d, y = %d\n", x, y);
+    swap(&x, &y);
+    printf("After swap: x = %d, y = %d\n", x, y);
+    return 0;
+}
+
+#include <stdio.h>
+
+int factorial(int n) {
+    if (n == 0) return 1;
+    return n * factorial(n - 1);
+}
+
+int main() {
+    int num = 6;
+    printf("Factorial of %d is %d\n", num, factorial(num));
+    return 0;
+}
+
+#include <stdio.h>
+
+void reverseString(char *str) {
+    int length = 0;
+    while (str[length] != '\0') length++;
+
+    for (int i = 0, j = length - 1; i < j; i++, j--) {
+        char temp = str[i];
+        str[i] = str[j];
+        str[j] = temp;
+    }
+}
+
+int main() {
+    char str[] = "Hello World";
+    printf("Original: %s\n", str);
+    reverseString(str);
+    printf("Reversed: %s\n", str);
+    return 0;
+}
+
+#include <stdio.h>
+
+void countVowelsConsonants(char *str, int *vowels, int *consonants) {
+    *vowels = 0;
+    *consonants = 0;
+    for (int i = 0; str[i] != '\0'; i++) {
+        char ch = str[i];
+        if (ch >= 'A' && ch <= 'Z') ch += 'a' - 'A';
+        if (ch >= 'a' && ch <= 'z') {
+            if (ch == 'a' || ch == 'e' || ch == 'i' || ch == 'o' || ch == 'u')
+                (*vowels)++;
+            else
+                (*consonants)++;
+        }
+    }
+}
+
+int main() {
+    char str[] = "Hello Programming";
+    int vowels, consonants;
+    countVowelsConsonants(str, &vowels, &consonants);
+    printf("Vowels: %d, Consonants: %d\n", vowels, consonants);
+    return 0;
+}
+
+#include <stdio.h>
+
+void printTriangle(int rows) {
+    for (int i = 1; i <= rows; i++) {
+        for (int j = 1; j <= i; j++)
+            printf("* ");
+        printf("\n");
+    }
+}
+
+int main() {
+    int rows = 5;
+    printf("Triangle pattern:\n");
+    printTriangle(rows);
+    return 0;
+}
+
+#include <stdio.h>
+
+void binaryToDecimal(int binary) {
+    int decimal = 0, base = 1;
+    while (binary > 0) {
+        int lastDigit = binary % 10;
+        decimal += lastDigit * base;
+        base *= 2;
+        binary /= 10;
+    }
+    printf("Decimal: %d\n", decimal);
+}
+
+int main() {
+    int binary = 1011;
+    printf("Binary: %d\n", binary);
+    binaryToDecimal(binary);
+    return 0;
+}
+
+#include <stdio.h>
+
+void printEvenNumbers(int n) {
+    for (int i = 2; i <= n; i += 2) {
+        printf("%d ", i);
+    }
+    printf("\n");
+}
+
+int main() {
+    int n = 20;
+    printf("Even numbers up to %d:\n", n);
+    printEvenNumbers(n);
+    return 0;
+}
+
+#include <stdio.h>
+
+int findGCD(int a, int b) {
+    while (b != 0) {
+        int temp = b;
+        b = a % b;
+        a = temp;
+    }
+    return a;
+}
+
+int main() {
+    int num1 = 56, num2 = 98;
+    printf("GCD of %d and %d is %d\n", num1, num2, findGCD(num1, num2));
+    return 0;
+}
+
+#include <stdio.h>
+
+int isPalindrome(int num) {
+    int reversed = 0, temp = num;
+    while (temp > 0) {
+        reversed = reversed * 10 + temp % 10;
+        temp /= 10;
+    }
+    return reversed == num;
+}
+
+int main() {
+    int num = 121;
+    if (isPalindrome(num))
+        printf("%d is a palindrome\n", num);
+    else
+        printf("%d is not a palindrome\n", num);
+    return 0;
+}
+
+#include <stdio.h>
+
+void printFibonacci(int n) {
+    int a = 0, b = 1, next;
+    for (int i = 0; i < n; i++) {
+        printf("%d ", a);
+        next = a + b;
+        a = b;
+        b = next;
+    }
+    printf("\n");
+}
+
+int main() {
+    int terms = 10;
+    printf("First %d Fibonacci numbers:\n", terms);
+    printFibonacci(terms);
+    return 0;
+}
+
+#include <stdio.h>
+
+void swap(int *a, int *b) {
+    int temp = *a;
+    *a = *b;
+    *b = temp;
+}
+
+int main() {
+    int x = 5, y = 10;
+    printf("Before swap: x = %d, y = %d\n", x, y);
+    swap(&x, &y);
+    printf("After swap: x = %d, y = %d\n", x, y);
+    return 0;
+}
+
+#include <stdio.h>
+
+int factorial(int n) {
+    if (n == 0) return 1;
+    return n * factorial(n - 1);
+}
+
+int main() {
+    int num = 6;
+    printf("Factorial of %d is %d\n", num, factorial(num));
+    return 0;
+}
+
+#include <stdio.h>
+
+void reverseString(char *str) {
+    int length = 0;
+    while (str[length] != '\0') length++;
+
+    for (int i = 0, j = length - 1; i < j; i++, j--) {
+        char temp = str[i];
+        str[i] = str[j];
+        str[j] = temp;
+    }
+}
+
+int main() {
+    char str[] = "Hello World";
+    printf("Original: %s\n", str);
+    reverseString(str);
+    printf("Reversed: %s\n", str);
+    return 0;
+}
+
+#include <stdio.h>
+
+void countVowelsConsonants(char *str, int *vowels, int *consonants) {
+    *vowels = 0;
+    *consonants = 0;
+    for (int i = 0; str[i] != '\0'; i++) {
+        char ch = str[i];
+        if (ch >= 'A' && ch <= 'Z') ch += 'a' - 'A';
+        if (ch >= 'a' && ch <= 'z') {
+            if (ch == 'a' || ch == 'e' || ch == 'i' || ch == 'o' || ch == 'u')
+                (*vowels)++;
+            else
+                (*consonants)++;
+        }
+    }
+}
+
+int main() {
+    char str[] = "Hello Programming";
+    int vowels, consonants;
+    countVowelsConsonants(str, &vowels, &consonants);
+    printf("Vowels: %d, Consonants: %d\n", vowels, consonants);
+    return 0;
+}
+
+#include <stdio.h>
+
+void printTriangle(int rows) {
+    for (int i = 1; i <= rows; i++) {
+        for (int j = 1; j <= i; j++)
+            printf("* ");
+        printf("\n");
+    }
+}
+
+int main() {
+    int rows = 5;
+    printf("Triangle pattern:\n");
+    printTriangle(rows);
+    return 0;
+}
+
+#include <stdio.h>
+
+void binaryToDecimal(int binary) {
+    int decimal = 0, base = 1;
+    while (binary > 0) {
+        int lastDigit = binary % 10;
+        decimal += lastDigit * base;
+        base *= 2;
+        binary /= 10;
+    }
+    printf("Decimal: %d\n", decimal);
+}
+
+int main() {
+    int binary = 1011;
+    printf("Binary: %d\n", binary);
+    binaryToDecimal(binary);
+    return 0;
+}
+
+#include <stdio.h>
+
+void printEvenNumbers(int n) {
+    for (int i = 2; i <= n; i += 2) {
+        printf("%d ", i);
+    }
+    printf("\n");
+}
+
+int main() {
+    int n = 20;
+    printf("Even numbers up to %d:\n", n);
+    printEvenNumbers(n);
+    return 0;
+}
+
+#include <stdio.h>
+
+int findGCD(int a, int b) {
+    while (b != 0) {
+        int temp = b;
+        b = a % b;
+        a = temp;
+    }
+    return a;
+}
+
+int main() {
+    int num1 = 56, num2 = 98;
+    printf("GCD of %d and %d is %d\n", num1, num2, findGCD(num1, num2));
+    return 0;
+}
+
+#include <stdio.h>
+
+int isPalindrome(int num) {
+    int reversed = 0, temp = num;
+    while (temp > 0) {
+        reversed = reversed * 10 + temp % 10;
+        temp /= 10;
+    }
+    return reversed == num;
+}
+
+int main() {
+    int num = 121;
+    if (isPalindrome(num))
+        printf("%d is a palindrome\n", num);
+    else
+        printf("%d is not a palindrome\n", num);
+    return 0;
+}
+
+#include <stdio.h>
+
+void printFibonacci(int n) {
+    int a = 0, b = 1, next;
+    for (int i = 0; i < n; i++) {
+        printf("%d ", a);
+        next = a + b;
+        a = b;
+        b = next;
+    }
+    printf("\n");
+}
+
+int main() {
+    int terms = 10;
+    printf("First %d Fibonacci numbers:\n", terms);
+    printFibonacci(terms);
+    return 0;
+}
+
+#include <stdio.h>
+
+void swap(int *a, int *b) {
+    int temp = *a;
+    *a = *b;
+    *b = temp;
+}
+
+int main() {
+    int x = 5, y = 10;
+    printf("Before swap: x = %d, y = %d\n", x, y);
+    swap(&x, &y);
+    printf("After swap: x = %d, y = %d\n", x, y);
+    return 0;
+}
+
+#include <stdio.h>
+
+int factorial(int n) {
+    if (n == 0) return 1;
+    return n * factorial(n - 1);
+}
+
+int main() {
+    int num = 6;
+    printf("Factorial of %d is %d\n", num, factorial(num));
+    return 0;
+}
+
+#include <stdio.h>
+
+void reverseString(char *str) {
+    int length = 0;
+    while (str[length] != '\0') length++;
+
+    for (int i = 0, j = length - 1; i < j; i++, j--) {
+        char temp = str[i];
+        str[i] = str[j];
+        str[j] = temp;
+    }
+}
+
+int main() {
+    char str[] = "Hello World";
+    printf("Original: %s\n", str);
+    reverseString(str);
+    printf("Reversed: %s\n", str);
+    return 0;
+}
+
+#include <stdio.h>
+
+void countVowelsConsonants(char *str, int *vowels, int *consonants) {
+    *vowels = 0;
+    *consonants = 0;
+    for (int i = 0; str[i] != '\0'; i++) {
+        char ch = str[i];
+        if (ch >= 'A' && ch <= 'Z') ch += 'a' - 'A';
+        if (ch >= 'a' && ch <= 'z') {
+            if (ch == 'a' || ch == 'e' || ch == 'i' || ch == 'o' || ch == 'u')
+                (*vowels)++;
+            else
+                (*consonants)++;
+        }
+    }
+}
+
+int main() {
+    char str[] = "Hello Programming";
+    int vowels, consonants;
+    countVowelsConsonants(str, &vowels, &consonants);
+    printf("Vowels: %d, Consonants: %d\n", vowels, consonants);
+    return 0;
+}
+
+#include <stdio.h>
+
+void printTriangle(int rows) {
+    for (int i = 1; i <= rows; i++) {
+        for (int j = 1; j <= i; j++)
+            printf("* ");
+        printf("\n");
+    }
+}
+
+int main() {
+    int rows = 5;
+    printf("Triangle pattern:\n");
+    printTriangle(rows);
+    return 0;
+}
+
+#include <stdio.h>
+
+void binaryToDecimal(int binary) {
+    int decimal = 0, base = 1;
+    while (binary > 0) {
+        int lastDigit = binary % 10;
+        decimal += lastDigit * base;
+        base *= 2;
+        binary /= 10;
+    }
+    printf("Decimal: %d\n", decimal);
+}
+
+int main() {
+    int binary = 1011;
+    printf("Binary: %d\n", binary);
+    binaryToDecimal(binary);
+    return 0;
+}
+
+#include <stdio.h>
+
+void printEvenNumbers(int n) {
+    for (int i = 2; i <= n; i += 2) {
+        printf("%d ", i);
+    }
+    printf("\n");
+}
+
+int main() {
+    int n = 20;
+    printf("Even numbers up to %d:\n", n);
+    printEvenNumbers(n);
+    return 0;
+}
+
+#include <stdio.h>
+
+int findGCD(int a, int b) {
+    while (b != 0) {
+        int temp = b;
+        b = a % b;
+        a = temp;
+    }
+    return a;
+}
+
+int main() {
+    int num1 = 56, num2 = 98;
+    printf("GCD of %d and %d is %d\n", num1, num2, findGCD(num1, num2));
+    return 0;
+}
+
+#include <stdio.h>
+
+int isPalindrome(int num) {
+    int reversed = 0, temp = num;
+    while (temp > 0) {
+        reversed = reversed * 10 + temp % 10;
+        temp /= 10;
+    }
+    return reversed == num;
+}
+
+int main() {
+    int num = 121;
+    if (isPalindrome(num))
+        printf("%d is a palindrome\n", num);
+    else
+        printf("%d is not a palindrome\n", num);
+    return 0;
+}
+
+#include <stdio.h>
+
+void printFibonacci(int n) {
+    int a = 0, b = 1, next;
+    for (int i = 0; i < n; i++) {
+        printf("%d ", a);
+        next = a + b;
+        a = b;
+        b = next;
+    }
+    printf("\n");
+}
+
+int main() {
+    int terms = 10;
+    printf("First %d Fibonacci numbers:\n", terms);
+    printFibonacci(terms);
+    return 0;
+}
+
+#include <stdio.h>
+
+void swap(int *a, int *b) {
+    int temp = *a;
+    *a = *b;
+    *b = temp;
+}
+
+int main() {
+    int x = 5, y = 10;
+    printf("Before swap: x = %d, y = %d\n", x, y);
+    swap(&x, &y);
+    printf("After swap: x = %d, y = %d\n", x, y);
+    return 0;
+}
+
+#include <stdio.h>
+
+int factorial(int n) {
+    if (n == 0) return 1;
+    return n * factorial(n - 1);
+}
+
+int main() {
+    int num = 6;
+    printf("Factorial of %d is %d\n", num, factorial(num));
+    return 0;
+}
+
+#include <stdio.h>
+
+void reverseString(char *str) {
+    int length = 0;
+    while (str[length] != '\0') length++;
+
+    for (int i = 0, j = length - 1; i < j; i++, j--) {
+        char temp = str[i];
+        str[i] = str[j];
+        str[j] = temp;
+    }
+}
+
+int main() {
+    char str[] = "Hello World";
+    printf("Original: %s\n", str);
+    reverseString(str);
+    printf("Reversed: %s\n", str);
+    return 0;
+}
+
+#include <stdio.h>
+
+void countVowelsConsonants(char *str, int *vowels, int *consonants) {
+    *vowels = 0;
+    *consonants = 0;
+    for (int i = 0; str[i] != '\0'; i++) {
+        char ch = str[i];
+        if (ch >= 'A' && ch <= 'Z') ch += 'a' - 'A';
+        if (ch >= 'a' && ch <= 'z') {
+            if (ch == 'a' || ch == 'e' || ch == 'i' || ch == 'o' || ch == 'u')
+                (*vowels)++;
+            else
+                (*consonants)++;
+        }
+    }
+}
+
+int main() {
+    char str[] = "Hello Programming";
+    int vowels, consonants;
+    countVowelsConsonants(str, &vowels, &consonants);
+    printf("Vowels: %d, Consonants: %d\n", vowels, consonants);
+    return 0;
+}
+
+#include <stdio.h>
+
+void printTriangle(int rows) {
+    for (int i = 1; i <= rows; i++) {
+        for (int j = 1; j <= i; j++)
+            printf("* ");
+        printf("\n");
+    }
+}
+
+int main() {
+    int rows = 5;
+    printf("Triangle pattern:\n");
+    printTriangle(rows);
+    return 0;
+}
+
+#include <stdio.h>
+
+void binaryToDecimal(int binary) {
+    int decimal = 0, base = 1;
+    while (binary > 0) {
+        int lastDigit = binary % 10;
+        decimal += lastDigit * base;
+        base *= 2;
+        binary /= 10;
+    }
+    printf("Decimal: %d\n", decimal);
+}
+
+int main() {
+    int binary = 1011;
+    printf("Binary: %d\n", binary);
+    binaryToDecimal(binary);
+    return 0;
+}
+
+#include <stdio.h>
+
+void printEvenNumbers(int n) {
+    for (int i = 2; i <= n; i += 2) {
+        printf("%d ", i);
+    }
+    printf("\n");
+}
+
+int main() {
+    int n = 20;
+    printf("Even numbers up to %d:\n", n);
+    printEvenNumbers(n);
+    return 0;
+}
+
+#include <stdio.h>
+
+int findGCD(int a, int b) {
+    while (b != 0) {
+        int temp = b;
+        b = a % b;
+        a = temp;
+    }
+    return a;
+}
+
+int main() {
+    int num1 = 56, num2 = 98;
+    printf("GCD of %d and %d is %d\n", num1, num2, findGCD(num1, num2));
+    return 0;
+}
+
+#include <stdio.h>
+
+int isPalindrome(int num) {
+    int reversed = 0, temp = num;
+    while (temp > 0) {
+        reversed = reversed * 10 + temp % 10;
+        temp /= 10;
+    }
+    return reversed == num;
+}
+
+int main() {
+    int num = 121;
+    if (isPalindrome(num))
+        printf("%d is a palindrome\n", num);
+    else
+        printf("%d is not a palindrome\n", num);
+    return 0;
+}
+
+#include <stdio.h>
+
+void printFibonacci(int n) {
+    int a = 0, b = 1, next;
+    for (int i = 0; i < n; i++) {
+        printf("%d ", a);
+        next = a + b;
+        a = b;
+        b = next;
+    }
+    printf("\n");
+}
+
+int main() {
+    int terms = 10;
+    printf("First %d Fibonacci numbers:\n", terms);
+    printFibonacci(terms);
+    return 0;
+}
+
+#include <stdio.h>
+
+void swap(int *a, int *b) {
+    int temp = *a;
+    *a = *b;
+    *b = temp;
+}
+
+int main() {
+    int x = 5, y = 10;
+    printf("Before swap: x = %d, y = %d\n", x, y);
+    swap(&x, &y);
+    printf("After swap: x = %d, y = %d\n", x, y);
+    return 0;
+}
+
+#include <stdio.h>
+
+int factorial(int n) {
+    if (n == 0) return 1;
+    return n * factorial(n - 1);
+}
+
+int main() {
+    int num = 6;
+    printf("Factorial of %d is %d\n", num, factorial(num));
+    return 0;
+}
+
+#include <stdio.h>
+
+void reverseString(char *str) {
+    int length = 0;
+    while (str[length] != '\0') length++;
+
+    for (int i = 0, j = length - 1; i < j; i++, j--) {
+        char temp = str[i];
+        str[i] = str[j];
+        str[j] = temp;
+    }
+}
+
+int main() {
+    char str[] = "Hello World";
+    printf("Original: %s\n", str);
+    reverseString(str);
+    printf("Reversed: %s\n", str);
+    return 0;
+}
+
+#include <stdio.h>
+
+void countVowelsConsonants(char *str, int *vowels, int *consonants) {
+    *vowels = 0;
+    *consonants = 0;
+    for (int i = 0; str[i] != '\0'; i++) {
+        char ch = str[i];
+        if (ch >= 'A' && ch <= 'Z') ch += 'a' - 'A';
+        if (ch >= 'a' && ch <= 'z') {
+            if (ch == 'a' || ch == 'e' || ch == 'i' || ch == 'o' || ch == 'u')
+                (*vowels)++;
+            else
+                (*consonants)++;
+        }
+    }
+}
+
+int main() {
+    char str[] = "Hello Programming";
+    int vowels, consonants;
+    countVowelsConsonants(str, &vowels, &consonants);
+    printf("Vowels: %d, Consonants: %d\n", vowels, consonants);
+    return 0;
+}
+
+#include <stdio.h>
+
+void printTriangle(int rows) {
+    for (int i = 1; i <= rows; i++) {
+        for (int j = 1; j <= i; j++)
+            printf("* ");
+        printf("\n");
+    }
+}
+
+int main() {
+    int rows = 5;
+    printf("Triangle pattern:\n");
+    printTriangle(rows);
+    return 0;
+}
+
+#include <stdio.h>
+
+void binaryToDecimal(int binary) {
+    int decimal = 0, base = 1;
+    while (binary > 0) {
+        int lastDigit = binary % 10;
+        decimal += lastDigit * base;
+        base *= 2;
+        binary /= 10;
+    }
+    printf("Decimal: %d\n", decimal);
+}
+
+int main() {
+    int binary = 1011;
+    printf("Binary: %d\n", binary);
+    binaryToDecimal(binary);
+    return 0;
+}
+
+#include <stdio.h>
+
+void printEvenNumbers(int n) {
+    for (int i = 2; i <= n; i += 2) {
+        printf("%d ", i);
+    }
+    printf("\n");
+}
+
+int main() {
+    int n = 20;
+    printf("Even numbers up to %d:\n", n);
+    printEvenNumbers(n);
+    return 0;
+}
+
+#include <stdio.h>
+
+int findGCD(int a, int b) {
+    while (b != 0) {
+        int temp = b;
+        b = a % b;
+        a = temp;
+    }
+    return a;
+}
+
+int main() {
+    int num1 = 56, num2 = 98;
+    printf("GCD of %d and %d is %d\n", num1, num2, findGCD(num1, num2));
+    return 0;
+}
+
+#include <stdio.h>
+
+int isPalindrome(int num) {
+    int reversed = 0, temp = num;
+    while (temp > 0) {
+        reversed = reversed * 10 + temp % 10;
+        temp /= 10;
+    }
+    return reversed == num;
+}
+
+int main() {
+    int num = 121;
+    if (isPalindrome(num))
+        printf("%d is a palindrome\n", num);
+    else
+        printf("%d is not a palindrome\n", num);
+    return 0;
+}
+
+#include <stdio.h>
+
+void printFibonacci(int n) {
+    int a = 0, b = 1, next;
+    for (int i = 0; i < n; i++) {
+        printf("%d ", a);
+        next = a + b;
+        a = b;
+        b = next;
+    }
+    printf("\n");
+}
+
+int main() {
+    int terms = 10;
+    printf("First %d Fibonacci numbers:\n", terms);
+    printFibonacci(terms);
+    return 0;
+}
+
+#include <stdio.h>
+
+void swap(int *a, int *b) {
+    int temp = *a;
+    *a = *b;
+    *b = temp;
+}
+
+int main() {
+    int x = 5, y = 10;
+    printf("Before swap: x = %d, y = %d\n", x, y);
+    swap(&x, &y);
+    printf("After swap: x = %d, y = %d\n", x, y);
+    return 0;
+}
+
+#include <stdio.h>
+
+int factorial(int n) {
+    if (n == 0) return 1;
+    return n * factorial(n - 1);
+}
+
+int main() {
+    int num = 6;
+    printf("Factorial of %d is %d\n", num, factorial(num));
+    return 0;
+}
+
+#include <stdio.h>
+
+void reverseString(char *str) {
+    int length = 0;
+    while (str[length] != '\0') length++;
+
+    for (int i = 0, j = length - 1; i < j; i++, j--) {
+        char temp = str[i];
+        str[i] = str[j];
+        str[j] = temp;
+    }
+}
+
+int main() {
+    char str[] = "Hello World";
+    printf("Original: %s\n", str);
+    reverseString(str);
+    printf("Reversed: %s\n", str);
+    return 0;
+}
+
+#include <stdio.h>
+
+void countVowelsConsonants(char *str, int *vowels, int *consonants) {
+    *vowels = 0;
+    *consonants = 0;
+    for (int i = 0; str[i] != '\0'; i++) {
+        char ch = str[i];
+        if (ch >= 'A' && ch <= 'Z') ch += 'a' - 'A';
+        if (ch >= 'a' && ch <= 'z') {
+            if (ch == 'a' || ch == 'e' || ch == 'i' || ch == 'o' || ch == 'u')
+                (*vowels)++;
+            else
+                (*consonants)++;
+        }
+    }
+}
+
+int main() {
+    char str[] = "Hello Programming";
+    int vowels, consonants;
+    countVowelsConsonants(str, &vowels, &consonants);
+    printf("Vowels: %d, Consonants: %d\n", vowels, consonants);
+    return 0;
+}
+
+#include <stdio.h>
+
+void printTriangle(int rows) {
+    for (int i = 1; i <= rows; i++) {
+        for (int j = 1; j <= i; j++)
+            printf("* ");
+        printf("\n");
+    }
+}
+
+int main() {
+    int rows = 5;
+    printf("Triangle pattern:\n");
+    printTriangle(rows);
+    return 0;
+}
+
+#include <stdio.h>
+
+void binaryToDecimal(int binary) {
+    int decimal = 0, base = 1;
+    while (binary > 0) {
+        int lastDigit = binary % 10;
+        decimal += lastDigit * base;
+        base *= 2;
+        binary /= 10;
+    }
+    printf("Decimal: %d\n", decimal);
+}
+
+int main() {
+    int binary = 1011;
+    printf("Binary: %d\n", binary);
+    binaryToDecimal(binary);
+    return 0;
+}
+
+#include <stdio.h>
+
+void printEvenNumbers(int n) {
+    for (int i = 2; i <= n; i += 2) {
+        printf("%d ", i);
+    }
+    printf("\n");
+}
+
+int main() {
+    int n = 20;
+    printf("Even numbers up to %d:\n", n);
+    printEvenNumbers(n);
+    return 0;
+}
+
+#include <stdio.h>
+
+int findGCD(int a, int b) {
+    while (b != 0) {
+        int temp = b;
+        b = a % b;
+        a = temp;
+    }
+    return a;
+}
+
+int main() {
+    int num1 = 56, num2 = 98;
+    printf("GCD of %d and %d is %d\n", num1, num2, findGCD(num1, num2));
+    return 0;
+}
+
+#include <stdio.h>
+
+int isPalindrome(int num) {
+    int reversed = 0, temp = num;
+    while (temp > 0) {
+        reversed = reversed * 10 + temp % 10;
+        temp /= 10;
+    }
+    return reversed == num;
+}
+
+int main() {
+    int num = 121;
+    if (isPalindrome(num))
+        printf("%d is a palindrome\n", num);
+    else
+        printf("%d is not a palindrome\n", num);
+    return 0;
+}
+
+#include <stdio.h>
+
+void printFibonacci(int n) {
+    int a = 0, b = 1, next;
+    for (int i = 0; i < n; i++) {
+        printf("%d ", a);
+        next = a + b;
+        a = b;
+        b = next;
+    }
+    printf("\n");
+}
+
+int main() {
+    int terms = 10;
+    printf("First %d Fibonacci numbers:\n", terms);
+    printFibonacci(terms);
+    return 0;
+}
+
+#include <stdio.h>
+
+void swap(int *a, int *b) {
+    int temp = *a;
+    *a = *b;
+    *b = temp;
+}
+
+int main() {
+    int x = 5, y = 10;
+    printf("Before swap: x = %d, y = %d\n", x, y);
+    swap(&x, &y);
+    printf("After swap: x = %d, y = %d\n", x, y);
+    return 0;
+}
+
+#include <stdio.h>
+
+int factorial(int n) {
+    if (n == 0) return 1;
+    return n * factorial(n - 1);
+}
+
+int main() {
+    int num = 6;
+    printf("Factorial of %d is %d\n", num, factorial(num));
+    return 0;
+}
+
+#include <stdio.h>
+
+void reverseString(char *str) {
+    int length = 0;
+    while (str[length] != '\0') length++;
+
+    for (int i = 0, j = length - 1; i < j; i++, j--) {
+        char temp = str[i];
+        str[i] = str[j];
+        str[j] = temp;
+    }
+}
+
+int main() {
+    char str[] = "Hello World";
+    printf("Original: %s\n", str);
+    reverseString(str);
+    printf("Reversed: %s\n", str);
+    return 0;
+}
+
+#include <stdio.h>
+
+void countVowelsConsonants(char *str, int *vowels, int *consonants) {
+    *vowels = 0;
+    *consonants = 0;
+    for (int i = 0; str[i] != '\0'; i++) {
+        char ch = str[i];
+        if (ch >= 'A' && ch <= 'Z') ch += 'a' - 'A';
+        if (ch >= 'a' && ch <= 'z') {
+            if (ch == 'a' || ch == 'e' || ch == 'i' || ch == 'o' || ch == 'u')
+                (*vowels)++;
+            else
+                (*consonants)++;
+        }
+    }
+}
+
+int main() {
+    char str[] = "Hello Programming";
+    int vowels, consonants;
+    countVowelsConsonants(str, &vowels, &consonants);
+    printf("Vowels: %d, Consonants: %d\n", vowels, consonants);
+    return 0;
+}
+
+#include <stdio.h>
+
+void printTriangle(int rows) {
+    for (int i = 1; i <= rows; i++) {
+        for (int j = 1; j <= i; j++)
+            printf("* ");
+        printf("\n");
+    }
+}
+
+int main() {
+    int rows = 5;
+    printf("Triangle pattern:\n");
+    printTriangle(rows);
+    return 0;
+}
+
+#include <stdio.h>
+
+void binaryToDecimal(int binary) {
+    int decimal = 0, base = 1;
+    while (binary > 0) {
+        int lastDigit = binary % 10;
+        decimal += lastDigit * base;
+        base *= 2;
+        binary /= 10;
+    }
+    printf("Decimal: %d\n", decimal);
+}
+
+int main() {
+    int binary = 1011;
+    printf("Binary: %d\n", binary);
+    binaryToDecimal(binary);
+    return 0;
+}
+
