@@ -1,6 +1,6 @@
 import sys
 import os
-sys.path.append(os.path.abspath("../C detector"))
+sys.path.insert(1, os.path.abspath("../C_detector"))
 
 import analyze_dlp
 
