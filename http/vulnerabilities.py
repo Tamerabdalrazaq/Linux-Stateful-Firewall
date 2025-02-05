@@ -30,7 +30,7 @@ def bad_length_and_encoding(headers, body):
             content_length = int(header.split(":")[1].strip())
         elif header.lower().startswith("content-encoding:"):
             content_encoding = header.split(":")[1].strip().lower()
-
+    print("\nAfter headers\n")
     # Block response based on criteria
     if (content_length is not None and content_length > 102400):
         reason = ("Blocking HTTP response: Content-Length is greater than 100KB")
