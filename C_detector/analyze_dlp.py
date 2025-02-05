@@ -121,7 +121,7 @@ def get_snippet_score(snippet):
     score = (keys_raw_len / float(len(snippet))) * 100
     if run_code:
         if score < 35 or score > 65:
-            print(f"\n\n {copy} \n {snippet}\nscore: {score}\n")
+            print("\n\n {} \n {}\nscore: {}\n".format(copy, snippet, score))
     return score
 
 def analyze_snippets(snippets):
