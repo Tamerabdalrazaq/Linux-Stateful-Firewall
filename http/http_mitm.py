@@ -5,6 +5,8 @@ import vulnerabilities
 SYSFS_PATH_CONNS = "/sys/class/fw/conns/conns"
 SYSFS_PATH_MITM = "/sys/class/fw/mitm/mitm"
 
+HTTP_RES = "res"
+HTTP_REQ = "req"
 
 
 def get_error_respons(reason):
@@ -106,63 +108,25 @@ def read_http_request(client_sock):
     return request_data
 
 
-def inspect_http_request(request):
+def inspect_http(request, type):
     try:
         # Decode the received data to a readable format
         print("\nInspecting http request...")
         request = request.decode('utf-8')        
         print(request)
-        
+        checks = vulnerabilities.HTTP_SIGNATURES_IN if type == HTTP_REQ else vulnerabilities.HTTP_SIGNATURES_OUT 
+
         # Check headers for content length and encoding
         headers, _, body = request.partition("\r\n\r\n")
         request_type = headers.split('\r\n')[0].partition(" ")[0]
-        for vuln in vulnerabilities.HTTP_SIGNATURES:
-            if (vuln(headers, body)):
-                return (False, "400")
+        for vuln in checks:
+            verdict, reason = vuln(headers, body) 
+            if (verdict):
+                return (False, reason)
         return (True, "")
     except Exception as e:
         print("Failed to decode HTTP request: {}".format(e))
         return (True, "")
-    
-
-
-def inspect_http_response(http_packet):
-    try:
-        # Decode the received data to a readable format
-        http_request = http_packet.decode('utf-8')
-        
-        # Print the GET request with all headers
-        print("Received HTTP Request:")
-        print(http_request)
-        
-        # Check headers for content length and encoding
-        headers = http_request.split("\r\n")
-        
-        content_length = None
-        content_encoding = None
-
-        for header in headers:
-            if header.lower().startswith("content-length:"):
-                content_length = int(header.split(":")[1].strip())
-            elif header.lower().startswith("content-encoding:"):
-                content_encoding = header.split(":")[1].strip().lower()
-
-        # Block response based on criteria
-        if (content_length is not None and content_length > 102400):
-            reason = ("Blocking HTTP response: Content-Length is greater than 100KB")
-            return (False, reason)  # Block the packet
-        if (content_encoding == "gzip"):
-            reason = ("Blocking HTTP response: Content-Encoding is GZIP.")
-            return (False, reason)  # Block the packet
-
-
-        return (True, "")
-    except Exception as e:
-        print("Failed to decode HTTP request: {}".format(e))
-        return (False, e)
-
-    # Allow the packet if it doesn't meet the block criteria
-
 
 def update_mitm_process(client_address, mitm_port):
     """
@@ -222,7 +186,7 @@ def start_mitm_server(listen_port):
 
             try:
                 data = read_http_request(client_sock) # Read the HTTP packet
-                verdict, reason = inspect_http_request(data)
+                verdict, reason = inspect_http(data, HTTP_REQ)
                 
                 # If request did not pass inspection drop 
                 if not verdict:
@@ -242,7 +206,7 @@ def start_mitm_server(listen_port):
                     print("\nServer's HTTP Response: ")
                     print(response.decode())
                     if response:
-                        verdict, reason = inspect_http_response(response)
+                        verdict, reason = inspect_http(response, HTTP_RES)
                         # Send the response back to the client
                         if verdict:
                             client_sock.sendall(response)
