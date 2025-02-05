@@ -125,6 +125,7 @@ def inspect_http(request, type):
         for vuln in checks:
             print(vuln)
             verdict, reason = vuln(headers, body) 
+            print(verdict, reason)
             if (verdict):
                 return (False, reason)
         return (True, "")
