@@ -2,6 +2,8 @@ import numpy as np
 import matplotlib.pyplot as plt
 import math
 
+run_code = __name__ == "__main__"
+
 c_syntax_elements = [
     #  General 
     "printf", "malloc", "NULL", "stdlib",
@@ -117,8 +119,9 @@ def get_snippet_score(snippet):
         copy = copy.replace(key, "")
     keys_raw_len = len(snippet) - len(copy)
     score = (keys_raw_len / float(len(snippet))) * 100
-    if score < 35 or score > 65:
-        print(f"\n\n {copy} \n {snippet}\nscore: {score}\n")
+    if run_code:
+        if score < 35 or score > 65:
+            print(f"\n\n {copy} \n {snippet}\nscore: {score}\n")
     return score
 
 def analyze_snippets(snippets):
@@ -159,4 +162,5 @@ def plot_scores(scores1, scores2=[]):
     plt.show()
 
 
-main()
+if run_code:
+    main()
