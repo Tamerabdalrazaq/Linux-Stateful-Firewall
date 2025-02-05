@@ -23,14 +23,12 @@ def bad_length_and_encoding(headers, body):
     content_length = None
     content_encoding = None
     headers = headers.split("\r\n")
-    print(headers)
     for header in headers:
         print(header)
         if header.lower().startswith("content-length:"):
             content_length = int(header.split(":")[1].strip())
         elif header.lower().startswith("content-encoding:"):
             content_encoding = header.split(":")[1].strip().lower()
-    print("\nAfter headers\n")
     # Block response based on criteria
     if (content_length is not None and content_length > 102400):
         reason = ("Blocking HTTP response: Content-Length is greater than 100KB")
@@ -38,6 +36,7 @@ def bad_length_and_encoding(headers, body):
     if (content_encoding == "gzip"):
         reason = ("Blocking HTTP response: Content-Encoding is GZIP.")
         return (True, reason)  # Block the packet
+    return (False, "")
 
 def data_leak(headers, body):
     if(analyze_dlp.get_snippet_score(body) > analyze_dlp.THRESHOLD):

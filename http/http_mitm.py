@@ -113,19 +113,15 @@ def inspect_http(request, type):
         # Decode the received data to a readable format
         print("\nInspecting http request...")
         request = request.decode('utf-8')        
-        print(request)
         if type == HTTP_REQ:
             checks = vulnerabilities.HTTP_SIGNATURES_IN
         else:
             checks = vulnerabilities.HTTP_SIGNATURES_OUT
-        print(checks)
         # Check headers for content length and encoding
         headers, _, body = request.partition("\r\n\r\n")
-        print(headers, body)
         for vuln in checks:
             print(vuln)
             verdict, reason = vuln(headers, body) 
-            print(verdict, reason)
             if (verdict):
                 return (False, reason)
         return (True, "")
