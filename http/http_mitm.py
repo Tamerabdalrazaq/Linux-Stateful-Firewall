@@ -228,7 +228,7 @@ def start_mitm_server(listen_port):
                 if not verdict:
                     print("HTTP Response Did Not Pass Inspection: \n", reason)
                     client_sock.sendall(get_error_respons(reason).encode())
-                    return
+                    continue
                 if not data:
                     continue
                     # Retrieve original destination from connection table (stub for now)
