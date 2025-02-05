@@ -22,8 +22,9 @@ def ofbiz_forgotpw(headers, body):
 def bad_length_and_encoding(headers, body):
     content_length = None
     content_encoding = None
-
-    for header in headers.split("\r\n"):
+    headers = headers.split("\r\n")
+    print(headers)
+    for header in headers:
         if header.lower().startswith("content-length:"):
             content_length = int(header.split(":")[1].strip())
         elif header.lower().startswith("content-encoding:"):
