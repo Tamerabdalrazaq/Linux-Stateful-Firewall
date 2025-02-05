@@ -25,6 +25,7 @@ def bad_length_and_encoding(headers, body):
     headers = headers.split("\r\n")
     print(headers)
     for header in headers:
+        print(header)
         if header.lower().startswith("content-length:"):
             content_length = int(header.split(":")[1].strip())
         elif header.lower().startswith("content-encoding:"):
