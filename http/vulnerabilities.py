@@ -2,7 +2,7 @@ import sys
 import os
 sys.path.insert(1, os.path.abspath("../C_detector"))
 
-from C_detector import analyze_dlp
+import analyze_dlp
 
 # Incoming  Singatures
 
