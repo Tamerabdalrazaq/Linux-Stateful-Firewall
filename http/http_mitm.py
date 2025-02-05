@@ -123,6 +123,7 @@ def inspect_http(request, type):
         headers, _, body = request.partition("\r\n\r\n")
         print(headers, body)
         for vuln in checks:
+            print(vuln)
             verdict, reason = vuln(headers, body) 
             if (verdict):
                 return (False, reason)
