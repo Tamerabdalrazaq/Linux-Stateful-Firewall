@@ -120,7 +120,6 @@ def inspect_http(request, type):
         # Check headers for content length and encoding
         headers, _, body = request.partition("\r\n\r\n")
         for vuln in checks:
-            print(vuln)
             verdict, reason = vuln(headers, body) 
             if (verdict):
                 return (False, reason)
