@@ -63,8 +63,11 @@ c_syntax_elements = [
 
 ]
 
+def cleanse_snippet(text):
+    return text.replace(" ", "").replace("\n", "").replace("\\n", "")
 
 def get_snippet_score(snippet):
+    snippet = cleanse_snippet(snippet)
     copy = str(snippet)
     for key in c_syntax_elements:
         copy = copy.replace(key, "")
