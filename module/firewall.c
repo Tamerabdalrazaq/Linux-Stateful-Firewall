@@ -1335,9 +1335,14 @@ static int modify_packet(struct sk_buff *skb, __be32 saddr, __be16 sport, __be32
 }
 
 
-static int handle_mitm_pre_routing(struct sk_buff *skb, packet_identifier_t packet_identifier, const struct nf_hook_state *state, app_prot_t app_prot) {
+static int handle_mitm_pre_routing(struct sk_buff *skb, packet_identifier_t packet_identifier, 
+                                   const struct nf_hook_state *state, app_prot_t app_prot) {
     __be32 local_ip;
-    __be16 local_port = (app_prot == PROT_HTTP ? LOC_HTTP_PORT: LOC_FTP_PORT); 
+    __be16 local_port; 
+    if (app_prot == PROT_HTTP) local_port = LOC_HTTP_PORT; 
+    if (app_prot == PROT_FTP) local_port = LOC_FTP_PORT; 
+    if (app_prot == PROT_SMTP) local_port = LOC_SMTP_PORT; 
+
     direction_t dir = get_direction_incoming(state);
     int ret = 0;
     // •	Client-to-server, inbound, pre-routing
@@ -1427,6 +1432,11 @@ static void handle_tcp_pre_routing(struct sk_buff *skb, const struct nf_hook_sta
                       (packet_identifier.src_port == (FTP_PORT) )) ){
         printk(KERN_INFO "Handling an FTP Packet ...");
         ret = handle_mitm_pre_routing(skb, packet_identifier, state, PROT_FTP);
+        if (direction == DIRECTION_OUT) pt_log_entry->ignore = 1;
+    } else if(*pt_verdict && ((packet_identifier.dst_port == SMTP_PORT) || 
+                       (packet_identifier.src_port == SMTP_PORT) )){
+        printk(KERN_INFO "Handling an SMTP Packet ...");
+        ret = handle_mitm_pre_routing(skb, packet_identifier, state, PROT_SMTP);
         if (direction == DIRECTION_OUT) pt_log_entry->ignore = 1;
     }
 

@@ -53,20 +53,6 @@ def write_to_kernel(data_to_write,):
         print("Error updating MITM process: {}".format(e))
         return -1
 
-# Function to handle communication with the actual FTP server
-def handle_server_connection(client_socket, server_socket):
-    try:
-        while True:
-            data = server_socket.recv(4096)
-            if not data:
-                break
-            client_socket.sendall(data)
-    except Exception as e:
-        print("Error handling server connection: ", e)
-    finally:
-        server_socket.close()
-        client_socket.close()
-
 def get_port_command(client_data):
     command = client_data.decode('utf-8')
     print("command: ", command)

@@ -37,7 +37,8 @@ typedef enum {
 // the protocols we will work with
 typedef enum {
 	PROT_HTTP   = 1,
-	PROT_FTP   = 2,
+	PROT_FTP    = 2,
+	PROT_SMTP   = 3,
 } app_prot_t;
 
 
@@ -76,6 +77,8 @@ typedef enum {
 #define IP_ANY 		    (htonl(0x00000000))
 #define HTTP_PORT 		    (htons(80))
 #define LOC_HTTP_PORT 		    (htons(800))
+#define SMTP_PORT 		    (htons(25))
+#define LOC_SMTP_PORT 		    (htons(250))
 #define FTP_PORT 		    (htons(21))
 #define LOC_FTP_PORT 		    (htons(210))
 #define CONN_FTP_PORT 		    (htons(20))
