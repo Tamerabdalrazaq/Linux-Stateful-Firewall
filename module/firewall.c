@@ -1549,9 +1549,9 @@ static unsigned int module_hook_local_out(void *priv, struct sk_buff *skb, const
     packet_identifier.src_port = tcp_data->src_port;
     packet_identifier.dst_port = tcp_data->dst_port;
 
-    if(tcp_data->src_port == LOC_HTTP_PORT || tcp_data->dst_port == HTTP_PORT || 
-        tcp_data->src_port == LOC_FTP_PORT || tcp_data->dst_port == FTP_PORT){
-        // TESTING !!!
+    if(tcp_data->src_port == LOC_HTTP_PORT   || tcp_data->dst_port == HTTP_PORT || 
+        tcp_data->src_port == LOC_FTP_PORT   || tcp_data->dst_port == FTP_PORT  ||
+        tcp_data->src_port  == LOC_SMTP_PORT || tcp_data->dst_port == SMTP_PORT){
         printk(KERN_INFO "\n\n********************\n\n");
         printk(KERN_INFO "Packet @ LOCAL_OUT");
         printk(KERN_INFO "\n");
