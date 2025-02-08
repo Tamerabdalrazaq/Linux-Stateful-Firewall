@@ -81,10 +81,13 @@ def handle_client(client_socket, client_address):
         _, port = server_socket.getsockname()
         write_to_kernel(format_mitm_port_for_kernel(client_address, port))
         server_address = find_destination(client_address[0], client_address[1])
+        print("Connecting..", server_address)
         server_socket.connect(server_address)
+        print("Connected to server ", server_address)
 
         # Forward server's welcome message to the client
         client_socket.sendall(server_socket.recv(4096))
+        print("Hello sent")
 
         client_to_server_thread = threading.Thread(
             target=forward_cli_srv, 
