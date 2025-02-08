@@ -38,7 +38,9 @@ def bad_length_and_encoding(headers, body):
     return (False, "")
 
 def data_leak(headers, body):
-    if(analyze_dlp.get_snippet_score(body) > analyze_dlp.THRESHOLD):
+    score = analyze_dlp.get_snippet_score(body)
+    print("DLP Score: ", score)
+    if(score > analyze_dlp.THRESHOLD):
         return (True, "Data Leak Prevented")
     return (False, "")
 

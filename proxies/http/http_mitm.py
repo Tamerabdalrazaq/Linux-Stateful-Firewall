@@ -123,6 +123,7 @@ def inspect_http(request, type):
             verdict, reason = vuln(headers, body) 
             if (verdict):
                 return (False, reason)
+        print("passed inspection")
         return (True, "")
     except Exception as e:
         print("Failed to decode HTTP request: {}".format(e))
