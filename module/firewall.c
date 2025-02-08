@@ -1256,7 +1256,7 @@ static void tcp_handle_syn(packet_identifier_t packet_identifier, log_row_t* pt_
 static void tcp_handle_ack(packet_identifier_t packet_identifier, log_row_t* pt_log_entry, int *pt_verdict,
                             __u8 syn, __u8 ack, __u8 rst, __u8 fin) {
     connection_rule_row* found_connection;
-    if(packet_identifier.src_port == HTTP_PORT || packet_identifier.src_port == FTP_PORT)
+    if(packet_identifier.src_port == HTTP_PORT || packet_identifier.src_port == FTP_PORT || packet_identifier.src_port == SMTP_PORT )
         found_connection = find_connection_row_by_proxy(NULL, packet_identifier.dst_port, DIRECTION_IN);
     else 
         found_connection = find_connection_row(packet_identifier);
