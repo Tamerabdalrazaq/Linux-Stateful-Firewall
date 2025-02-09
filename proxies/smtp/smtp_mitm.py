@@ -3,7 +3,6 @@ import os
 import socket
 import threading
 sys.path.insert(1, os.path.abspath("../C_detector"))
-print("sys.path: ", sys.path)
 import analyze_dlp
 # Configuration
 LISTEN_PORT = 250
