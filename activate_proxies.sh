@@ -15,6 +15,7 @@ elif [[ "$1" == "smtp" ]]; then
     cd ..;
 
 elif [[ "$1" == "all" ]]; then
+    sudo echo ""
     cd http;
     echo "Activating HTTP proxy";
     sudo python3 http_mitm.py >/dev/tty 2>/dev/tty &
