@@ -1,0 +1,1371 @@
+"use strict";
+///////////////// worker thread code ///////////////////
+const theLastExperience = noWorkers => {
+	"use strict";
+	// ---- robot structure ----
+	const struct = {
+		points: [
+			{
+				x: 0,
+				y: -4,
+				f(s, d) {
+					this.y -= 0.01 * s * ts;
+				}
+			},
+			{
+				x: 0,
+				y: -16,
+				f(s, d) {
+					this.y -= 0.02 * s * d * ts;
+				}
+			},
+			{
+				x: 0,
+				y: 12,
+				f(s, d) {
+					this.y += 0.02 * s * d * ts;
+				}
+			},
+			{ x: -12, y: 0 },
+			{ x: 12, y: 0 },
+			{
+				x: -3,
+				y: 34,
+				f(s, d) {
+					if (d > 0) {
+						this.x += 0.01 * s * ts;
+						this.y -= 0.015 * s * ts;
+					} else {
+						this.y += 0.02 * s * ts;
+					}
+				}
+			},
+			{
+				x: 3,
+				y: 34,
+				f(s, d) {
+					if (d > 0) {
+						this.y += 0.02 * s * ts;
+					} else {
+						this.x -= 0.01 * s * ts;
+						this.y -= 0.015 * s * ts;
+					}
+				}
+			},
+			{
+				x: -28,
+				y: 0,
+				f(s, d) {
+					this.x += this.vx * 0.025 * ts;
+					this.y -= 0.001 * s * ts;
+				}
+			},
+			{
+				x: 28,
+				y: 0,
+				f(s, d) {
+					this.x += this.vx * 0.025 * ts;
+					this.y -= 0.001 * s * ts;
+				}
+			},
+			{
+				x: -3,
+				y: 64,
+				f(s, d) {
+					this.y += 0.015 * s * ts;
+					if (d > 0) {
+						this.y -= 0.01 * s * ts;
+					} else {
+						this.y += 0.05 * s * ts;
+					}
+				}
+			},
+			{
+				x: 3,
+				y: 64,
+				f(s, d) {
+					this.y += 0.015 * s * ts;
+					if (d > 0) {
+						this.y += 0.05 * s * ts;
+					} else {
+						this.y -= 0.01 * s * ts;
+					}
+				}
+			}
+		],
+		links: [
+			{ p0: 3, p1: 7, size: 12, lum: 0.5 },
+			{ p0: 1, p1: 3, size: 24, lum: 0.5 },
+			{ p0: 1, p1: 0, size: 60, lum: 0.5, disk: 1 },
+			{ p0: 5, p1: 9, size: 16, lum: 0.5 },
+			{ p0: 2, p1: 5, size: 32, lum: 0.5 },
+			{ p0: 1, p1: 2, size: 50, lum: 1 },
+			{ p0: 6, p1: 10, size: 16, lum: 1.5 },
+			{ p0: 2, p1: 6, size: 32, lum: 1.5 },
+			{ p0: 4, p1: 8, size: 12, lum: 1.5 },
+			{ p0: 1, p1: 4, size: 24, lum: 1.5 }
+		]
+	};
+	class Robot {
+		constructor(color, light, size, x, y, struct) {
+			this.x = x;
+			this.points = [];
+			this.links = [];
+			this.frame = 0;
+			this.dir = 1;
+			this.size = size;
+			this.color = Math.round(color);
+			this.light = light;
+			// ---- create points ----
+			for (const p of struct.points) {
+				this.points.push(new Robot.Point(size * p.x + x, size * p.y + y, p.f));
+			}
+			// ---- create links ----
+			for (const link of struct.links) {
+				const p0 = this.points[link.p0];
+				const p1 = this.points[link.p1];
+				const dx = p0.x - p1.x;
+				const dy = p0.y - p1.y;
+				this.links.push(
+					new Robot.Link(
+						this,
+						p0,
+						p1,
+						Math.sqrt(dx * dx + dy * dy),
+						link.size * size / 3,
+						link.lum,
+						link.force,
+						link.disk
+					)
+				);
+			}
+		}
+		update() {
+			if (++this.frame % Math.round(20 / ts) === 0) this.dir = -this.dir;
+			if (this === pointer.dancerDrag && this.size < 16 && this.frame > 600) {
+				pointer.dancerDrag = null;
+				dancers.push(
+					new Robot(
+						this.color + 90,
+						this.light * 1.25,
+						this.size * 2,
+						pointer.x,
+						pointer.y - 100 * this.size * 2,
+						struct
+					)
+				);
+				dancers.sort(function(d0, d1) {
+					return d0.size - d1.size;
+				});
+			}
+			// ---- update links ----
+			for (const link of this.links) link.update();
+			// ---- update points ----
+			for (const point of this.points) point.update(this);
+			// ---- ground ----
+			for (const link of this.links) {
+				const p1 = link.p1;
+				if (p1.y > canvas.height * ground - link.size * 0.5) {
+					p1.y = canvas.height * ground - link.size * 0.5;
+					p1.x -= p1.vx;
+					p1.vx = 0;
+					p1.vy = 0;
+				}
+			}
+			// ---- center position ----
+			this.points[3].x += (this.x - this.points[3].x) * 0.001;
+		}
+		draw() {
+			for (const link of this.links) {
+				if (link.size) {
+					const dx = link.p1.x - link.p0.x;
+					const dy = link.p1.y - link.p0.y;
+					const a = Math.atan2(dy, dx);
+					// ---- shadow ----
+					ctx.save();
+					ctx.translate(link.p0.x + link.size * 0.25, link.p0.y + link.size * 0.25);
+					ctx.rotate(a);
+					ctx.drawImage(
+						link.shadow,
+						-link.size * 0.5,
+						-link.size * 0.5
+					);
+					ctx.restore();
+					// ---- stroke ----
+					ctx.save();
+					ctx.translate(link.p0.x, link.p0.y);
+					ctx.rotate(a);
+					ctx.drawImage(
+						link.image,
+						-link.size * 0.5,
+						-link.size * 0.5
+					);
+					ctx.restore();
+				}
+			}
+		}
+	}
+	Robot.Link = class Link {
+		constructor(parent, p0, p1, dist, size, light, force, disk) {
+			this.p0 = p0;
+			this.p1 = p1;
+			this.distance = dist;
+			this.size = size;
+			this.light = light || 1.0;
+			this.force = force || 0.5;
+			this.image = this.stroke(
+				"hsl(" + parent.color + " ,30%, " + parent.light * this.light + "%)",
+				true, disk, dist, size
+			);
+			this.shadow = this.stroke("rgba(0,0,0,0.5)", false, disk, dist, size);
+		}
+		update() {
+			const p0 = this.p0;
+			const p1 = this.p1;
+			const dx = p1.x - p0.x;
+			const dy = p1.y - p0.y;
+			const dist = Math.sqrt(dx * dx + dy * dy);
+			if (dist > 0.0) {
+				const tw = p0.w + p1.w;
+				const r1 = p1.w / tw;
+				const r0 = p0.w / tw;
+				const dz = (this.distance - dist) * this.force;
+				const sx = dx / dist * dz;
+				const sy = dy / dist * dz;
+				p1.x += sx * r0;
+				p1.y += sy * r0;
+				p0.x -= sx * r1;
+				p0.y -= sy * r1;
+			}
+		}
+		stroke(color, axis, disk, dist, size) {
+			let image;
+			if (noWorkers) {
+				image = document.createElement("canvas");
+				image.width = dist + size;
+				image.height = size;
+			} else {
+				image = new OffscreenCanvas(dist + size, size);
+			}
+			const ict = image.getContext("2d");
+			ict.beginPath();
+			ict.lineCap = "round";
+			ict.lineWidth = size;
+			ict.strokeStyle = color;
+			if (disk) {
+				ict.arc(size * 0.5 + dist, size * 0.5, size * 0.5, 0, 2 * Math.PI);
+				ict.fillStyle = color;
+				ict.fill();
+			} else {
+				ict.moveTo(size * 0.5, size * 0.5);
+				ict.lineTo(size * 0.5 + dist, size * 0.5);
+				ict.stroke();
+			}
+			if (axis) {
+				const s = size / 10;
+				ict.fillStyle = "#000";
+				ict.fillRect(size * 0.5 - s, size * 0.5 - s, s * 2, s * 2);
+				ict.fillRect(size * 0.5 - s + dist, size * 0.5 - s, s * 2, s * 2);
+			}
+			return image;
+		}
+	};
+	Robot.Point = class Point {
+		constructor(x, y, fn, w) {
+			this.x = x;
+			this.y = y;
+			this.w = w || 0.5;
+			this.fn = fn || null;
+			this.px = x;
+			this.py = y;
+			this.vx = 0.0;
+			this.vy = 0.0;
+		}
+		update(robot) {
+			// ---- dragging ----
+			if (robot === pointer.dancerDrag && this === pointer.pointDrag) {
+				this.x += (pointer.x - this.x) * 0.1;
+				this.y += (pointer.y - this.y) * 0.1;
+			}
+			// ---- dance ----
+			if (robot !== pointer.dancerDrag) {
+				this.fn && this.fn(16 * Math.sqrt(robot.size), robot.dir);
+			}
+			// ---- verlet integration ----
+			this.vx = this.x - this.px;
+			this.vy = this.y - this.py;
+			this.px = this.x;
+			this.py = this.y;
+			this.vx *= 0.995;
+			this.vy *= 0.995;
+			this.x += this.vx;
+			this.y += this.vy + 0.01 * ts;
+		}
+	};
+	// ---- init ----
+	const dancers = [];
+	let ground = 1.0;
+	let canvas = { width: 0, height: 0, resize: true };
+	let ctx = null;
+	let pointer = { x: 0, y: 0, dancerDrag: null, pointDrag: null };
+	let ts = 1;
+	let lastTime = 0;
+	// ---- messages from the main thread ----
+	const message = e => {
+		switch (e.data.msg) {
+			case "start":
+				canvas.elem = e.data.elem;
+				canvas.width = canvas.elem.width;
+				canvas.height = canvas.elem.height;
+				ctx = canvas.elem.getContext("2d");
+				initRobots();
+				requestAnimationFrame(run);
+				break;
+			case "resize":
+				canvas.width = e.data.width;
+				canvas.height = e.data.height;
+				canvas.resize = true;
+				break;
+			case "pointerMove":
+				pointer.x = e.data.x;
+				pointer.y = e.data.y;
+				break;
+			case "pointerDown":
+				pointer.x = e.data.x;
+				pointer.y = e.data.y;
+				for (const dancer of dancers) {
+					for (const point of dancer.points) {
+						const dx = pointer.x - point.x;
+						const dy = pointer.y - point.y;
+						const d = Math.sqrt(dx * dx + dy * dy);
+						if (d < 60) {
+							pointer.dancerDrag = dancer;
+							pointer.pointDrag = point;
+							dancer.frame = 0;
+						}
+					}
+				}
+				break;
+			case "pointerUp":
+				pointer.dancerDrag = null;
+				break;
+		}
+	};
+	// ---- resize screen ----
+	const resize = () => {
+		canvas.elem.width = canvas.width;
+		canvas.elem.height = canvas.height;
+		canvas.resize = false;
+		ground = canvas.height > 500 ? 0.85 : 1.0;
+		for (let i = 0; i < dancers.length; i++) {
+			dancers[i].x = (i + 2) * canvas.width / 9;
+		}
+	}
+	// ---- main loop ----
+	const run = (time) => {
+		requestAnimationFrame(run);
+		if (canvas.resize === true) resize();
+		// ---- adjust speed to screen freq ----
+		if (lastTime !== 0) {
+			const t = (time - lastTime) / 16;
+			ts += (t - ts) * 0.1;
+			if (ts > 1) ts = 1;
+		}
+		lastTime = time;
+		// ---- clear screen ----
+		ctx.clearRect(0, 0, canvas.width, canvas.height);
+		ctx.fillStyle = "#222";
+		ctx.fillRect(0, 0, canvas.width, canvas.height * 0.15);
+		ctx.fillRect(0, canvas.height * 0.85, canvas.width, canvas.height * 0.15);
+		// ---- animate robots ----
+		for (const dancer of dancers) {
+			dancer.update();
+			dancer.draw();
+		}
+	};
+	const initRobots = () => {
+		// ---- instanciate robots ----
+		ground = canvas.height > 500 ? 0.85 : 1.0;
+		for (let i = 0; i < 6; i++) {
+			dancers.push(
+				new Robot(
+					i * 360 / 7,
+					80,
+					Math.sqrt(Math.min(canvas.width, canvas.height)) / 6,
+					(i + 2) * canvas.width / 9,
+					canvas.height * 0.5 - 100,
+					struct
+				)
+			);
+		}
+	};
+	// ---- main thread vs. worker
+	if (noWorkers) {
+		// ---- emulate postMessage interface ----
+		return {
+			postMessage(data) {
+				message({ data: data });
+			}
+		};
+	} else {
+		// ---- worker messaging ----
+		onmessage = message;
+	}
+};
+///////////////// main thread code ///////////////////
+let worker = null;
+const createWorker = fn => {
+	const URL = window.URL || window.webkitURL;
+	return new Worker(URL.createObjectURL(new Blob(["(" + fn + ")()"])));
+};
+// ---- init canvas ----
+const canvas = document.querySelector("canvas");
+canvas.width = canvas.offsetWidth;
+canvas.height = canvas.offsetHeight;
+// ---- instanciate worker ----
+if (window.Worker && window.OffscreenCanvas) {
+	// instanciating background worker from a function
+	worker = createWorker(theLastExperience);
+	// cloning OffscreenCanvas
+	const offscreen = canvas.transferControlToOffscreen();
+	// sending data to worker
+	worker.postMessage({ msg: "start", elem: offscreen }, [offscreen]);
+} else {
+	// falling back execution to the main thread
+	worker = theLastExperience(true);
+	worker.postMessage({ msg: "start", elem: canvas });
+}
+// ---- resize event ----
+window.addEventListener(
+	"resize",
+	() => {
+		worker.postMessage({
+			msg: "resize",
+			width: canvas.offsetWidth,
+			height: canvas.offsetHeight
+		});
+	},
+	false
+);
+// ---- pointer events ----
+const pointer = {
+	x: 0,
+	y: 0,
+	down(e) {
+		this.move(e);
+		worker.postMessage({
+			msg: "pointerDown",
+			x: this.x,
+			y: this.y
+		});
+	},
+	up(e) {
+		worker.postMessage({
+			msg: "pointerUp"
+		});
+	},
+	move(e) {
+		if (e.targetTouches) {
+			e.preventDefault();
+			this.x = e.targetTouches[0].clientX;
+			this.y = e.targetTouches[0].clientY;
+		} else {
+			this.x = e.clientX;
+			this.y = e.clientY;
+		}
+		worker.postMessage({
+			msg: "pointerMove",
+			x: this.x,
+			y: this.y
+		});
+	}
+};
+window.addEventListener("mousemove", e => pointer.move(e), false);
+canvas.addEventListener("touchmove", e => pointer.move(e), false);
+window.addEventListener("mousedown", e => pointer.down(e), false);
+window.addEventListener("touchstart", e => pointer.down(e), false);
+window.addEventListener("mouseup", e => pointer.up(e), false);
+window.addEventListener("touchend", e => pointer.up(e), false);
+
+.---.
+document.getElementById('close').onmousedown = function(e) {
+  e.preventDefault();
+  document.getElementById('info').style.display = 'none';
+  return false;
+};
+
+// settings
+
+var physics_accuracy  = 3,
+    mouse_influence   = 20,
+    mouse_cut         = 5,
+    gravity           = 1200,
+    cloth_height      = 30,
+    cloth_width       = 50,
+    start_y           = 20,
+    spacing           = 7,
+    tear_distance     = 60;
+
+
+window.requestAnimFrame =
+    window.requestAnimationFrame ||
+    window.webkitRequestAnimationFrame ||
+    window.mozRequestAnimationFrame ||
+    window.oRequestAnimationFrame ||
+    window.msRequestAnimationFrame ||
+    function (callback) {
+        window.setTimeout(callback, 1000 / 60);
+};
+
+var canvas,
+    ctx,
+    cloth,
+    boundsx,
+    boundsy,
+    mouse = {
+        down: false,
+        button: 1,
+        x: 0,
+        y: 0,
+        px: 0,
+        py: 0
+    };
+
+var Point = function (x, y) {
+    this.x      = x;
+    this.y      = y;
+    this.px     = x;
+    this.py     = y;
+    this.vx     = 0;
+    this.vy     = 0;
+    this.pin_x  = null;
+    this.pin_y  = null;
+    
+    this.constraints = [];
+};
+
+Point.prototype.update = function (delta) {
+    if (mouse.down) {
+        var diff_x = this.x - mouse.x,
+            diff_y = this.y - mouse.y,
+            dist = Math.sqrt(diff_x * diff_x + diff_y * diff_y);
+
+        if (mouse.button == 1) {
+            if (dist < mouse_influence) {
+                this.px = this.x - (mouse.x - mouse.px) * 1.8;
+                this.py = this.y - (mouse.y - mouse.py) * 1.8;
+            }
+          
+        } else if (dist < mouse_cut) this.constraints = [];
+    }
+
+    this.add_force(0, gravity);
+
+    delta *= delta;
+    nx = this.x + ((this.x - this.px) * .99) + ((this.vx / 2) * delta);
+    ny = this.y + ((this.y - this.py) * .99) + ((this.vy / 2) * delta);
+
+    this.px = this.x;
+    this.py = this.y;
+
+    this.x = nx;
+    this.y = ny;
+
+    this.vy = this.vx = 0
+};
+
+Point.prototype.draw = function () {
+    if (!this.constraints.length) return;
+
+    var i = this.constraints.length;
+    while (i--) this.constraints[i].draw();
+};
+
+Point.prototype.resolve_constraints = function () {
+    if (this.pin_x != null && this.pin_y != null) {
+        this.x = this.pin_x;
+        this.y = this.pin_y;
+        return;
+    }
+
+    var i = this.constraints.length;
+    while (i--) this.constraints[i].resolve();
+
+    this.x > boundsx ? this.x = 2 * boundsx - this.x : 1 > this.x && (this.x = 2 - this.x);
+    this.y < 1 ? this.y = 2 - this.y : this.y > boundsy && (this.y = 2 * boundsy - this.y);
+};
+
+Point.prototype.attach = function (point) {
+    this.constraints.push(
+        new Constraint(this, point)
+    );
+};
+
+Point.prototype.remove_constraint = function (constraint) {
+    this.constraints.splice(this.constraints.indexOf(constraint), 1);
+};
+
+Point.prototype.add_force = function (x, y) {
+    this.vx += x;
+    this.vy += y;
+  
+    var round = 400;
+    this.vx = ~~(this.vx * round) / round;
+    this.vy = ~~(this.vy * round) / round;
+};
+
+Point.prototype.pin = function (pinx, piny) {
+    this.pin_x = pinx;
+    this.pin_y = piny;
+};
+
+var Constraint = function (p1, p2) {
+    this.p1     = p1;
+    this.p2     = p2;
+    this.length = spacing;
+};
+
+Constraint.prototype.resolve = function () {
+    var diff_x  = this.p1.x - this.p2.x,
+        diff_y  = this.p1.y - this.p2.y,
+        dist    = Math.sqrt(diff_x * diff_x + diff_y * diff_y),
+        diff    = (this.length - dist) / dist;
+
+    if (dist > tear_distance) this.p1.remove_constraint(this);
+
+    var px = diff_x * diff * 0.5;
+    var py = diff_y * diff * 0.5;
+
+    this.p1.x += px;
+    this.p1.y += py;
+    this.p2.x -= px;
+    this.p2.y -= py;
+};
+
+Constraint.prototype.draw = function () {
+    ctx.moveTo(this.p1.x, this.p1.y);
+    ctx.lineTo(this.p2.x, this.p2.y);
+};
+
+var Cloth = function () {
+    this.points = [];
+
+    var start_x = canvas.width / 2 - cloth_width * spacing / 2;
+
+    for (var y = 0; y <= cloth_height; y++) {
+        for (var x = 0; x <= cloth_width; x++) {
+            var p = new Point(start_x + x * spacing, start_y + y * spacing);
+
+            x != 0 && p.attach(this.points[this.points.length - 1]);
+            y == 0 && p.pin(p.x, p.y);
+            y != 0 && p.attach(this.points[x + (y - 1) * (cloth_width + 1)])
+
+            this.points.push(p);
+        }
+    }
+};
+
+Cloth.prototype.update = function () {
+    var i = physics_accuracy;
+
+    while (i--) {
+        var p = this.points.length;
+        while (p--) this.points[p].resolve_constraints();
+    }
+
+    i = this.points.length;
+    while (i--) this.points[i].update(.016);
+};
+
+Cloth.prototype.draw = function () {
+    ctx.beginPath();
+
+    var i = cloth.points.length;
+    while (i--) cloth.points[i].draw();
+
+    ctx.stroke();
+};
+
+function update() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    cloth.update();
+    cloth.draw();
+
+    requestAnimFrame(update);
+}
+
+function start() {
+    canvas.onmousedown = function (e) {
+        mouse.button  = e.which;
+        mouse.px      = mouse.x;
+        mouse.py      = mouse.y;
+        var rect      = canvas.getBoundingClientRect();
+        mouse.x       = e.clientX - rect.left,
+        mouse.y       = e.clientY - rect.top,
+        mouse.down    = true;
+        e.preventDefault();
+    };
+
+    canvas.onmouseup = function (e) {
+        mouse.down = false;
+        e.preventDefault();
+    };
+
+    canvas.onmousemove = function (e) {
+        mouse.px  = mouse.x;
+        mouse.py  = mouse.y;
+        var rect  = canvas.getBoundingClientRect();
+        mouse.x   = e.clientX - rect.left,
+        mouse.y   = e.clientY - rect.top,
+        e.preventDefault();
+    };
+
+    canvas.oncontextmenu = function (e) {
+        e.preventDefault();
+    };
+
+    boundsx = canvas.width - 1;
+    boundsy = canvas.height - 1;
+
+    ctx.strokeStyle = '#888';
+  
+    cloth = new Cloth();
+  
+    update();
+}
+
+window.onload = function () {
+    canvas  = document.getElementById('c');
+    ctx     = canvas.getContext('2d');
+
+    canvas.width  = 560;
+    canvas.height = 350;
+
+    start();
+};
+.---.
+$(window).load(function(){
+
+  var body = $("body"),
+      universe = $("#universe"),
+      solarsys = $("#solar-system");
+
+  var init = function() {
+    body.removeClass('view-2D opening').addClass("view-3D").delay(2000).queue(function() {
+      $(this).removeClass('hide-UI').addClass("set-speed");
+      $(this).dequeue();
+    });
+  };
+
+  var setView = function(view) { universe.removeClass().addClass(view); };
+
+  $("#toggle-data").click(function(e) {
+    body.toggleClass("data-open data-close");
+    e.preventDefault();
+  });
+
+  $("#toggle-controls").click(function(e) {
+    body.toggleClass("controls-open controls-close");
+    e.preventDefault();
+  });
+
+  $("#data a").click(function(e) {
+    var ref = $(this).attr("class");
+    solarsys.removeClass().addClass(ref);
+    $(this).parent().find('a').removeClass('active');
+    $(this).addClass('active');
+    e.preventDefault();
+  });
+
+  $(".set-view").click(function() { body.toggleClass("view-3D view-2D"); });
+  $(".set-zoom").click(function() { body.toggleClass("zoom-large zoom-close"); });
+  $(".set-speed").click(function() { setView("scale-stretched set-speed"); });
+  $(".set-size").click(function() { setView("scale-s set-size"); });
+  $(".set-distance").click(function() { setView("scale-d set-distance"); });
+
+  init();
+
+});
+.---.
+radio buttons to work.
+$( document ).ready(function(){
+//   Hide the border by commenting out the variable below
+    var $on = 'section';
+    $($on).css({
+      'background':'none',
+      'border':'none',
+      'box-shadow':'none'
+    });
+}); 
+.---.
+/ Designed by:  Mauricio Bucardo
+// Original image:
+// https://dribbble.com/shots/5619509-Animated-Tab-Bar
+
+"use strict"; 
+
+const body = document.body;
+const bgColorsBody = ["#ffb457", "#ff96bd", "#9999fb", "#ffe797", "#cffff1"];
+const menu = body.querySelector(".menu");
+const menuItems = menu.querySelectorAll(".menu__item");
+const menuBorder = menu.querySelector(".menu__border");
+let activeItem = menu.querySelector(".active");
+
+function clickItem(item, index) {
+
+    menu.style.removeProperty("--timeOut");
+    
+    if (activeItem == item) return;
+    
+    if (activeItem) {
+        activeItem.classList.remove("active");
+    }
+
+    
+    item.classList.add("active");
+    body.style.backgroundColor = bgColorsBody[index];
+    activeItem = item;
+    offsetMenuBorder(activeItem, menuBorder);
+    
+    
+}
+
+function offsetMenuBorder(element, menuBorder) {
+
+    const offsetActiveItem = element.getBoundingClientRect();
+    const left = Math.floor(offsetActiveItem.left - menu.offsetLeft - (menuBorder.offsetWidth  - offsetActiveItem.width) / 2) +  "px";
+    menuBorder.style.transform = `translate3d(${left}, 0 , 0)`;
+
+}
+
+offsetMenuBorder(activeItem, menuBorder);
+
+menuItems.forEach((item, index) => {
+
+    item.addEventListener("click", () => clickItem(item, index));
+    
+})
+
+window.addEventListener("resize", () => {
+    offsetMenuBorder(activeItem, menuBorder);
+    menu.style.setProperty("--timeOut", "none");
+});
+.---.
+/*
+	Dropdown with Multiple checkbox select with jQuery - May 27, 2013
+	(c) 2013 @ElmahdiMahmoud
+	license: https://www.opensource.org/licenses/mit-license.php
+*/
+
+$(".dropdown dt a").on('click', function() {
+  $(".dropdown dd ul").slideToggle('fast');
+});
+
+$(".dropdown dd ul li a").on('click', function() {
+  $(".dropdown dd ul").hide();
+});
+
+function getSelectedValue(id) {
+  return $("#" + id).find("dt a span.value").html();
+}
+
+$(document).bind('click', function(e) {
+  var $clicked = $(e.target);
+  if (!$clicked.parents().hasClass("dropdown")) $(".dropdown dd ul").hide();
+});
+
+$('.mutliSelect input[type="checkbox"]').on('click', function() {
+
+  var title = $(this).closest('.mutliSelect').find('input[type="checkbox"]').val(),
+    title = $(this).val() + ",";
+
+  if ($(this).is(':checked')) {
+    var html = '<span title="' + title + '">' + title + '</span>';
+    $('.multiSel').append(html);
+    $(".hida").hide();
+  } else {
+    $('span[title="' + title + '"]').remove();
+    var ret = $(".hida");
+    $('.dropdown dt a').append(ret);
+
+  }
+});
+.---.
+/* ---- particles.js config ---- */
+
+particlesJS("particles-js", {
+  "particles": {
+    "number": {
+      "value": 380,
+      "density": {
+        "enable": true,
+        "value_area": 800
+      }
+    },
+    "color": {
+      "value": "#ffffff"
+    },
+    "shape": {
+      "type": "circle",
+      "stroke": {
+        "width": 0,
+        "color": "#000000"
+      },
+      "polygon": {
+        "nb_sides": 5
+      },
+      "image": {
+        "src": "img/github.svg",
+        "width": 100,
+        "height": 100
+      }
+    },
+    "opacity": {
+      "value": 0.5,
+      "random": false,
+      "anim": {
+        "enable": false,
+        "speed": 1,
+        "opacity_min": 0.1,
+        "sync": false
+      }
+    },
+    "size": {
+      "value": 3,
+      "random": true,
+      "anim": {
+        "enable": false,
+        "speed": 40,
+        "size_min": 0.1,
+        "sync": false
+      }
+    },
+    "line_linked": {
+      "enable": true,
+      "distance": 150,
+      "color": "#ffffff",
+      "opacity": 0.4,
+      "width": 1
+    },
+    "move": {
+      "enable": true,
+      "speed": 6,
+      "direction": "none",
+      "random": false,
+      "straight": false,
+      "out_mode": "out",
+      "bounce": false,
+      "attract": {
+        "enable": false,
+        "rotateX": 600,
+        "rotateY": 1200
+      }
+    }
+  },
+  "interactivity": {
+    "detect_on": "canvas",
+    "events": {
+      "onhover": {
+        "enable": true,
+        "mode": "grab"
+      },
+      "onclick": {
+        "enable": true,
+        "mode": "push"
+      },
+      "resize": true
+    },
+    "modes": {
+      "grab": {
+        "distance": 140,
+        "line_linked": {
+          "opacity": 1
+        }
+      },
+      "bubble": {
+        "distance": 400,
+        "size": 40,
+        "duration": 2,
+        "opacity": 8,
+        "speed": 3
+      },
+      "repulse": {
+        "distance": 200,
+        "duration": 0.4
+      },
+      "push": {
+        "particles_nb": 4
+      },
+      "remove": {
+        "particles_nb": 2
+      }
+    }
+  },
+  "retina_detect": true
+});
+
+
+/* ---- stats.js config ---- */
+
+var count_particles, stats, update;
+stats = new Stats;
+stats.setMode(0);
+stats.domElement.style.position = 'absolute';
+stats.domElement.style.left = '0px';
+stats.domElement.style.top = '0px';
+document.body.appendChild(stats.domElement);
+count_particles = document.querySelector('.js-count-particles');
+update = function() {
+  stats.begin();
+  stats.end();
+  if (window.pJSDom[0].pJS.particles && window.pJSDom[0].pJS.particles.array) {
+    count_particles.innerText = window.pJSDom[0].pJS.particles.array.length;
+  }
+  requestAnimationFrame(update);
+};
+requestAnimationFrame(update);
+.---.
+$(function(){
+  var $refreshButton = $('#refresh');
+  var $results = $('#css_result');
+  
+  function refresh(){
+    var css = $('style.cp-pen-styles').text();
+    $results.html(css);
+  }
+
+  refresh();
+  $refreshButton.click(refresh);
+  
+  // Select all the contents when clicked
+  $results.click(function(){
+    $(this).select();
+  });
+});
+
+.---.
+particlesJS("particles-js", {
+  "particles": {
+    "number": {
+      "value": 19,
+      "density": {
+        "enable": true,
+        "value_area": 481.0236182596568
+      }
+    },
+    "color": {
+      "value": "#ffffff"
+    },
+    "shape": {
+      "type": "circle",
+      "stroke": {
+        "width": 0,
+        "color": "#000000"
+      },
+      "polygon": {
+        "nb_sides": 12
+      },
+      "image": {
+        "src": "https://www.sprinklr.com/wp-content/themes/sprinklr/assets/images/logo_sprinklr.svg",
+        "width": 250,
+        "height": 100
+      }
+    },
+    "opacity": {
+      "value": 0.3286994724774322,
+      "random": true,
+      "anim": {
+        "enable": false,
+        "speed": 1,
+        "opacity_min": 0.1,
+        "sync": false
+      }
+    },
+    "size": {
+      "value": 47.34885849793636,
+      "random": true,
+      "anim": {
+        "enable": true,
+        "speed": 9.59040959040959,
+        "size_min": 5.594405594405594,
+        "sync": true
+      }
+    },
+    "line_linked": {
+      "enable": true,
+      "distance": 150,
+      "color": "#ffffff",
+      "opacity": 0.4,
+      "width": 1
+    },
+    "move": {
+      "enable": true,
+      "speed": 6.413648243462092,
+      "direction": "none",
+      "random": true,
+      "straight": false,
+      "out_mode": "bounce",
+      "bounce": false,
+      "attract": {
+        "enable": true,
+        "rotateX": 320.6824121731046,
+        "rotateY": 481.0236182596568
+      }
+    }
+  },
+  "interactivity": {
+    "detect_on": "canvas",
+    "events": {
+      "onhover": {
+        "enable": true,
+        "mode": "repulse"
+      },
+      "onclick": {
+        "enable": true,
+        "mode": "push"
+      },
+      "resize": true
+    },
+    "modes": {
+      "grab": {
+        "distance": 400,
+        "line_linked": {
+          "opacity": 1
+        }
+      },
+      "bubble": {
+        "distance": 400,
+        "size": 40,
+        "duration": 2,
+        "opacity": 8,
+        "speed": 3
+      },
+      "repulse": {
+        "distance": 200,
+        "duration": 0.4
+      },
+      "push": {
+        "particles_nb": 4
+      },
+      "remove": {
+        "particles_nb": 2
+      }
+    }
+  },
+  "retina_detect": true
+});var count_particles, stats, update; stats = new Stats; stats.setMode(0); stats.domElement.style.position = 'absolute'; stats.domElement.style.left = '0px'; stats.domElement.style.top = '0px'; document.body.appendChild(stats.domElement); count_particles = document.querySelector('.js-count-particles'); update = function() { stats.begin(); stats.end(); if (window.pJSDom[0].pJS.particles && window.pJSDom[0].pJS.particles.array) { count_particles.innerText = window.pJSDom[0].pJS.particles.array.length; } requestAnimationFrame(update); }; requestAnimationFrame(update);;
+
+.---.
+$(window).load(function(){
+
+  var body = $("body"),
+      universe = $("#universe"),
+      solarsys = $("#solar-system");
+
+  var init = function() {
+    body.removeClass('view-2D opening').addClass("view-3D").delay(2000).queue(function() {
+      $(this).removeClass('hide-UI').addClass("set-speed");
+      $(this).dequeue();
+    });
+  };
+
+  var setView = function(view) { universe.removeClass().addClass(view); };
+
+  $("#toggle-data").click(function(e) {
+    body.toggleClass("data-open data-close");
+    e.preventDefault();
+  });
+
+  $("#toggle-controls").click(function(e) {
+    body.toggleClass("controls-open controls-close");
+    e.preventDefault();
+  });
+
+  $("#data a").click(function(e) {
+    var ref = $(this).attr("class");
+    solarsys.removeClass().addClass(ref);
+    $(this).parent().find('a').removeClass('active');
+    $(this).addClass('active');
+    e.preventDefault();
+  });
+
+  $(".set-view").click(function() { body.toggleClass("view-3D view-2D"); });
+  $(".set-zoom").click(function() { body.toggleClass("zoom-large zoom-close"); });
+  $(".set-speed").click(function() { setView("scale-stretched set-speed"); });
+  $(".set-size").click(function() { setView("scale-s set-size"); });
+  $(".set-distance").click(function() { setView("scale-d set-distance"); });
+
+  init();
+
+});
+.---.
+$(document).ready(function() {
+  $('body').addClass('js');
+  var $menu = $('#menu'),
+    $menulink = $('.menu-link');
+  
+$menulink.click(function() {
+  $menulink.toggleClass('active');
+  $menu.toggleClass('active');
+  return false;
+});});
+.---.
+let activeIndex = 0
+let limit = 0
+let disabled = false
+let $stage
+let $controls
+let canvas = false
+
+const SPIN_FORWARD_CLASS = 'js-spin-fwd'
+const SPIN_BACKWARD_CLASS = 'js-spin-bwd'
+const DISABLE_TRANSITIONS_CLASS = 'js-transitions-disabled'
+const SPIN_DUR = 1000
+
+const appendControls = () => {
+  for (let i = 0; i < limit; i++) {
+    $('.carousel__control').append(`<a href="#" data-index="${i}"></a>`)
+  }
+  let height = $('.carousel__control').children().last().outerHeight()
+  
+  $('.carousel__control').css('height', (30 + (limit * height)))
+  $controls = $('.carousel__control').children()
+  $controls.eq(activeIndex).addClass('active')
+}
+
+const setIndexes = () => {
+    $('.spinner').children().each((i, el) => {
+        $(el).attr('data-index', i)
+        limit++
+    })
+}
+
+const duplicateSpinner = () => {
+    const $el = $('.spinner').parent()
+    const html = $('.spinner').parent().html()
+    $el.append(html)
+    $('.spinner').last().addClass('spinner--right')
+    $('.spinner--right').removeClass('spinner--left')
+}
+
+const paintFaces = () => {
+    $('.spinner__face').each((i, el) => {
+        const $el = $(el)
+        let color = $(el).attr('data-bg')
+        $el.children().css('backgroundImage', `url(${getBase64PixelByColor(color)})`)
+    })
+}
+
+const getBase64PixelByColor = (hex) => {
+    if (!canvas) {
+        canvas = document.createElement('canvas')
+        canvas.height = 1
+        canvas.width = 1
+    }
+    if (canvas.getContext) {
+        const ctx = canvas.getContext('2d')
+        ctx.fillStyle = hex
+        ctx.fillRect (0, 0, 1, 1)
+        return canvas.toDataURL()
+    }
+    return false
+}
+
+const prepareDom = () => {
+    setIndexes()
+    paintFaces()
+    duplicateSpinner()
+    appendControls()
+}
+
+const spin = (inc = 1) => {
+    if (disabled) return
+    if (!inc) return
+    activeIndex += inc
+    disabled = true
+
+    if (activeIndex >= limit) {
+        activeIndex = 0
+    }
+  
+    if (activeIndex < 0) {
+        activeIndex = (limit - 1)
+    }
+
+    const $activeEls = $('.spinner__face.js-active')
+    const $nextEls = $(`.spinner__face[data-index=${activeIndex}]`)
+    $nextEls.addClass('js-next')
+  
+    if (inc > 0) {
+      $stage.addClass(SPIN_FORWARD_CLASS)
+    } else {
+      $stage.addClass(SPIN_BACKWARD_CLASS)
+    }
+    
+    $controls.removeClass('active')
+    $controls.eq(activeIndex).addClass('active')
+  
+    setTimeout(() => {
+        spinCallback(inc)
+    }, SPIN_DUR, inc)
+}
+
+const spinCallback = (inc) => {
+    
+    $('.js-active').removeClass('js-active')
+    $('.js-next').removeClass('js-next').addClass('js-active')
+    $stage
+        .addClass(DISABLE_TRANSITIONS_CLASS)
+        .removeClass(SPIN_FORWARD_CLASS)
+        .removeClass(SPIN_BACKWARD_CLASS)
+  
+    $('.js-active').each((i, el) => {
+        const $el = $(el)
+        $el.prependTo($el.parent())
+    })
+    setTimeout(() => {
+        $stage.removeClass(DISABLE_TRANSITIONS_CLASS)
+        disabled = false
+    }, 100)
+
+}
+
+const attachListeners = () => {
+  
+    document.onkeyup = (e) => {
+        switch (e.keyCode) {
+            case 38:
+                spin(-1)
+                break
+            case 40:
+                spin(1)
+                break
+            }
+    }
+ 
+    $controls.on('click', (e) => {
+      e.preventDefault()
+      if (disabled) return
+      const $el = $(e.target)
+      const toIndex = parseInt($el.attr('data-index'), 10)
+      spin(toIndex - activeIndex)
+      
+    })
+}
+
+const assignEls = () => {
+    $stage = $('.carousel__stage')
+}
+
+const init = () => {
+    assignEls()
+    prepareDom()
+    attachListeners()
+}
+
+
+$(() => {
+    init();
+});
+.---.

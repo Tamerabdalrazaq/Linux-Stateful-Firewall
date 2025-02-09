@@ -165,19 +165,19 @@ def analyze_content(content, seperator):
 
 
 def analyze_normal_text():
-    file1 = open("normal_text_sample.txt", "r")
+    file1 = open("datasets/normal_text_sample.txt", "r")
     content = file1.read()
     pure_scores = analyze_content(content, "---")
     return pure_scores
 
 def analyze_html_text():
-    file1 = open("html_text_sample.txt", "r")
+    file1 = open("datasets/html_text_sample.txt", "r")
     content = file1.read()
     pure_scores = analyze_content(content, ".---.")
     return pure_scores
 
 def analyze_js_text():
-    file1 = open("js_code_sample.txt", "r")
+    file1 = open("datasets/js_code_sample.txt", "r")
     content = file1.read()
     pure_scores = analyze_content(content, ".---.")
     return pure_scores
@@ -185,11 +185,11 @@ def analyze_js_text():
 
 def analyze_c_code():
     # global THRESHOLD
-    file1 = open("c_code_dataset.txt", "r")
-    file2 = open("c_code_dataset_long1.txt", "r")
-    file3 = open("c_code_dataset_long2.txt", "r")
-    file4 = open("kaggle_c_dataset.txt", "r")
-    file5 = open("complex_c_dataset.txt", "r")
+    file1 = open("datasets/c_code_dataset.txt", "r")
+    file2 = open("datasets/c_code_dataset_long1.txt", "r")
+    file3 = open("datasets/c_code_dataset_long2.txt", "r")
+    file4 = open("datasets/kaggle_c_dataset.txt", "r")
+    file5 = open("datasets/complex_c_dataset.txt", "r")
     content = file1.read() + file2.read() + file3.read() + file4.read() + file5.read()
     pure_scores = analyze_content(content, "#include <stdio.h>")
     fifth_percentile = int(0.05 * len(pure_scores))
