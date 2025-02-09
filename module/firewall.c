@@ -1079,12 +1079,6 @@ static int handle_fin_state( connection_rule_row* connection, connection_rule_t*
                     print_connections_table();
                     return NF_ACCEPT;
                 }
-                else if (fin == FIN_NO && !packet_sent  && (other_rule->state > STATE_LAST_ACK)) {
-                    printk(KERN_INFO "STATCE_MACHINE_%s: Accepting for Wait_1 -> CLOSED", terminator);
-                    rule->state = STATE_CLOSED;
-                    print_connections_table();
-                    return NF_ACCEPT;
-                }
                 break;
 
             case STATE_FIN_WAIT_2:
