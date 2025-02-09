@@ -1098,7 +1098,7 @@ static int handle_fin_state( connection_rule_row* connection, connection_rule_t*
                     return NF_ACCEPT;
                 }
                 break;
-            case STATE_CLOSE_WAIT:
+            case STATE_CLOSE_WAIT:  
                 if (fin == FIN_YES && packet_sent) { // Received fin and responded with ack.
                         printk(KERN_INFO "STATCE_MACHINE_%s: Accepting for Close_wait -> Last_ACK", terminator);
                         rule->state = STATE_LAST_ACK;
@@ -1114,6 +1114,9 @@ static int handle_fin_state( connection_rule_row* connection, connection_rule_t*
                         return NF_ACCEPT;
                     }
                     break;
+            case STATE_CLOSED:
+                    other_rule->state = STATE_CLOSED;
+                    return NF_ACCEPT;
 
             default:
                 printk(KERN_INFO "\n\n*** STATCE_MACHINE_%s: Dropping by default *** \n\n", terminator);
