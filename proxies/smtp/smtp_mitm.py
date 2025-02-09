@@ -1,7 +1,10 @@
+import sys
+import os
 import socket
 import threading
-import select
-
+sys.path.insert(1, os.path.abspath("../C_detector"))
+print("sys.path: ", sys.path)
+import analyze_dlp
 # Configuration
 LISTEN_PORT = 250
 FTP_SERVER_PORT = 25
@@ -51,6 +54,11 @@ def get_data_command(client_data):
     print("command: ", command)
     return command.upper().startswith("DATA")
 
+def DLP_verdict(res):
+    score = analyze_dlp.get_snippet_score(res)
+    if score > analyze_dlp.THRESHOLD:
+        return True
+    return False
 
 def forward_cli_srv(client_socket, server_socket, client_address, server_address):
     while True:
@@ -62,15 +70,17 @@ def forward_cli_srv(client_socket, server_socket, client_address, server_address
         print("Received from client: ", client_data.decode().strip())
         server_socket.sendall(client_data)
 
-def forward_srv_cli(client_socket, server_socket):
+def forward_srv_cli(server_socket, client_socket):
     while True:
-        # Receive data from client
-        client_data = client_socket.recv(4096)
-        if not client_data:
+        # Receive data from server
+        server_data = server_socket.recv(4096)
+        if not server_data:
             break
-        print("Received from server: ", client_data.decode().strip())
-            # Check if the command is a PORT command
-        server_socket.sendall(client_data)
+        print("Received from server: ", server_data.decode().strip())
+        # Validate DLP
+        if DLP_verdict(server_data.decode()):
+            return client_socket.sendall("DLP Prevented".encode())
+        client_socket.sendall(server_data)
 
 def handle_client(client_socket, client_address):
     server_socket = None
