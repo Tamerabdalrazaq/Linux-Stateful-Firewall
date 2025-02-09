@@ -1,13 +1,13 @@
 #!/bin/bash
 
 if [[ "$1" == "http" || "$1" == "all" ]]; then
-    sudo python3 .proxies/http/http_mitm.py
+    sudo python3 ./proxies/http/http_mitm.py
     echo "HTTP proxy activated"
 elif [[ "$1" == "ftp" || "$1" == "all" ]]; then
-    sudo python3 .proxies/ftp/ftp_mitm.py
+    sudo python3 ./proxies/ftp/ftp_mitm.py
     echo "FTP proxy activated"
 elif [[ "$1" == "smtp" || "$1" == "all" ]]; then
-    sudo python3 .proxies/smtp/smtp_mitm.py
+    sudo python3 ./proxies/smtp/smtp_mitm.py
     echo "SMTP proxy activated"
 else 
     echo "Invalid argument. Use: \n bash activate_proxies.sh ['http', 'ftp', 'smtp', 'all']"
