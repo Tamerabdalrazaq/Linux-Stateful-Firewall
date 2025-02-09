@@ -56,6 +56,7 @@ def get_data_command(client_data):
 
 def DLP_verdict(res):
     score = analyze_dlp.get_snippet_score(res)
+    print("DLP Score: ", score)
     if score > analyze_dlp.THRESHOLD:
         return True
     return False
