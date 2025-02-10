@@ -1,5 +1,5 @@
 # Firewall 
-
+This project was carried out with the guidance of Reuven Plevinsky @ Check Point Software Technologies 
 ## Overview
 The firewall module performs comprehensive packet inspection, connection tracking, and logging, making it a versatile tool for network security on a Linux machine. By leveraging the Netfilter framework, it enables efficient and stateful packet filtering, MITM support for certain protocols, and real-time traffic monitoring. The sysfs interface further allows dynamic interaction with the firewall, providing flexibility in managing firewall rules and inspecting network traffic.
 
@@ -19,7 +19,9 @@ The firewall module performs comprehensive packet inspection, connection trackin
 2. Initialize the module:
     ```bash
     bash init_module.sh
-    bash activate_mitm_proxy.sh
+    bash activate_proxies.sh http
+    bash activate_proxies.sh ftp
+    bash activate_proxies.sh smtp
 
 ## Sysfs Interface
 
@@ -95,6 +97,13 @@ The module logs every packet that it processes, including the packet’s timesta
 ## 4. MITM (Man-in-the-Middle) Support
 
 The module supports modifying packets in real-time for HTTP and FTP traffic, allowing for Man-in-the-Middle (MITM) attacks. In this case, packets can be redirected to a different server or port, enabling packet inspection and modification on the fly.
+
+## 5. DLP
+Prevention of leaking sensitive C code on HTTP and SMTP ports
+
+## 6. IPS
+Intrusion prevention system base layed with an implementation of a prevention of two known vulnerabilities for the ApacheOfbiz framework (CVE-2024-32113 and CVE-2024-38856)
+
 
 ### Relevant Functions:
 - **`handle_mitm_pre_routing()`**:
