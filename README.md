@@ -22,6 +22,11 @@ The firewall module performs comprehensive packet inspection, connection trackin
     bash activate_proxies.sh http
     bash activate_proxies.sh ftp
     bash activate_proxies.sh smtp
+3. Updating the static rules table:
+     - Modify the rules file and see (4)
+4. Viewing Firewall stats (logs, static rules, dynamic rules) and updating the logs:
+    ```bash
+    bash run_user.sh
 
 ## Sysfs Interface
 
