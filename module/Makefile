@@ -1,6 +1,6 @@
 obj-m += firewall_module.o
 
-firewall-objs := firewall.o helpers.o
+firewall_module-objs := firewall.o helpers.o
 
 all:
 	make -C /lib/modules/$(shell uname -r)/build M=$(PWD) modules
