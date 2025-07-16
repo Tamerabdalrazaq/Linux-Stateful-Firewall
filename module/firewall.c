@@ -1602,7 +1602,7 @@ static int __init fw_init(void) {
     int ret;
     printk(KERN_INFO "\n\n\n\n\nLoading firewall module...!\n __V1.02__\n\n\n\n");
     char* string = print_hi();
-    printk(KERN_INFO string);
+    printk(KERN_INFO "%s", string);
     // ******
     // Devices setup
     // ******
