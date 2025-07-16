@@ -1,4 +1,4 @@
-obj-m += firewall.o
+obj-m += firewall_module.o
 
 firewall-objs := firewall.o helpers.o
 
