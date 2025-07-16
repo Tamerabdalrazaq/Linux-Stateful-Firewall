@@ -2,6 +2,6 @@
 #ifndef HELPERS_H
 #define HELPERS_H
 
-char* print_hi(void);
+int print_hi(void);
 
 #endif
